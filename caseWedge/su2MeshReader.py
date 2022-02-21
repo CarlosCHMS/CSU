@@ -1,5 +1,5 @@
 
-
+import sys
 
 class reader():
 
@@ -25,7 +25,6 @@ class reader():
                 mod = 1    
                 ii = 0
                 
-
             elif row[0:5] == "NPOIN":
 
                 self.Npoin = int(row[6:-1]) 
@@ -52,31 +51,52 @@ class reader():
 
                 elif mod == 3:
                     if jj == 0:
-                        print('1', row)
                         m = marker()
                         m.getTag(row)
                         jj += 1
                     elif jj == 1:
-                        print('2', row)
                         m.getNelem(row)
                         jj += 1
                     elif jj >= 2 and jj < 1 + m.Nelem:
-                        print('3', row)
                         m.elemAppend(row)
                         jj += 1
                     else:
-                        print('4', row)
                         m.elemAppend(row)
                         self.markers.append(m)
                         jj = 0
 
 
-                        
-                        
-                
-                        
+        ff.close()
+        
+        self.writeFile()
+      
+        
+    def writeFile(self):
+    
+        Ntab = 2 + len(self.markers)
+        
+        ff = open('./mesh.csv', 'w')
 
+        ff.write("%i, \n" % (Ntab))
+        
+        for ii in range(0, len(self.markers)):
+            ff.write("%i, %i, %i,\n" % (ii, self.markers[ii].Nelem, 2))
+            for jj in range(0, self.markers[ii].Nelem):
+                ff.write("%i, %i,\n" % (self.markers[ii].elem[jj][0], self.markers[ii].elem[jj][1]))
+        
+        ff.write("%i, %i, %i,\n" % (Ntab-2, len(self.elem), 3))
+        for jj in range(0, len(self.elem)):
+            ff.write("%i, %i, %i,\n" % (self.elem[jj][0], self.elem[jj][1], self.elem[jj][2]))
 
+        ff.write("%i, %i, %i,\n" % (Ntab-1, len(self.p), 2))
+        for jj in range(0, len(self.p)):
+            ff.write("%.10e, %.10e,\n" % (self.p[jj][0], self.p[jj][1]))
+
+        ff.close()
+        
+        return None
+        
+        
 class marker():
     
     def __init__(self):
@@ -107,14 +127,9 @@ class marker():
 
 if __name__=="__main__":
 
-    r = reader("./testesu2")
+    if len(sys.argv) < 1:
+        print("Insert the input file")
+        exit(0)
 
-    print(r.Ndime)
-    print(r.Nelem)
-    print(r.elem)
-    print(r.Npoin)
-    print(r.p)
-    print(r.Nmark)
-    for m in r.markers:
-        print(m.elem)
+    r = reader(sys.argv[1])
 
