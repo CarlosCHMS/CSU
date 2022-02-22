@@ -1,6 +1,3 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
 
 typedef struct
 {
@@ -18,12 +15,15 @@ typedef struct
     int Nelem;
     int Np;
     int Nmark;
+    int Ncon;
     
     int** elem;
     
     double** p;
     
     MESHBC** bc;
+
+    int** con;
 
 } MESH;
 
@@ -40,5 +40,13 @@ void meshPrint(MESH* mesh);
 void meshBCFree(MESHBC* bc);
 
 void meshFree(MESH* mesh);
+
+void meshElemCenter(MESH* mesh, int ii, double* x, double* y);
+
+double meshCalcOmega(MESH* mesh, int ii);
+
+double meshIsConnected(MESH* mesh, int ii, int jj, int* p0, int* p1);
+
+double meshCalcConnection(MESH* mesh);
 
 

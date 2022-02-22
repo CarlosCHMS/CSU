@@ -147,6 +147,8 @@ MESH* meshInit(char* fileName)
     
     fclose(ff);
 
+    meshCalcConnection(mesh);
+
     return mesh;
 
 }
@@ -170,25 +172,29 @@ void meshPrint(MESH* mesh)
     int ii;
 
     printf("%i\n", mesh->Nelem);
-
     for(ii=0; ii<mesh->Nelem; ii++)
     {
         printf("%i, %i, %i\n", mesh->elem[ii][0], mesh->elem[ii][1], mesh->elem[ii][2]);
     }
 
     printf("%i\n", mesh->Np);
-    
     for(ii=0; ii<mesh->Np; ii++)
     {
         printf("%.10e, %.10e\n", mesh->p[ii][0], mesh->p[ii][1]);
     }
 
     printf("%i\n", mesh->Nmark);
-
     for(int ii=0; ii<mesh->Nmark; ii++)
     {
         meshPrintBC(mesh->bc[ii]);
     }
+
+    printf("%i\n", mesh->Ncon);
+    for(ii=0; ii<mesh->Ncon; ii++)
+    {
+        printf("%i, %i, %i, %i\n", mesh->con[ii][0], mesh->con[ii][1], mesh->con[ii][2], mesh->con[ii][3]);
+    }
+
 
 }
 
@@ -205,6 +211,7 @@ void meshFree(MESH* mesh)
 
     tableFreeInit(mesh->elem, mesh->Nelem);
     tableFreeDouble(mesh->p, mesh->Np);
+    tableFreeInit(mesh->con, mesh->Ncon);
     
     for(int ii; ii<mesh->Nmark; ii++)
     {
@@ -217,6 +224,114 @@ void meshFree(MESH* mesh)
     //free(mesh);
 
 }
+
+void meshElemCenter(MESH* mesh, int ii, double* x, double* y)    
+{
+
+    *x = (mesh->p[mesh->elem[ii][0]][0] + mesh->p[mesh->elem[ii][1]][0] + mesh->p[mesh->elem[ii][2]][0])/3;
+    *y = (mesh->p[mesh->elem[ii][0]][1] + mesh->p[mesh->elem[ii][1]][1] + mesh->p[mesh->elem[ii][2]][1])/3;
+
+}
+
+double meshCalcOmega(MESH* mesh, int ii)
+{
+ 
+    double x1 = mesh->p[mesh->elem[ii][0]][0];
+    double x2 = mesh->p[mesh->elem[ii][1]][0];
+    double x3 = mesh->p[mesh->elem[ii][2]][0];
+
+    double y1 = mesh->p[mesh->elem[ii][0]][1];
+    double y2 = mesh->p[mesh->elem[ii][1]][1];
+    double y3 = mesh->p[mesh->elem[ii][2]][1];
+
+    return 0.5*((x1 - x2)*(y1 + y2) + (x2 - x3)*(y2 + y3) + (x3 - x1)*(y3 + y1));
+
+}
+
+double meshIsConnected(MESH* mesh, int ii, int jj, int* p0, int* p1)
+{
+
+    int kk, mm;
+    int link = 0;
+    int ans = 0;
+    int aux;
     
+    for(kk=0; kk<3; kk++)
+    {
+        for(mm=0; mm<3; mm++)
+        {
+            if(mesh->elem[ii][kk] == mesh->elem[jj][mm])
+            {
+                link += 1;
+
+                if(link==1)
+                {
+                    *p0 = mesh->elem[ii][kk];
+                }
+                else if(link==2)
+                {
+                    *p1 = mesh->elem[ii][kk];
+                }
+            }
+        }
+    }
+
+    //This if ensurres correct orientation relatively to the first element
+    if(*p0 == mesh->elem[ii][0] & *p1 == mesh->elem[ii][2])
+    {
+        aux = *p0;
+        *p0 = *p1;
+        *p1 = aux;
+    }
+
+    if(link == 2)
+    {
+        ans = 1;
+    }
+
+    return ans;
+
+}
+
+double meshCalcConnection(MESH* mesh)
+{
+
+    int p0, p1, kk;
+
+    mesh->Ncon = 0;
+
+    for(int ii=0; ii<mesh->Nelem-1; ii++)
+    {
+        for(int jj=ii+1; jj<mesh->Nelem; jj++)
+        {
+            if(meshIsConnected(mesh, ii, jj, &p0, &p1))
+            {
+                mesh->Ncon += 1;
+            }
+        }
+    }
+
+    mesh->con = tableMallocInt(mesh->Ncon, 4);
+
+    kk = 0;
+    for(int ii=0; ii<mesh->Nelem-1; ii++)
+    {
+        for(int jj=ii+1; jj<mesh->Nelem; jj++)
+        {
+            if(meshIsConnected(mesh, ii, jj, &p0, &p1))
+            {
+                mesh->con[kk][0] = ii;
+                mesh->con[kk][1] = jj;
+                mesh->con[kk][2] = p0;
+                mesh->con[kk][3] = p1;
+                kk++;
+            }
+        }
+    }
+
+}
+
+
+
 
 

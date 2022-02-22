@@ -105,5 +105,6 @@ if __name__=="__main__":
     plt.figure()
     plt.tricontourf(triang, s.r)
     plt.triplot(triang, 'ko-') 
-    plt.axis('equal')   
+    plt.axis('equal') 
+    plt.colorbar()  
     plt.show()
