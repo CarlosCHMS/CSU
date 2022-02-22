@@ -1,3 +1,0 @@
-rm ./executable
-gcc ./readSU2.c -o ./executable
-./executable
