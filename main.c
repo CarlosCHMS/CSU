@@ -81,19 +81,13 @@ int main(int argc, char **argv)
     solver->flux = fluxChoice(inputGetValue(input, "flux"));
     solver->stages = atoi(inputGetValue(input, "stages"));
 
-    for(int ii=0; ii<solver->mesh->Nelem; ii++)
-    {
-        for(int jj=0; jj<4; jj++)
-        {
-            solver->U[jj][ii] = 0.0;
+    solverResetR(solver);
     
-        }
-
-    } 
+    inter(solver, solver->U);
 
     test(solver);
 
-    //meshPrint(solver->mesh);
+    meshPrint(solver->mesh);
     
     // Save solution
     s[0] = '\0';

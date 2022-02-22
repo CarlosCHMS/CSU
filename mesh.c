@@ -148,6 +148,11 @@ MESH* meshInit(char* fileName)
     fclose(ff);
 
     meshCalcConnection(mesh);
+    
+    for(ii=0; ii<mesh->Nmark; ii++)
+    {
+        meshBCDomain(mesh->bc[ii], mesh);
+    }
 
     return mesh;
 
@@ -161,7 +166,7 @@ void meshPrintBC(MESHBC* bc)
 
     for(int ii=0; ii<bc->Nelem; ii++)
     {
-        printf("%i, %i\n", bc->elem[ii][0], bc->elem[ii][1]);
+        printf("%i, %i, %i\n", bc->elem[ii][0], bc->elem[ii][1], bc->domain[ii]);
     }
 
 }
@@ -189,11 +194,13 @@ void meshPrint(MESH* mesh)
         meshPrintBC(mesh->bc[ii]);
     }
 
+    /*
     printf("%i\n", mesh->Ncon);
     for(ii=0; ii<mesh->Ncon; ii++)
     {
         printf("%i, %i, %i, %i\n", mesh->con[ii][0], mesh->con[ii][1], mesh->con[ii][2], mesh->con[ii][3]);
     }
+    */
 
 
 }
@@ -331,7 +338,61 @@ double meshCalcConnection(MESH* mesh)
 
 }
 
+void meshCalcDS(MESH* mesh, int p0, int p1, double* dSx, double* dSy)
+{
 
+    double x0 = mesh->p[p0][0];
+    double y0 = mesh->p[p0][1];
+    
+    double x1 = mesh->p[p1][0];
+    double y1 = mesh->p[p1][1];
 
+    *dSx = y1 - y0;
+    *dSy = -(x1 - x0);
 
+}
+
+int meshBCIsConnect(int* BCp, int* p)
+{
+
+    int link = 0;
+    int ans = 0;
+    
+    for(int ii=0; ii<2; ii++)
+    {
+        for(int jj=0; jj<3; jj++)
+        {
+            if(BCp[ii]==p[jj])
+            {
+                link += 1;
+            }
+        }
+    }
+    
+    if(link==2)
+    {
+        ans = 1;
+    }
+    
+    
+    return ans;
+}
+
+void meshBCDomain(MESHBC* bc, MESH* mesh)
+{
+    bc->domain = malloc(bc->Nelem*sizeof(int));
+    
+    for(int ii=0; ii<bc->Nelem; ii++)
+    {
+        for(int jj=0; jj<mesh->Nelem; jj++)
+        {
+            if(meshBCIsConnect(bc->elem[ii], mesh->elem[jj]))
+            {
+                bc->domain[ii] = jj;
+            }
+        }
+    
+    }
+    
+}
 

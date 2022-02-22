@@ -73,8 +73,10 @@ void solverInitU(SOLVER* solver, CONDITION* inside);
 
 void solverResetR(SOLVER* solver);
 
-double solverCalcP(SOLVER* solver, double*** U, int ii, int jj);
+double solverCalcP(SOLVER* solver, double** U, int ii);
 
-void solverCalcVel(SOLVER* solver, double*** U, int ii, int jj, double* u, double* v, double* c);
+void solverCalcVel(SOLVER* solver, double** U, int ii, double* u, double* v, double* c);
 
 void rotation(double* U, double dSx, double dSy, double dS);
+
+void inter(SOLVER* solver, double **U);

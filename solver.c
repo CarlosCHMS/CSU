@@ -7,6 +7,7 @@
 #include"utils.h"
 #include"mesh.h"
 #include"solver.h"
+#include"flux.h"
 
 CONDITION* conditionInit(double p, double T, double mach, double nx, double ny)
 {
@@ -148,24 +149,24 @@ void solverResetR(SOLVER* solver)
     }
 }
 
-double solverCalcP(SOLVER* solver, double*** U, int ii, int jj)
+double solverCalcP(SOLVER* solver, double** U, int ii)
 {
 
-	double u = U[1][ii][jj]/U[0][ii][jj];
-	double v = U[2][ii][jj]/U[0][ii][jj];
+	double u = U[1][ii]/U[0][ii];
+	double v = U[2][ii]/U[0][ii];
     
-	return (solver->gamma - 1)*(U[3][ii][jj] - 0.5*(u*u + v*v)*U[0][ii][jj]);
+	return (solver->gamma - 1)*(U[3][ii] - 0.5*(u*u + v*v)*U[0][ii]);
     
 }
 
-void solverCalcVel(SOLVER* solver, double*** U, int ii, int jj, double* u, double* v, double* c)
+void solverCalcVel(SOLVER* solver, double** U, int ii, double* u, double* v, double* c)
 {
     
-    double E = U[3][ii][jj]/U[0][ii][jj];
+    double E = U[3][ii]/U[0][ii];
     double aux;
 
-    *u = U[1][ii][jj]/U[0][ii][jj];
-    *v = U[2][ii][jj]/U[0][ii][jj];
+    *u = U[1][ii]/U[0][ii];
+    *v = U[2][ii]/U[0][ii];
     
     aux = (E - ((*u)*(*u) + (*v)*(*v))/2);
     aux *= solver->gamma - 1;
@@ -180,4 +181,58 @@ void rotation(double* U, double dSx, double dSy, double dS)
     U[2] = (-U[1]*dSy + U[2]*dSx)/dS;
     U[1] = aux;
 	
+}
+
+void inter(SOLVER* solver, double **U)
+{
+    
+	int kk;
+    double dSx, dSy, dS;
+    double aux;
+    double UL[4];
+	double UR[4];
+    double f[4];
+    double delta;
+    int e0, e1, p0, p1;
+
+    for(int ii=0; ii<solver->mesh->Ncon; ii++)
+    {
+ 
+        e0 = solver->mesh->con[ii][0];
+        e1 = solver->mesh->con[ii][1];
+        p0 = solver->mesh->con[ii][2];
+        p1 = solver->mesh->con[ii][3];
+ 
+        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+        dS = sqrt(dSx*dSx + dSy*dSy);
+        
+        for(kk=0; kk<4; kk++)
+		{
+			UL[kk] = U[kk][e0];
+		}
+        
+        for(kk=0; kk<4; kk++)
+		{
+			UR[kk] = U[kk][e1];
+		}
+		
+        // Rotation of the velocity vectors
+		rotation(UL, dSx, dSy, dS);
+                    
+        // Rotation of the velocity vectors
+		rotation(UR, dSx, dSy, dS);
+        
+        // Flux calculation
+        flux(solver, UL[0], UL[1], UL[2], UL[3], UR[0], UR[1], UR[2], UR[3], f);
+
+        // Rotation of the flux
+		rotation(f, dSx, -dSy, dS);
+                         
+        for(kk=0; kk<4; kk++)
+        {
+            aux = f[kk]*dS;
+            solver->R[kk][e0] += aux;
+            solver->R[kk][e1] -= aux;
+        } 
+    }
 }

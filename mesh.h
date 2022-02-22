@@ -5,6 +5,8 @@ typedef struct
     int Nelem;
     int** elem;
     char name[50];
+    
+    int* domain;
 
 } MESHBC;
 
@@ -49,4 +51,9 @@ double meshIsConnected(MESH* mesh, int ii, int jj, int* p0, int* p1);
 
 double meshCalcConnection(MESH* mesh);
 
+void meshCalcDS(MESH* mesh, int p0, int p1, double* dSx, double* dSy);
+
+int meshBCIsConnect(int* BCp, int* p);
+
+void meshBCDomain(MESHBC* bc, MESH* mesh);
 
