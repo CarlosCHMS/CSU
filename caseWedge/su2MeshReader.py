@@ -68,9 +68,21 @@ class reader():
 
         ff.close()
         
-        self.writeFile()
+        self.xy()
       
-        
+
+    def xy(self):
+    
+        self.x = []
+        self.y = []
+
+        for pp in self.p:
+
+            self.x.append(pp[0])
+            self.y.append(pp[1])
+
+        return None
+    
     def writeFile(self):
     
         Ntab = 2 + len(self.markers)

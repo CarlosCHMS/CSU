@@ -1,9 +1,10 @@
 
 
-import numpy
 import matplotlib.pyplot as plt
-from readTables import readTables
+import matplotlib.tri as mtri
+from su2MeshReader import reader
 import sys
+import numpy
  
 class solution():
 
@@ -12,28 +13,43 @@ class solution():
         self.gamma = 1.4
         self.Rgas = 287.5
 
-
-        rt = readTables(meshFile)
+        r = reader(meshFile)
         
-        x0 = rt.tabList[0]
-        y0 = rt.tabList[1]
-        
-        self.x = numpy.zeros((x0.shape[0]-1, x0.shape[1]-1))
-        self.y = numpy.zeros((y0.shape[0]-1, y0.shape[1]-1))
-        
-        for ii in range(0, x0.shape[0]-1):
-            for jj in range(0, x0.shape[1]-1):
-            
-                self.x[ii, jj] = (x0[ii, jj] + x0[ii+1, jj] + x0[ii, jj+1] + x0[ii+1, jj+1])/4
-                self.y[ii, jj] = (y0[ii, jj] + y0[ii+1, jj] + y0[ii, jj+1] + y0[ii+1, jj+1])/4
+        self.x = r.x
+        self.y = r.y
+        self.elem = r.elem
                 
-        rt = readTables(solFile)
+        ff = open(solFile)
+
+        self.r = []
+        self.ru = []
+        self.rv = []
+        self.rE = []
+
+        first = True
+        for row in ff:
+            if first:
+                first = False
+            else:
+                aux = row.split(',')
+                self.r.append(float(aux[0]))
+                self.ru.append(float(aux[1]))
+                self.rv.append(float(aux[2]))
+                self.rE.append(float(aux[3]))
+
+        ff.close()
+
+        self._toArray()
+    
+    def _toArray(self):
+
+        self.r = numpy.array(self.r)
+        self.ru = numpy.array(self.ru)
+        self.rv = numpy.array(self.rv)
+        self.rE = numpy.array(self.rE)
+
+        return None
         
-        self.r = rt.tabList[0]
-        self.ru = rt.tabList[1]
-        self.rv = rt.tabList[2]
-        self.rE = rt.tabList[3]
-            
     def calcPMT(self):
        
         u = self.ru/self.r
@@ -76,12 +92,18 @@ def levels(v, n):
     
 if __name__=="__main__":
 
-    rt = readTables("./mesh.csv")
-
-    print(rt.tabList[5])
+    if len(sys.argv) < 1:
+        print("Insert the input file")
+        exit(0)
     
+    path = sys.argv[1]
+
+    s = solution(path+"mesh.su2", path+"solution.csv")
+
+    triang = mtri.Triangulation(s.x, s.y, s.elem)
+
     plt.figure()
-    for xy in rt.tabList[5]:
-        plt.plot(xy[0], xy[1], '.')
-        
+    plt.tricontourf(triang, s.r)
+    plt.triplot(triang, 'ko-') 
+    plt.axis('equal')   
     plt.show()

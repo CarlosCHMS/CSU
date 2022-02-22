@@ -4,29 +4,73 @@
 #include<string.h>
 #include<sys/time.h>
 #include<omp.h>
-#include"input.h"
+#include"utils.h"
 #include"mesh.h"
 
-int main(int argc, char **argv)
+typedef struct
 {
 
     MESH* mesh;
-    mesh = meshInit("./caseWedge/mesh.csv");
+    double** U;
 
-    for(int ii=0; ii<mesh->Np; ii++)
-    {
-        printf("%i, %f, %f\n", ii, mesh->p[ii][0], mesh->p[ii][1]);
+} SOLVER;
+
+
+void solverFree(SOLVER* solver)
+{
+
+    meshFree(solver->mesh);
+    tableFreeDouble(solver->U, 4);
+
+}
+
+void solverWrite(SOLVER* solver, char* fileName)
+{
+
+    FILE* ff = fopen(fileName, "w");
+    double* num= malloc(solver->mesh->Np*sizeof(double));
+    double* den= malloc(solver->mesh->Np*sizeof(double));
+    double aux;
+
     
+    fprintf(ff, "0, %i, 4,\n", solver->mesh->Np);
+
+    for(int ii; ii<solver->mesh->Np; ii++)
+    {
+
+        aux = cos(1.5*solver->mesh->p[ii][0])*cos(1.5*solver->mesh->p[ii][1]);
+        fprintf(ff, "%f, ", aux);
+        fprintf(ff, "%f, ", aux);
+        fprintf(ff, "%f, ", aux);
+        fprintf(ff, "%f, ", aux);
+        fprintf(ff, "\n");        
+
     }
 
-    for(int ii=0; ii<mesh->Nelem; ii++)
-    {
-        printf("%i, %i, %i, %i\n", ii, mesh->elem[ii][0], mesh->elem[ii][1], mesh->elem[ii][2]);
-    
-    }
+    fclose(ff);
 
+    free(num);
+    free(den);
+
+}
+
+int main()
+{
+
+    SOLVER* solver = malloc(sizeof(solver));
+
+    solver->mesh = meshInit("./caseWedge/wedge.su2");
+
+    solver->U = tableMallocDouble(4, solver->mesh->Nelem);
+
+    
+
+    meshPrint(solver->mesh);
+    
+    solverWrite(solver, "./caseWedge/solution.csv");
+    
+    solverFree(solver);
 
     return 0;
 
 }
-
