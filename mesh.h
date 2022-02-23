@@ -57,3 +57,6 @@ int meshBCIsConnect(int* BCp, int* p);
 
 void meshBCDomain(MESHBC* bc, MESH* mesh);
 
+double meshEdgeLength(MESH* mesh, int p0, int p1);
+
+double meshMinEdge(MESH* mesh);

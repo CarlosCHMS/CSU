@@ -40,6 +40,7 @@ class solution():
         ff.close()
 
         self._toArray()
+        self.calcPMT()
     
     def _toArray(self):
 
@@ -104,7 +105,14 @@ if __name__=="__main__":
 
     plt.figure()
     plt.tricontourf(triang, s.r)
-    plt.triplot(triang, 'ko-') 
+    #plt.triplot(triang, 'ko-') 
+    plt.axis('equal') 
+    plt.colorbar()  
+    plt.show()
+
+    plt.figure()
+    plt.tricontourf(triang, s.mach)
+    #plt.triplot(triang, 'ko-') 
     plt.axis('equal') 
     plt.colorbar()  
     plt.show()

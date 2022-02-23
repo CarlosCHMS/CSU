@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include<math.h>
 #include"utils.h"
 #include"mesh.h"
 
@@ -391,8 +392,43 @@ void meshBCDomain(MESHBC* bc, MESH* mesh)
                 bc->domain[ii] = jj;
             }
         }
+    }   
+}
+
+double meshEdgeLength(MESH* mesh, int p0, int p1)
+{
+
+    double x0 = mesh->p[p0][0];
+    double y0 = mesh->p[p0][1];
     
-    }
-    
+    double x1 = mesh->p[p1][0];
+    double y1 = mesh->p[p1][1];
+
+    return sqrt((x1 - x0)*(x1 - x0) + (y1 - y0)*(y1 - y0));
+
+}
+
+double meshMinEdge(MESH* mesh)
+{
+    int p0, p1;
+    double ans;
+
+    for(int ii=0; ii<mesh->Ncon; ii++)
+    {
+        p0 = mesh->con[ii][2];
+        p1 = mesh->con[ii][3];
+
+        if(ii==0)
+        {
+            ans = meshEdgeLength(mesh, p0, p1);
+        }
+        else
+        {
+            if(ans > meshEdgeLength(mesh, p0, p1))
+            {
+                ans = meshEdgeLength(mesh, p0, p1);
+            }
+        }        
+    }    
 }
 

@@ -80,3 +80,16 @@ void solverCalcVel(SOLVER* solver, double** U, int ii, double* u, double* v, dou
 void rotation(double* U, double dSx, double dSy, double dS);
 
 void inter(SOLVER* solver, double **U);
+
+void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc, int flagBC);
+
+void boundary(SOLVER* solver, double **U);
+
+void solverCalcR(SOLVER* solver, double** U);
+
+void solverRK(SOLVER* solver, double a);
+
+void solverUpdateU(SOLVER* solver);
+
+void solverStepRK(SOLVER* solver);
+

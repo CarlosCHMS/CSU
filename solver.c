@@ -38,8 +38,7 @@ void conditionState(CONDITION* cond, SOLVER* solver)
     cond->Uin[0] = r;
     cond->Uin[1] = r*u;
     cond->Uin[2] = r*v;
-    cond->Uin[3] = r*E;    
-    
+    cond->Uin[3] = r*E;   
 
 }
 
@@ -235,4 +234,148 @@ void inter(SOLVER* solver, double **U)
             solver->R[kk][e1] -= aux;
         } 
     }
+}
+
+void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc, int flagBC)
+{
+    
+	int kk;
+    double dSx, dSy, dS;
+    double aux;
+    double UL[4];
+	double UR[4];
+    double f[4];
+    double delta;
+    int e0, p0, p1;
+
+    for(int ii=0; ii<bc->Nelem; ii++)
+    {
+ 
+        e0 = bc->domain[ii];
+        p0 = bc->elem[ii][0];
+        p1 = bc->elem[ii][1];
+ 
+        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+        dS = sqrt(dSx*dSx + dSy*dSy);
+        
+        for(kk=0; kk<4; kk++)
+		{
+			UL[kk] = U[kk][e0];
+		}      		
+        
+        if(flagBC == 0)
+        {
+
+            // Rotation of the velocity vectors
+            rotation(UL, dSx, dSy, dS);
+        
+            // Reflexive
+            flux(solver, UL[0], UL[1], UL[2], UL[3], UL[0], -UL[1], UL[2], UL[3], f);
+
+        }
+        else if(flagBC == 1)
+        {
+
+            for(kk=0; kk<4; kk++)
+		    {
+			    UR[kk] = solver->inlet->Uin[kk];
+		    }
+
+            // Rotation of the velocity vectors
+            rotation(UL, dSx, dSy, dS);
+            rotation(UR, dSx, dSy, dS);
+
+            flux(solver, UL[0], UL[1], UL[2], UL[3], UR[0], UR[1], UR[2], UR[3], f);
+        
+        }
+        else if(flagBC == 2)
+        {           
+
+            // Rotation of the velocity vectors
+            rotation(UL, dSx, dSy, dS);
+            fluxFree(solver, UL[0], UL[1], UL[2], UL[3], f);
+		
+        }
+        else if(flagBC == 3)
+        {
+        
+            /*
+            Based on: Blazek J., Computacional Fluid Dynamics, Principles and Applications (2001)
+            */        
+
+		    double p2 = solverCalcP(solver, U, ii);
+	
+            // Outlet
+            f[0] = .0;
+            f[2] = .0;
+            f[3] = .0;
+
+            f[1] =  p2;
+        }       
+
+        // Rotation of the flux
+		rotation(f, dSx, -dSy, dS);
+                
+        for(kk=0; kk<4; kk++)
+        {
+            aux = f[kk]*dS;
+            solver->R[kk][e0] += aux;
+        } 
+    }
+}
+
+void boundary(SOLVER* solver, double **U)
+{
+
+    boundaryCalc(solver, U, solver->mesh->bc[0], 3);
+    boundaryCalc(solver, U, solver->mesh->bc[1], 2);
+    boundaryCalc(solver, U, solver->mesh->bc[2], 3);
+    boundaryCalc(solver, U, solver->mesh->bc[3], 1);
+
+}
+
+void solverCalcR(SOLVER* solver, double** U)
+{
+
+    solverResetR(solver);
+
+    inter(solver, U);
+    
+    boundary(solver, U); 
+
+}
+
+void solverRK(SOLVER* solver, double a)
+{   
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        double omega = meshCalcOmega(solver->mesh, ii);
+        for(int kk=0; kk<4; kk++)
+        {
+            
+            solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dt*a*solver->R[kk][ii]/omega;
+            
+        }
+    }
+}
+
+void solverUpdateU(SOLVER* solver)
+{
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        for(int kk=0; kk<4; kk++)
+        {
+            solver->U[kk][ii] = solver->Uaux[kk][ii];
+        }
+    }
+}
+
+void solverStepRK(SOLVER* solver)
+{   
+
+    solverCalcR(solver, solver->U);
+    solverRK(solver, 1.0);
+
+    solverUpdateU(solver);
+
 }

@@ -28,7 +28,6 @@ int main(int argc, char **argv)
 {
 
     char s[50];
-    char* ss;
     SOLVER* solver = malloc(sizeof(SOLVER));
 
     // Load input   
@@ -39,18 +38,29 @@ int main(int argc, char **argv)
     printf("Input data:\n");
     inputPrint(input);
 
-    //ss = inputGetValue2(input, "interpE");
-
     // Load mesh    
     s[0] = '\0';
     strcat(s, argv[1]);
     strcat(s, "mesh.su2");
-    solver->mesh = meshInit(s);    
+    solver->mesh = meshInit(s); 
+
+    //meshPrint(solver->mesh);   
 
     // Memory allocation
     solver->U = tableMallocDouble(4, solver->mesh->Nelem);
     solver->Uaux = tableMallocDouble(4, solver->mesh->Nelem);    
     solver->R = tableMallocDouble(4, solver->mesh->Nelem);
+
+    // Constants
+    solver->Rgas = 287.5;
+    solver->gamma = 1.4;  
+    solver->eFix = 0.1;
+    solver->e = strtod(inputGetValue(input, "interpE"), NULL);
+        
+    // Seletion of MUSCL and flux
+    solver->MUSCL = atoi(inputGetValue(input, "order")) - 1;
+    solver->flux = fluxChoice(inputGetValue(input, "flux"));
+    solver->stages = atoi(inputGetValue(input, "stages"));
 
     // Inlet condition
     solver->inlet = conditionInit(strtod(inputGetValue(input, "pressure"), NULL), 
@@ -58,37 +68,25 @@ int main(int argc, char **argv)
                                       strtod(inputGetValue(input, "mach"), NULL), 
                                       strtod(inputGetValue(input, "nx"), NULL),
                                       strtod(inputGetValue(input, "ny"), NULL));
-            
+    
+    conditionState(solver->inlet, solver);
     solverInitU(solver, solver->inlet);        
-                                      
-    // Constants
-    solver->Rgas = 287.5;
-    solver->gamma = 1.4;  
-    solver->eFix = 0.1;
-    solver->e = strtod(inputGetValue(input, "interpE"), NULL);
     
-    if(inputNameIsInput(input, "CFL"))
+    // Time step calculation
+    solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);
+    double L = meshMinEdge(solver->mesh);
+    double Vref = conditionVref(solver->inlet, solver);
+    solver->dt = solver->CFL*L/Vref;
+
+    //Integration
+
+    for(int ii=0; ii<50; ii++)
     {
-        solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);     
-    }
-    else
-    {
-        solver->CFL = 1.0;
+        solverStepRK(solver);
     }
     
-    // Seletion of MUSCL and flux
-    solver->MUSCL = atoi(inputGetValue(input, "order")) - 1;
-    solver->flux = fluxChoice(inputGetValue(input, "flux"));
-    solver->stages = atoi(inputGetValue(input, "stages"));
+    //test(solver);
 
-    solverResetR(solver);
-    
-    inter(solver, solver->U);
-
-    test(solver);
-
-    meshPrint(solver->mesh);
-    
     // Save solution
     s[0] = '\0';
     strcat(s, argv[1]);
