@@ -93,3 +93,5 @@ void solverUpdateU(SOLVER* solver);
 
 void solverStepRK(SOLVER* solver);
 
+void solverCalcRes(SOLVER* solver);
+

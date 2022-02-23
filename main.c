@@ -78,13 +78,28 @@ int main(int argc, char **argv)
     double Vref = conditionVref(solver->inlet, solver);
     solver->dt = solver->CFL*L/Vref;
 
+    meshPrintDStotal(solver->mesh);
+
     //Integration
 
     for(int ii=0; ii<50; ii++)
     {
         solverStepRK(solver);
+        printf("%i, ", ii);
+        solverCalcRes(solver);
     }
-    
+
+    /*
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {        
+        for(int jj=0; jj<4; jj++)
+        {
+            printf("%.10e, ", solver->U[jj][ii]);
+        }
+        printf("\n");        
+    }
+    */
+
     //test(solver);
 
     // Save solution
@@ -92,7 +107,7 @@ int main(int argc, char **argv)
     strcat(s, argv[1]);
     strcat(s, "solution.csv");
     solverWrite(solver, s);
-        
+      
     solverFree(solver);
     inputFree(input);    
 

@@ -432,3 +432,32 @@ double meshMinEdge(MESH* mesh)
     }    
 }
 
+void meshPrintDStotal(MESH* mesh)
+{
+
+    double dSx, dSy;
+    double dSxt, dSyt;
+
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        dSxt = 0.0;
+        dSyt = 0.0;
+
+        meshCalcDS(mesh, mesh->elem[ii][0], mesh->elem[ii][1], &dSx, &dSy);
+        dSxt += dSx;
+        dSyt += dSy;
+
+        meshCalcDS(mesh, mesh->elem[ii][1], mesh->elem[ii][2], &dSx, &dSy);
+        dSxt += dSx;
+        dSyt += dSy;
+
+        meshCalcDS(mesh, mesh->elem[ii][2], mesh->elem[ii][0], &dSx, &dSy);
+        dSxt += dSx;
+        dSyt += dSy;
+       
+        printf(" %.4e, %.4e,\n", dSxt, dSyt);
+        
+    }
+}
+
+

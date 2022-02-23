@@ -379,3 +379,31 @@ void solverStepRK(SOLVER* solver)
     solverUpdateU(solver);
 
 }
+
+void solverCalcRes(SOLVER* solver)
+{
+    
+    
+    for(int kk=0; kk<4; kk++)
+    {
+        solver->res[kk] = fabs(solver->R[kk][0]);
+    }
+    
+    for(int ii=1; ii<solver->mesh->Nelem; ii++)
+    {
+        for(int kk=0; kk<4; kk++)
+        {
+            if(solver->res[kk] < fabs(solver->R[kk][ii]))
+            {
+                solver->res[kk] = fabs(solver->R[kk][ii]);
+            }
+        }
+    }
+    
+    for(int kk=0; kk<4; kk++)
+    {
+        printf(" %+.4e,", solver->res[kk]);        
+    }
+    printf("\n");    
+   
+}
