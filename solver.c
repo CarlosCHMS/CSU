@@ -185,7 +185,7 @@ void rotation(double* U, double dSx, double dSy, double dS)
 void inter(SOLVER* solver, double **U)
 {
     
-	int kk;
+	int ii, kk;
     double dSx, dSy, dS;
     double aux;
     double UL[4];
@@ -194,7 +194,7 @@ void inter(SOLVER* solver, double **U)
     double delta;
     int e0, e1, p0, p1;
 
-    for(int ii=0; ii<solver->mesh->Ncon; ii++)
+    for(ii=0; ii<solver->mesh->Ncon; ii++)
     {
  
         e0 = solver->mesh->con[ii][0];
@@ -222,7 +222,7 @@ void inter(SOLVER* solver, double **U)
 		rotation(UR, dSx, dSy, dS);
         
         // Flux calculation
-        flux(solver, UL[0], UL[1], UL[2], UL[3], UR[0], UR[1], UR[2], UR[3], f);
+        fluxRoe(solver, UL[0], UL[1], UL[2], UL[3], UR[0], UR[1], UR[2], UR[3], f);
 
         // Rotation of the flux
 		rotation(f, dSx, -dSy, dS);
@@ -270,7 +270,7 @@ void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc, int flagBC)
             rotation(UL, dSx, dSy, dS);
         
             // Reflexive
-            flux(solver, UL[0], UL[1], UL[2], UL[3], UL[0], -UL[1], UL[2], UL[3], f);
+            fluxRoe(solver, UL[0], UL[1], UL[2], UL[3], UL[0], -UL[1], UL[2], UL[3], f);
 
         }
         else if(flagBC == 1)
@@ -285,7 +285,7 @@ void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc, int flagBC)
             rotation(UL, dSx, dSy, dS);
             rotation(UR, dSx, dSy, dS);
 
-            flux(solver, UL[0], UL[1], UL[2], UL[3], UR[0], UR[1], UR[2], UR[3], f);
+            fluxRoe(solver, UL[0], UL[1], UL[2], UL[3], UR[0], UR[1], UR[2], UR[3], f);
         
         }
         else if(flagBC == 2)
@@ -303,7 +303,7 @@ void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc, int flagBC)
             Based on: Blazek J., Computacional Fluid Dynamics, Principles and Applications (2001)
             */        
 
-		    double p2 = solverCalcP(solver, U, ii);
+		    double p2 = solverCalcP(solver, U, e0);
 	
             // Outlet
             f[0] = .0;
@@ -329,7 +329,7 @@ void boundary(SOLVER* solver, double **U)
 
     boundaryCalc(solver, U, solver->mesh->bc[0], 3);
     boundaryCalc(solver, U, solver->mesh->bc[1], 2);
-    boundaryCalc(solver, U, solver->mesh->bc[2], 3);
+    boundaryCalc(solver, U, solver->mesh->bc[2], 0);
     boundaryCalc(solver, U, solver->mesh->bc[3], 1);
 
 }

@@ -78,15 +78,26 @@ int main(int argc, char **argv)
     double Vref = conditionVref(solver->inlet, solver);
     solver->dt = solver->CFL*L/Vref;
 
-    meshPrintDStotal(solver->mesh);
+    //meshPrintDStotal(solver->mesh);
+
+    //meshCheckUse(solver->mesh);
+
+    //meshCheckBorderOrientation(solver->mesh->bc[0], solver->mesh);
+    //meshCheckBorderOrientation(solver->mesh->bc[1], solver->mesh);
+    //meshCheckBorderOrientation(solver->mesh->bc[2], solver->mesh);
+    //meshCheckBorderOrientation(solver->mesh->bc[3], solver->mesh);
 
     //Integration
 
-    for(int ii=0; ii<50; ii++)
+    for(int ii=0; ii<2000; ii++)
     {
         solverStepRK(solver);
-        printf("%i, ", ii);
-        solverCalcRes(solver);
+
+        if(ii%100==0)
+        {
+            printf("%i, ", ii);
+            solverCalcRes(solver);
+        }
     }
 
     /*

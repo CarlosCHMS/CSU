@@ -460,4 +460,85 @@ void meshPrintDStotal(MESH* mesh)
     }
 }
 
+void meshCheckUse(MESH* mesh)
+{
+    
+    int e0, e1;
+    int* use = malloc(mesh->Nelem*sizeof(int));
+
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        use[ii] = 0;
+    }
+
+    for(int ii=0; ii<mesh->Ncon; ii++)
+    {
+        e0 = mesh->con[ii][0];
+        e1 = mesh->con[ii][1];
+    
+        use[e0] += 1;
+        use[e1] += 1;
+    }
+
+    for(int ii=0; ii<mesh->Nmark; ii++)
+    {
+        for(int jj=0; jj<mesh->bc[ii]->Nelem; jj++)
+        {
+            e0 = mesh->bc[ii]->domain[jj];
+            use[e0] += 1;
+        }
+    }
+
+    printf("Use check: cases different of 3,\n");
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        if(use[ii] != 3)
+        {
+            printf("%i,\n", use[ii]);
+        }
+    }
+    printf("End of use check\n");
+    free(use);
+
+}
+
+int meshPOri(MESH* mesh, int e, int p0, int p1)
+{
+
+    int ans = -1;
+
+    if(mesh->elem[e][0] == p0 & mesh->elem[e][1] == p1)
+    {
+        ans = 1;
+    }
+
+    if(mesh->elem[e][1] == p0 & mesh->elem[e][2] == p1)
+    {
+        ans = 1;
+    }
+    
+    if(mesh->elem[e][2] == p0 & mesh->elem[e][0] == p1)
+    {
+        ans = 1;
+    }
+
+    return ans;
+
+}
+
+void meshCheckBorderOrientation(MESHBC* bc, MESH* mesh)
+{
+    int e0, p0, p1;
+    for(int ii=0; ii<bc->Nelem; ii++)
+    {
+
+        e0 = bc->domain[ii];
+        p0 = bc->elem[ii][0];
+        p1 = bc->elem[ii][1];
+        
+        printf("%i,\n", meshPOri(mesh, e0, p0, p1));
+
+    }
+}
+
 

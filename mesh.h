@@ -60,3 +60,11 @@ void meshBCDomain(MESHBC* bc, MESH* mesh);
 double meshEdgeLength(MESH* mesh, int p0, int p1);
 
 double meshMinEdge(MESH* mesh);
+
+void meshPrintDStotal(MESH* mesh);
+
+void meshCheckUse(MESH* mesh);
+
+int meshPOri(MESH* mesh, int e, int p0, int p1);
+
+void meshCheckBorderOrientation(MESHBC* bc, MESH* mesh);
