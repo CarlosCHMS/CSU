@@ -223,7 +223,7 @@ void inter(SOLVER* solver, double **U)
 		rotation(UR, dSx, dSy, dS);
         
         // Flux calculation
-        fluxRoe(solver, UL[0], UL[1], UL[2], UL[3], UR[0], UR[1], UR[2], UR[3], f);
+        flux(solver, UL[0], UL[1], UL[2], UL[3], UR[0], UR[1], UR[2], UR[3], f);
 
         // Rotation of the flux
 		rotation(f, dSx, -dSy, dS);
@@ -271,7 +271,7 @@ void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc)
             rotation(UL, dSx, dSy, dS);
         
             // Reflexive
-            fluxRoe(solver, UL[0], UL[1], UL[2], UL[3], UL[0], -UL[1], UL[2], UL[3], f);
+            flux(solver, UL[0], UL[1], UL[2], UL[3], UL[0], -UL[1], UL[2], UL[3], f);
 
         }
         else if(bc->flagBC == 1)
@@ -286,7 +286,7 @@ void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc)
             rotation(UL, dSx, dSy, dS);
             rotation(UR, dSx, dSy, dS);
 
-            fluxRoe(solver, UL[0], UL[1], UL[2], UL[3], UR[0], UR[1], UR[2], UR[3], f);
+            flux(solver, UL[0], UL[1], UL[2], UL[3], UR[0], UR[1], UR[2], UR[3], f);
         
         }
         else if(bc->flagBC == 2)
