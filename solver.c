@@ -5,6 +5,7 @@
 #include<sys/time.h>
 #include<omp.h>
 #include"utils.h"
+#include"input.h"
 #include"mesh.h"
 #include"solver.h"
 #include"flux.h"
@@ -236,7 +237,7 @@ void inter(SOLVER* solver, double **U)
     }
 }
 
-void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc, int flagBC)
+void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc)
 {
     
 	int kk;
@@ -263,7 +264,7 @@ void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc, int flagBC)
 			UL[kk] = U[kk][e0];
 		}      		
         
-        if(flagBC == 0)
+        if(bc->flagBC == 0)
         {
 
             // Rotation of the velocity vectors
@@ -273,7 +274,7 @@ void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc, int flagBC)
             fluxRoe(solver, UL[0], UL[1], UL[2], UL[3], UL[0], -UL[1], UL[2], UL[3], f);
 
         }
-        else if(flagBC == 1)
+        else if(bc->flagBC == 1)
         {
 
             for(kk=0; kk<4; kk++)
@@ -288,7 +289,7 @@ void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc, int flagBC)
             fluxRoe(solver, UL[0], UL[1], UL[2], UL[3], UR[0], UR[1], UR[2], UR[3], f);
         
         }
-        else if(flagBC == 2)
+        else if(bc->flagBC == 2)
         {           
 
             // Rotation of the velocity vectors
@@ -296,7 +297,7 @@ void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc, int flagBC)
             fluxFree(solver, UL[0], UL[1], UL[2], UL[3], f);
 		
         }
-        else if(flagBC == 3)
+        else if(bc->flagBC == 3)
         {
         
             /*
@@ -326,12 +327,10 @@ void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc, int flagBC)
 
 void boundary(SOLVER* solver, double **U)
 {
-
-    boundaryCalc(solver, U, solver->mesh->bc[0], 3);
-    boundaryCalc(solver, U, solver->mesh->bc[1], 2);
-    boundaryCalc(solver, U, solver->mesh->bc[2], 0);
-    boundaryCalc(solver, U, solver->mesh->bc[3], 1);
-
+    for(int ii=0; ii<solver->mesh->Nmark; ii++)
+    {
+        boundaryCalc(solver, U, solver->mesh->bc[ii]);
+    }
 }
 
 void solverCalcR(SOLVER* solver, double** U)
@@ -406,4 +405,42 @@ void solverCalcRes(SOLVER* solver)
     }
     printf("\n");    
    
+}
+
+int boundaryChoice(char* s)
+{
+    int ans;
+
+    if(strcmp(s, "symmetry") == 0)
+    {
+        ans = 0;
+    }
+    else if(strcmp(s, "inlet") == 0)
+    {
+        ans = 1;
+    }
+    else if(strcmp(s, "outlet") == 0)
+    {
+        ans = 2;
+    }
+    else if(strcmp(s, "wall") == 0)
+    {
+        ans = 3;
+    }
+ 
+    return ans;
+
+}
+
+void boundaryGetBC(MESH* mesh, INPUT* input)
+{
+    char s[50];
+    for(int ii=0; ii<mesh->Nmark; ii++)
+    {
+        s[0] = '\0';
+        strcat(s, "BC:");
+        strcat(s, mesh->bc[ii]->name);
+        mesh->bc[ii]->flagBC = boundaryChoice(inputGetValue(input, s));
+
+    }
 }

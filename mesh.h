@@ -8,6 +8,8 @@ typedef struct
     
     int* domain;
 
+    int flagBC;
+
 } MESHBC;
 
 typedef struct

@@ -81,7 +81,7 @@ void rotation(double* U, double dSx, double dSy, double dS);
 
 void inter(SOLVER* solver, double **U);
 
-void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc, int flagBC);
+void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc);
 
 void boundary(SOLVER* solver, double **U);
 
@@ -94,4 +94,9 @@ void solverUpdateU(SOLVER* solver);
 void solverStepRK(SOLVER* solver);
 
 void solverCalcRes(SOLVER* solver);
+
+int boundaryChoice(char* s);
+
+void boundaryGetBC(MESH* mesh, INPUT* input);
+
 

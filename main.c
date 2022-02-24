@@ -46,6 +46,9 @@ int main(int argc, char **argv)
 
     //meshPrint(solver->mesh);   
 
+    //Get boundary conditions
+    boundaryGetBC(solver->mesh, input);
+
     // Memory allocation
     solver->U = tableMallocDouble(4, solver->mesh->Nelem);
     solver->Uaux = tableMallocDouble(4, solver->mesh->Nelem);    
@@ -78,18 +81,12 @@ int main(int argc, char **argv)
     double Vref = conditionVref(solver->inlet, solver);
     solver->dt = solver->CFL*L/Vref;
 
-    //meshPrintDStotal(solver->mesh);
-
-    //meshCheckUse(solver->mesh);
-
-    //meshCheckBorderOrientation(solver->mesh->bc[0], solver->mesh);
-    //meshCheckBorderOrientation(solver->mesh->bc[1], solver->mesh);
-    //meshCheckBorderOrientation(solver->mesh->bc[2], solver->mesh);
-    //meshCheckBorderOrientation(solver->mesh->bc[3], solver->mesh);
-
     //Integration
 
-    for(int ii=0; ii<2000; ii++)
+    // Calculate time step        
+    int Nmax = atoi(inputGetValue(input, "Nmax"));
+
+    for(int ii=0; ii<Nmax; ii++)
     {
         solverStepRK(solver);
 
