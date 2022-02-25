@@ -21,6 +21,11 @@ int fluxChoice(char* s)
     {
         ans = 1;
     }
+    else
+    {
+        printf("Error in flux choice: %s", s);
+        exit(0);
+    }
     
     return ans;
 
