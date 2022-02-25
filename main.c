@@ -85,7 +85,6 @@ int main(int argc, char **argv)
 
     // Calculate time step        
     int Nmax = atoi(inputGetValue(input, "Nmax"));
-
     for(int ii=0; ii<Nmax; ii++)
     {
         solverStepRK(solver);
@@ -106,6 +105,7 @@ int main(int argc, char **argv)
         }
         printf("\n");        
     }
+    
     */
 
     //test(solver);

@@ -13,11 +13,13 @@ class solution():
         self.gamma = 1.4
         self.Rgas = 287.5
 
-        r = reader(meshFile)
+        self.mesh = reader(meshFile)
         
-        self.x = r.x
-        self.y = r.y
-        self.elem = r.elem
+        self.x = self.mesh.x
+        self.y = self.mesh.y
+        self.elem = self.mesh.elem
+                
+        self.pConnect()        
                 
         ff = open(solFile)
 
@@ -53,27 +55,46 @@ class solution():
         
     def calcPMT(self):
        
-        u = self.ru/self.r
-        v = self.rv/self.r
-        E = self.rE/self.r
-        
-        RT = (E - (u**2 + v**2)/2)*(self.gamma - 1)
-        self.T = RT/self.Rgas
-        
-        self.p = RT*self.r
-        
-        c = numpy.sqrt(self.gamma*RT)
-        V = numpy.sqrt(u**2 + v**2)
-        
-        self.mach = V/c
-        self.u = u        
-        self.v = v
+        Np = len(self.mesh.p)
+       
+        self.p = numpy.zeros(Np)
+        self.mach = numpy.zeros(Np)
+        self.entro = numpy.zeros(Np)               
+        self.H = numpy.zeros(Np)                
+       
+        for ii in range(0, Np):
+       
+            if(self.con[ii] > 0):
+       
+                u = self.ru[ii]/self.r[ii]
+                v = self.rv[ii]/self.r[ii]
+                E = self.rE[ii]/self.r[ii]
+                
+                RT = (E - (u**2 + v**2)/2)*(self.gamma - 1)
+                
+                self.p[ii] = RT*self.r[ii]
+                
+                c = numpy.sqrt(self.gamma*RT)
+                V = numpy.sqrt(u**2 + v**2)
+                
+                self.mach[ii] = V/c
 
-        self.entro = self.p/(self.r**self.gamma)
+                self.entro[ii] = self.p[ii]/(self.r[ii]**self.gamma)
 
-        self.H = E + self.p/self.r
+                self.H[ii] = E + self.p[ii]/self.r[ii]
         
         return None        
+
+    def pConnect(self):
+    
+        self.con = numpy.zeros(len(self.mesh.p))
+        
+        for ii in range(0, len(self.mesh.elem)):
+            self.con[self.elem[ii][0]] += 1
+            self.con[self.elem[ii][1]] += 1
+            self.con[self.elem[ii][2]] += 1
+            
+        return None
 
 def levels(v, n):    
 
@@ -116,3 +137,4 @@ if __name__=="__main__":
     plt.axis('equal') 
     plt.colorbar()  
     plt.show()
+    

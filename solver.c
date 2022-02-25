@@ -97,14 +97,18 @@ void solverWrite(SOLVER* solver, char* fileName)
         den[solver->mesh->elem[ii][2]] += 1;
     }
 
+
     for(ii=0; ii<solver->mesh->Np; ii++)
     {
-        for(jj=0; jj<4; jj++)
+        if(den[ii] != 0)
         {
-            Up[jj][ii] /= den[ii] ;
-    
+            for(jj=0; jj<4; jj++)
+            {
+                Up[jj][ii] /= den[ii];    
+            }
         }
     }
+    
 
     fprintf(ff, "0, %i, 4,\n", solver->mesh->Np);
 

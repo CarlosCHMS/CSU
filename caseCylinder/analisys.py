@@ -94,8 +94,6 @@ class solution():
             self.con[self.elem[ii][1]] += 1
             self.con[self.elem[ii][2]] += 1
             
-        print(self.con)
-            
         return None
 
 def levels(v, n):    
