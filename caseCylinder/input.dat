@@ -1,6 +1,6 @@
 
 pressure, 1e5
-mach, 2
+mach, 3
 temperature, 300.
 nx, 1.
 ny, 0.
@@ -10,7 +10,7 @@ BC:outlet, outlet
 BC:wall, wall
 BC:inlet, inlet
 
-Nmax, 30000
+Nmax, 10000
 interpE, 1e-10
 order, 2
 stages, 5

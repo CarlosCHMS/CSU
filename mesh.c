@@ -304,17 +304,24 @@ double meshIsConnected(MESH* mesh, int ii, int jj, int* p0, int* p1)
 double meshCalcConnection(MESH* mesh)
 {
 
-    int p0, p1, kk;
+    int p0, p1, kk, mm;
 
     mesh->Ncon = 0;
 
     for(int ii=0; ii<mesh->Nelem-1; ii++)
     {
+        mm = 0;
         for(int jj=ii+1; jj<mesh->Nelem; jj++)
         {
             if(meshIsConnected(mesh, ii, jj, &p0, &p1))
             {
                 mesh->Ncon += 1;
+                mm++;
+            }
+
+            if(mm==3)
+            {
+                break;
             }
         }
     }
@@ -324,6 +331,7 @@ double meshCalcConnection(MESH* mesh)
     kk = 0;
     for(int ii=0; ii<mesh->Nelem-1; ii++)
     {
+        mm = 0;
         for(int jj=ii+1; jj<mesh->Nelem; jj++)
         {
             if(meshIsConnected(mesh, ii, jj, &p0, &p1))
@@ -333,6 +341,12 @@ double meshCalcConnection(MESH* mesh)
                 mesh->con[kk][2] = p0;
                 mesh->con[kk][3] = p1;
                 kk++;
+                mm++;
+            }
+
+            if(mm==3)
+            {
+                break;
             }
         }
     }
@@ -390,6 +404,7 @@ void meshBCDomain(MESHBC* bc, MESH* mesh)
             if(meshBCIsConnect(bc->elem[ii], mesh->elem[jj]))
             {
                 bc->domain[ii] = jj;
+                break;
             }
         }
     }   

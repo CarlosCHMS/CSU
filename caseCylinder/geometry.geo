@@ -2,30 +2,34 @@
 //+
 Point(1) = {0, 0, 0, 0.05};
 //+
-Point(2) = {-1, 0, 0, 0.05};
+Point(2) = {-0.5, 0, 0, 0.05};
 //+
-Point(3) = {0, 1, 0, 0.05};
+Point(3) = {0, 0.5, 0, 0.05};
 //+
-Point(4) = {0, 3, 0, 0.5};
+Point(4) = {0, 2, 0, 0.05};
 //+
-Point(5) = {-3, 0, 0, 0.5};
+Point(5) = {-1, 1, 0, 0.05};
+//+
+Point(6) = {-1, 0, 0, 0.05};
 //+
 Circle(1) = {2, 1, 3};
 //+
-Circle(2) = {4, 1, 5};
+Line(2) = {3, 4};
 //+
-Line(3) = {5, 2};
+Line(3) = {4, 5};
 //+
-Line(4) = {3, 4};
+Line(4) = {5, 6};
 //+
-Physical Curve("wall", 5) = {1};
+Line(5) = {6, 2};
 //+
-Physical Curve("outlet", 6) = {4};
-//+
-Physical Curve("inlet", 7) = {2};
-//+
-Physical Curve("sym", 8) = {3};
-//+
-Curve Loop(1) = {3, 1, 4, 2};
+Curve Loop(1) = {4, 5, 1, 2, 3};
 //+
 Plane Surface(1) = {1};
+//+
+Physical Curve("wall", 6) = {1};
+//+
+Physical Curve("outlet", 7) = {2};
+//+
+Physical Curve("inlet", 8) = {3, 4};
+//+
+Physical Curve("sym", 9) = {5};
