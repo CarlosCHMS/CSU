@@ -66,35 +66,45 @@ void solverFree(SOLVER* solver)
 void solverWrite(SOLVER* solver, char* fileName)
 {
 
+    /* 
+        Based on: Adek Tasri, Accuracy of Cell Centres to Vertices 
+        Interpolation for Unstructured Mesh Finite Volume Solver, 2021
+    */
+
     FILE* ff = fopen(fileName, "w");
     double** Up = tableMallocDouble(4, solver->mesh->Np);
     double* den = malloc(solver->mesh->Np*sizeof(double));
-    double aux;
-    int ii, jj;
+    int ii, jj, kk, p;
+    double xc, yc, xp, yp, L;
 
     for(ii=0; ii<solver->mesh->Np; ii++)
     {       
-        for(jj=0; jj<4; jj++)
+        for(kk=0; kk<4; kk++)
         {
-            Up[jj][ii] = 0.;
-    
+            Up[kk][ii] = 0.;
         }   
         den[ii] = 0.;
     }
 
     for(ii=0; ii<solver->mesh->Nelem; ii++)
     {
-        for(jj=0; jj<4; jj++)
+        meshElemCenter(solver->mesh, ii, &xc, &yc);
+        
+        for(jj=0; jj<3; jj++)
         {
-            Up[jj][solver->mesh->elem[ii][0]] += solver->U[jj][ii];
-            Up[jj][solver->mesh->elem[ii][1]] += solver->U[jj][ii];
-            Up[jj][solver->mesh->elem[ii][2]] += solver->U[jj][ii];
-    
-        }
-
-        den[solver->mesh->elem[ii][0]] += 1;
-        den[solver->mesh->elem[ii][1]] += 1;
-        den[solver->mesh->elem[ii][2]] += 1;
+            p = solver->mesh->elem[ii][jj];
+            xp = solver->mesh->p[p][0];
+            yp = solver->mesh->p[p][1];
+            L = sqrt((xp-xc)*(xp-xc) + (yp-yc)*(yp-yc));
+           
+            for(kk=0; kk<4; kk++)
+            {        
+                Up[kk][p] += solver->U[kk][ii]/L;
+            }
+            
+            den[p] += 1/L;
+        }        
+        
     }
 
 
@@ -102,13 +112,12 @@ void solverWrite(SOLVER* solver, char* fileName)
     {
         if(den[ii] != 0)
         {
-            for(jj=0; jj<4; jj++)
+            for(kk=0; kk<4; kk++)
             {
-                Up[jj][ii] /= den[ii];    
+                Up[kk][ii] /= den[ii];    
             }
         }
     }
-    
 
     fprintf(ff, "0, %i, 4,\n", solver->mesh->Np);
 

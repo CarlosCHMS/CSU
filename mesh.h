@@ -51,7 +51,7 @@ double meshCalcOmega(MESH* mesh, int ii);
 
 double meshIsConnected(MESH* mesh, int ii, int jj, int* p0, int* p1);
 
-double meshCalcConnection(MESH* mesh);
+void meshCalcConnection(MESH* mesh);
 
 void meshCalcDS(MESH* mesh, int p0, int p1, double* dSx, double* dSy);
 
