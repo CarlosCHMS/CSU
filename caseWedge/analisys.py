@@ -126,13 +126,15 @@ if __name__=="__main__":
     triang = mtri.Triangulation(s.x, s.y, s.elem)
 
     plt.figure()
-    plt.tricontourf(triang, s.r)
+    plt.title("Static pressure")
+    plt.tricontourf(triang, s.p)
     #plt.triplot(triang, 'ko-') 
     plt.axis('equal') 
     plt.colorbar()  
     plt.show()
 
     plt.figure()
+    plt.title("Mach")
     plt.tricontourf(triang, s.mach)
     #plt.triplot(triang, 'ko-') 
     plt.axis('equal') 
@@ -152,6 +154,7 @@ if __name__=="__main__":
     mar.x = numpy.array(mar.x)
 
     plt.figure()
+    plt.title("Mach")
     plt.plot(mar.x, mach)
     plt.plot(mar.x, mar.x*0 + 2.0)    
     plt.plot(mar.x, mar.x*0 + 1.21021838)    
@@ -161,6 +164,7 @@ if __name__=="__main__":
     fp = rf.read(path+"pressurexX")    
     
     plt.figure()
+    plt.title("Static pressure")        
     plt.plot(mar.x, p)
     plt.plot(mar.x, mar.x*0 + 1e5)    
     plt.plot(mar.x, mar.x*0 + 2.84286270*1e5)    

@@ -125,7 +125,8 @@ if __name__=="__main__":
     triang = mtri.Triangulation(s.x, s.y, s.elem)
 
     plt.figure()
-    plt.tricontourf(triang, s.r)
+    plt.title("Static pressure")
+    plt.tricontourf(triang, s.p)
     #plt.triplot(triang, 'ko-') 
     plt.axis('equal') 
     plt.colorbar()
@@ -133,6 +134,7 @@ if __name__=="__main__":
     plt.show()
 
     plt.figure()
+    plt.title("Mach")
     plt.tricontourf(triang, s.mach)
     #plt.triplot(triang, 'ko-') 
     plt.axis('equal') 
@@ -140,11 +142,21 @@ if __name__=="__main__":
     plt.ylim([0,1])     
     plt.show()
         
-    mar = s.mesh.markers[0]
-    mar.getXY(s.mesh)
-    
-    inter = mtri.LinearTriInterpolator(triang, s.mach)
-    mach = inter(mar.x, mar.y)
-    inter = mtri.LinearTriInterpolator(triang, s.p)
-    p = inter(mar.x, mar.y)
+    plt.figure()
+    plt.title("Entropy")    
+    plt.tricontourf(triang, s.entro)
+    #plt.triplot(triang, 'ko-') 
+    plt.axis('equal') 
+    plt.colorbar() 
+    plt.ylim([0,1])     
+    plt.show()
+
+    plt.figure()
+    plt.title("Entalpy")
+    plt.tricontourf(triang, s.H)
+    #plt.triplot(triang, 'ko-') 
+    plt.axis('equal') 
+    plt.colorbar() 
+    plt.ylim([0,1])     
+    plt.show()
 

@@ -125,13 +125,15 @@ if __name__=="__main__":
     triang = mtri.Triangulation(s.x, s.y, s.elem)
 
     plt.figure()
-    plt.tricontourf(triang, s.r)
+    plt.title("Static pressure")
+    plt.tricontourf(triang, s.p)
     #plt.triplot(triang, 'ko-') 
     plt.axis('equal') 
     plt.colorbar()  
     plt.show()
 
     plt.figure()
+    plt.title("Mach")
     plt.tricontourf(triang, s.mach)
     #plt.triplot(triang, 'ko-') 
     plt.axis('equal') 
