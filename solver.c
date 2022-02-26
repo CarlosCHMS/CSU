@@ -426,11 +426,14 @@ void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc)
 
         // Rotation of the flux
 		rotation(f, dSx, -dSy, dS);
-                
-        for(kk=0; kk<4; kk++)
-        {
-            aux = f[kk]*dS;
-            solver->R[kk][e0] += aux;
+        
+        if(dS > 0)
+        {             
+            for(kk=0; kk<4; kk++)
+            {
+                aux = f[kk]*dS;
+                solver->R[kk][e0] += aux;
+            }
         } 
     }
 }
@@ -443,6 +446,18 @@ void boundary(SOLVER* solver, double **U)
     }
 }
 
+void interAxisPressure(SOLVER* solver, double **U)
+{
+
+    double dS;
+
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {        
+        dS = meshCalcDSlateral(solver->mesh, ii);
+        solver->R[2][ii] -= solverCalcP(solver, U, ii)*dS;
+    }
+}
+
 void solverCalcR(SOLVER* solver, double** U)
 {
 
@@ -451,6 +466,11 @@ void solverCalcR(SOLVER* solver, double** U)
     inter(solver, U);
     
     boundary(solver, U); 
+    
+    if(solver->mesh->axi==1)
+    {
+        interAxisPressure(solver, U);
+    }    
 
 }
 

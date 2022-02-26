@@ -1,0 +1,21 @@
+
+pressure, 1e5
+mach, 3
+temperature, 300.
+nx, 1.
+ny, 0.
+
+BC:sym, symmetry
+BC:outlet, outlet
+BC:wall, wall
+BC:inlet, inlet
+
+Nmax, 3500
+interpE, 1e-10
+order, 2
+stages, 5
+threads, 4
+flux, AUSMD
+tube, 0
+axisymmetric, 1
+CFL, 0.5

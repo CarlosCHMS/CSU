@@ -250,7 +250,7 @@ void meshElemCenter(MESH* mesh, int ii, double* x, double* y)
 
 }
 
-double meshCalcOmega(MESH* mesh, int ii)
+double meshCalcDSlateral(MESH* mesh, int ii)
 {
  
     double x1 = mesh->p[mesh->elem[ii][0]][0];
@@ -262,6 +262,28 @@ double meshCalcOmega(MESH* mesh, int ii)
     double y3 = mesh->p[mesh->elem[ii][2]][1];
 
     return 0.5*((x1 - x2)*(y1 + y2) + (x2 - x3)*(y2 + y3) + (x3 - x1)*(y3 + y1));
+
+}
+
+double meshCalcOmega(MESH* mesh, int ii)
+{
+ 
+    double x1 = mesh->p[mesh->elem[ii][0]][0];
+    double x2 = mesh->p[mesh->elem[ii][1]][0];
+    double x3 = mesh->p[mesh->elem[ii][2]][0];
+
+    double y1 = mesh->p[mesh->elem[ii][0]][1];
+    double y2 = mesh->p[mesh->elem[ii][1]][1];
+    double y3 = mesh->p[mesh->elem[ii][2]][1];
+
+    double ans = 0.5*((x1 - x2)*(y1 + y2) + (x2 - x3)*(y2 + y3) + (x3 - x1)*(y3 + y1));
+
+    if(mesh->axi == 1)
+    {
+        ans = ans*(y1 + y2 + y3)/3;
+    }
+
+    return ans;
 
 }
 
@@ -380,6 +402,14 @@ void meshCalcDS(MESH* mesh, int p0, int p1, double* dSx, double* dSy)
 
     *dSx = y1 - y0;
     *dSy = -(x1 - x0);
+    
+    double y = (y0 + y1)/2;
+    
+    if(mesh->axi == 1)
+    {
+        *dSx = (*dSx)*y;
+        *dSy = (*dSy)*y;        
+    }
 
 }
 
@@ -485,6 +515,13 @@ void meshPrintDStotal(MESH* mesh)
         meshCalcDS(mesh, mesh->elem[ii][2], mesh->elem[ii][0], &dSx, &dSy);
         dSxt += dSx;
         dSyt += dSy;
+       
+        if(mesh->axi==1)
+        {
+        
+            dSyt -= meshCalcDSlateral(mesh, ii);
+        
+        }
        
         printf(" %.4e, %.4e,\n", dSxt, dSyt);
         

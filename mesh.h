@@ -10,6 +10,7 @@ typedef struct
 
     int flagBC;
 
+
 } MESHBC;
 
 typedef struct
@@ -20,6 +21,7 @@ typedef struct
     int Np;
     int Nmark;
     int Ncon;
+    int axi;
     
     int** elem;
     
@@ -46,6 +48,8 @@ void meshBCFree(MESHBC* bc);
 void meshFree(MESH* mesh);
 
 void meshElemCenter(MESH* mesh, int ii, double* x, double* y);
+
+double meshCalcDSlateral(MESH* mesh, int ii);
 
 double meshCalcOmega(MESH* mesh, int ii);
 

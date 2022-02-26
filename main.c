@@ -33,8 +33,12 @@ int main(int argc, char **argv)
     strcat(s, argv[1]);
     strcat(s, "mesh.su2");
     solver->mesh = meshInit(s); 
-
-    //meshPrint(solver->mesh);   
+    
+    // axisymmetric
+    solver->mesh->axi = atoi(inputGetValue(input, "axisymmetric"));
+    
+    //meshPrint(solver->mesh);
+    //meshPrintDStotal(solver->mesh);
 
     //Get boundary conditions
     printf("main: get boundary conditions.\n");
@@ -105,8 +109,6 @@ int main(int argc, char **argv)
     }
     
     */
-
-    //test(solver);
 
     // Save solution
     s[0] = '\0';

@@ -11,21 +11,6 @@ typedef struct{
 
 } CONDITION;
 
-typedef struct{
-
-    char* down;
-    char* up;
-    char* left;
-    char* right;
-
-    int Ndown;
-    int Nup;
-    int Nleft;
-    int Nright;
-
-} BOUNDARY;
-
-
 typedef struct {
 
     int Nrow;
@@ -54,8 +39,6 @@ typedef struct {
     CONDITION* inlet;
         
     MESH* mesh;
-    
-    BOUNDARY* bc;
 
 } SOLVER;
 
@@ -90,6 +73,8 @@ void boundaryWall(SOLVER* solver, double* Ud, double* Ub, double nx, double ny);
 void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc);
 
 void boundary(SOLVER* solver, double **U);
+
+void interAxisPressure(SOLVER* solver, double **U);
 
 void solverCalcR(SOLVER* solver, double** U);
 
