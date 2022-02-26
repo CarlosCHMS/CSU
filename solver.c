@@ -198,23 +198,20 @@ void rotation(double* U, double dSx, double dSy, double dS)
 
 void inter(SOLVER* solver, double **U)
 {
-    
-	int ii, kk;
-    double dSx, dSy, dS;
-    double aux;
-    double UL[4];
-	double UR[4];
-    double f[4];
-    double delta;
-    int e0, e1, p0, p1;
 
-    for(ii=0; ii<solver->mesh->Ncon; ii++)
+    //# pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Ncon; ii++)
     {
+	    int kk;
+        double dSx, dSy, dS, aux;
+        double UL[4];
+	    double UR[4];
+        double f[4];
  
-        e0 = solver->mesh->con[ii][0];
-        e1 = solver->mesh->con[ii][1];
-        p0 = solver->mesh->con[ii][2];
-        p1 = solver->mesh->con[ii][3];
+        int e0 = solver->mesh->con[ii][0];
+        int e1 = solver->mesh->con[ii][1];
+        int p0 = solver->mesh->con[ii][2];
+        int p1 = solver->mesh->con[ii][3];
  
         meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
         dS = sqrt(dSx*dSx + dSy*dSy);
@@ -243,9 +240,12 @@ void inter(SOLVER* solver, double **U)
                          
         for(kk=0; kk<4; kk++)
         {
-            aux = f[kk]*dS;
-            solver->R[kk][e0] += aux;
-            solver->R[kk][e1] -= aux;
+            aux = f[kk]*dS;            
+            //#pragma omp critical
+            {            
+                solver->R[kk][e0] += aux;
+                solver->R[kk][e1] -= aux;
+            }
         } 
     }
 }
@@ -482,9 +482,49 @@ void solverUpdateU(SOLVER* solver)
 void solverStepRK(SOLVER* solver)
 {   
 
-    solverCalcR(solver, solver->U);
-    solverRK(solver, 1.0);
+    if(solver->stages==3)
+    {
+        solverCalcR(solver, solver->U);
+        solverRK(solver, 0.1481);
+        
+        solverCalcR(solver, solver->Uaux);
+        solverRK(solver, 0.4);
+        
+        solverCalcR(solver, solver->Uaux);
+        solverRK(solver, 1.0);
+    }
+    else if(solver->stages==4)
+    {
+        solverCalcR(solver, solver->U);
+        solverRK(solver, 0.0833);
+        
+        solverCalcR(solver, solver->Uaux);
+        solverRK(solver, 0.2069);
+        
+        solverCalcR(solver, solver->Uaux);
+        solverRK(solver, 0.4265);
+        
+        solverCalcR(solver, solver->Uaux);
+        solverRK(solver, 1.0);
+    }
+    else if(solver->stages==5)
+    {
+        solverCalcR(solver, solver->U);
+        solverRK(solver, 0.0533);
+        
+        solverCalcR(solver, solver->Uaux);
+        solverRK(solver, 0.1263);
+        
+        solverCalcR(solver, solver->Uaux);
+        solverRK(solver, 0.2375);
 
+        solverCalcR(solver, solver->Uaux);
+        solverRK(solver, 0.4414);
+        
+        solverCalcR(solver, solver->Uaux);
+        solverRK(solver, 1.0);
+    }
+    
     solverUpdateU(solver);
 
 }

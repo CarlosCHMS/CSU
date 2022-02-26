@@ -125,8 +125,6 @@ int inputNameIsInput(INPUT* input, char* name)
 
 char* inputGetValue(INPUT* input, char* name)
 {
-    
-    
     char* s;
     int found = 0;
     
@@ -141,7 +139,7 @@ char* inputGetValue(INPUT* input, char* name)
     
     if(found == 0)
     {
-        printf("Error: Value not found in the input file.\n");
+        printf("Error: Value not found in the input file: %s.\n", s);
         exit(0);
     }
 

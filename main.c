@@ -10,19 +10,6 @@
 #include"solver.h"
 #include"flux.h"
 
-void test(SOLVER* solver)
-{
-
-    double x, y, aux;
-
-    for(int ii=0; ii<solver->mesh->Nelem; ii++)
-    {   
-        meshElemCenter(solver->mesh, ii, &x, &y);
-        solver->U[0][ii] = cos(1.5*x)*cos(1.5*y);
-    }    
-
-}
-
 
 int main(int argc, char **argv)
 {
@@ -38,6 +25,9 @@ int main(int argc, char **argv)
     printf("Input data:\n");
     inputPrint(input);
 
+    // Set number of threads
+    //omp_set_num_threads(atoi(inputGetValue(input, "threads")));
+
     // Load mesh    
     s[0] = '\0';
     strcat(s, argv[1]);
@@ -47,6 +37,7 @@ int main(int argc, char **argv)
     //meshPrint(solver->mesh);   
 
     //Get boundary conditions
+    printf("main: get boundary conditions.\n");
     boundaryGetBC(solver->mesh, input);
 
     // Memory allocation
@@ -66,6 +57,7 @@ int main(int argc, char **argv)
     solver->stages = atoi(inputGetValue(input, "stages"));
 
     // Inlet condition
+    printf("main: Initialize U.\n");
     solver->inlet = conditionInit(strtod(inputGetValue(input, "pressure"), NULL), 
                                       strtod(inputGetValue(input, "temperature"), NULL), 
                                       strtod(inputGetValue(input, "mach"), NULL), 
@@ -75,15 +67,21 @@ int main(int argc, char **argv)
     conditionState(solver->inlet, solver);
     solverInitU(solver, solver->inlet);        
     
+    if(inputNameIsInput(input, "pout"))
+    {
+        solver->pout = strtod(inputGetValue(input, "pout"), NULL);     
+    }
+    
     // Time step calculation
     solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);
     double L = meshMinEdge(solver->mesh);
     double Vref = conditionVref(solver->inlet, solver);
-    solver->dt = solver->CFL*L/Vref;
+    solver->dt = solver->CFL*0.5*solver->stages*L/Vref;
 
     //Integration
 
     // Calculate time step        
+    printf("main: start solution calculation.\n");
     int Nmax = atoi(inputGetValue(input, "Nmax"));
     for(int ii=0; ii<Nmax; ii++)
     {

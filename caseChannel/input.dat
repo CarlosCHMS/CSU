@@ -1,21 +1,22 @@
 
 pressure, 1e5
-mach, 3
+mach, .5
 temperature, 300.
 nx, 1.
 ny, 0.
+pout, 1e5
 
-BC:sym, symmetry
-BC:outlet, outlet
-BC:wall, wall
+BC:wallDown, wall
+BC:wallUp, wall
 BC:inlet, inlet
+BC:outlet, outlet
 
-Nmax, 9000
-interpE, 1e-10
+Nmax, 20000
+interpE, 1e-5
 order, 2
 stages, 5
 threads, 4
-flux, AUSMD
+flux, AUSMD 
 tube, 0
 axisymmetric, 0
-CFL, 0.5
+CFL, 0.1

@@ -78,7 +78,9 @@ MESH* meshInit(char* fileName)
     MESH* mesh = malloc(sizeof(MESH));
     FILE* ff = fopen(fileName, "r");
     char s[100];
-    int ii, jj;
+    int ii;
+    
+    printf("mesh: reading elements.\n");
     
     meshGetWord(ff, s);
     if(strcmp(s, "NDIME=")==0)
@@ -110,6 +112,8 @@ MESH* meshInit(char* fileName)
         ii++;
     }
 
+    printf("mesh: reading points.\n");
+
     meshGetWord(ff, s);
     if(strcmp(s, "NPOIN=")==0)
     {
@@ -130,6 +134,8 @@ MESH* meshInit(char* fileName)
         ii++;
     }    
     
+    printf("mesh: reading marks.\n");
+    
     meshGetWord(ff, s);
     if(strcmp(s, "NMARK=")==0)
     {
@@ -148,8 +154,11 @@ MESH* meshInit(char* fileName)
     
     fclose(ff);
 
+
+    printf("mesh: calculating conections.\n");
     meshCalcConnection(mesh);
     
+    printf("mesh: calculating domain marks.\n");
     for(ii=0; ii<mesh->Nmark; ii++)
     {
         meshBCDomain(mesh->bc[ii], mesh);
@@ -281,11 +290,19 @@ double meshIsConnected(MESH* mesh, int ii, int jj, int* p0, int* p1)
                     *p1 = mesh->elem[ii][kk];
                 }
             }
+            if(link==2)
+            {
+                break;
+            }
+        }
+        if(link==2)
+        {
+            break;
         }
     }
 
     //This if ensurres correct orientation relatively to the first element
-    if(*p0 == mesh->elem[ii][0] & *p1 == mesh->elem[ii][2])
+    if((*p0 == mesh->elem[ii][0]) & (*p1 == mesh->elem[ii][2]))
     {
         aux = *p0;
         *p0 = *p1;

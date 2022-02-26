@@ -23,7 +23,7 @@ int fluxChoice(char* s)
     }
     else
     {
-        printf("Error in flux choice: %s", s);
+        printf("Error in flux choice: %s.\n", s);
         exit(0);
     }
     
