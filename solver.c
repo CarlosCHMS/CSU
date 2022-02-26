@@ -673,5 +673,33 @@ double solverCalcDt(SOLVER* solver)
         }
     }
 
+    dt *= solver->CFL*0.5*solver->stages;
+
     return dt;
 }
+
+void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, double xm)
+{
+
+    double x, y;
+
+    conditionState(inside1, solver);
+    conditionState(inside2, solver);
+
+    for(int kk=0; kk<4; kk++)
+    {
+        for(int ii=0; ii<solver->mesh->Nelem; ii++)
+        {
+            meshElemCenter(solver->mesh, ii, &x, &y);
+            if(x<xm)
+            {
+                solver->U[kk][ii] = inside1->Uin[kk];
+            }
+            else
+            {
+                solver->U[kk][ii] = inside2->Uin[kk];
+            }
+        }
+    }
+}
+

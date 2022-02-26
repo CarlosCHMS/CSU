@@ -7,3 +7,5 @@ void tableFreeDouble(double** M, int Nrow);
 
 void tableFreeInit(int** M, int Nrow);
 
+double duration(struct timeval start, struct timeval stop);
+

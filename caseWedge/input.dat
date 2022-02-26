@@ -10,7 +10,7 @@ BC:wall2, outlet
 BC:wall3, wall
 BC:wall4, inlet
 
-Nmax, 1500
+Nmax, 3000
 interpE, 1e-10
 order, 2
 stages, 5

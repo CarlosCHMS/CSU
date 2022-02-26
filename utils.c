@@ -51,3 +51,14 @@ void tableFreeInit(int** M, int Nrow)
     free(M);
 
 }
+
+double duration(struct timeval start, struct timeval stop){
+
+    double tstart, tstop;
+    tstart = (double)start.tv_sec + start.tv_usec/1000000.;
+    tstop = (double)stop.tv_sec + stop.tv_usec/1000000.;
+
+    return tstop - tstart;
+
+}
+

@@ -139,7 +139,7 @@ char* inputGetValue(INPUT* input, char* name)
     
     if(found == 0)
     {
-        printf("Error: Value not found in the input file: %s.\n", s);
+        printf("Error: Value not found in the input file: %s.\n", name);
         exit(0);
     }
 

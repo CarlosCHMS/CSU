@@ -94,3 +94,5 @@ double solverLocalTimeStep(SOLVER* solver, int ii);
 
 double solverCalcDt(SOLVER* solver);
 
+void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, double xm);
+

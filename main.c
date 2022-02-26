@@ -62,37 +62,92 @@ int main(int argc, char **argv)
     solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);
 
     // Environmental condition
-    printf("main: Initialize U.\n");
-    solver->inlet = conditionInit(strtod(inputGetValue(input, "pressure"), NULL), 
-                                  strtod(inputGetValue(input, "temperature"), NULL), 
-                                  strtod(inputGetValue(input, "mach"), NULL), 
-                                  strtod(inputGetValue(input, "nx"), NULL),
-                                  strtod(inputGetValue(input, "ny"), NULL));
-    
-    conditionState(solver->inlet, solver);
-    solverInitU(solver, solver->inlet);        
-    
     if(inputNameIsInput(input, "pout"))
     {
         solver->pout = strtod(inputGetValue(input, "pout"), NULL);     
     }
-    
-    //Integration       
-    printf("main: start solution calculation.\n");
-    int Nmax = atoi(inputGetValue(input, "Nmax"));
-    for(int ii=0; ii<Nmax; ii++)
+       
+    if(atoi(inputGetValue(input, "tube")) == 0)
     {
-        solver->dt = solver->CFL*0.5*solver->stages*solverCalcDt(solver);        
-        solverStepRK(solver);
 
-        if(ii%100==0)
+        printf("main: initialize U.\n");
+        solver->inlet = conditionInit(strtod(inputGetValue(input, "pressure"), NULL), 
+                                      strtod(inputGetValue(input, "temperature"), NULL), 
+                                      strtod(inputGetValue(input, "mach"), NULL), 
+                                      strtod(inputGetValue(input, "nx"), NULL),
+                                      strtod(inputGetValue(input, "ny"), NULL));
+        
+        // Initialization of U
+        solverInitU(solver, solver->inlet);
+        
+        // Calculate time step        
+        int Nmax = atoi(inputGetValue(input, "Nmax"));
+
+        // Run the solver
+        printf("\nmain: running solution:\n");
+        for(int ii=0; ii<Nmax; ii++)
         {
-            printf("%i, ", ii);
-            solverCalcRes(solver);
+            solver->dt = solverCalcDt(solver);
+            solverStepRK(solver);
+            
+            if(ii%100 == 0)
+            {
+                printf("%i, ", ii);
+                solverCalcRes(solver);
+            }            
+        } 
+    }
+    else
+    {
+        printf("main: initialize U.\n");
+        CONDITION* inside1 = conditionInit(strtod(inputGetValue(input, "pressure1"), NULL), 
+                                           strtod(inputGetValue(input, "temperature1"), NULL), 
+                                           strtod(inputGetValue(input, "mach1"), NULL), 
+                                           strtod(inputGetValue(input, "nx1"), NULL),
+                                           strtod(inputGetValue(input, "ny1"), NULL));
+
+        CONDITION* inside2 = conditionInit(strtod(inputGetValue(input, "pressure2"), NULL), 
+                                           strtod(inputGetValue(input, "temperature2"), NULL), 
+                                           strtod(inputGetValue(input, "mach2"), NULL), 
+                                           strtod(inputGetValue(input, "nx2"), NULL),
+                                           strtod(inputGetValue(input, "ny2"), NULL));      
+    
+        solverInitUTube(solver, inside1, inside2, strtod(inputGetValue(input, "xm"), NULL));
+        free(inside1);
+        free(inside2);
+        
+        double tmax = strtod(inputGetValue(input, "tmax"), NULL);                
+
+        // Run the solver
+        double t = 0.0;
+        printf("\nmain: running solution:\n");
+        int stopLoop = 0;
+        int ii = 0;
+        while(stopLoop == 0)
+        {
+            solver->dt = solverCalcDt(solver);
+            
+            if(t + solver->dt>tmax)
+            {
+                solver->dt = (tmax-t);
+                stopLoop = 1;
+            }
+
+            solverStepRK(solver);
+            t += solver->dt;
+            ii++;
+
+            if(ii%100 == 0)
+            {
+                printf("%i, ", ii);
+                solverCalcRes(solver);
+            }
         }
+        printf("time %f s\n", t);        
     }
 
     // Save solution
+    printf("main: saving the solution.\n");    
     s[0] = '\0';
     strcat(s, argv[1]);
     strcat(s, "solution.csv");
