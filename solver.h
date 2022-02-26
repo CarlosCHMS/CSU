@@ -90,4 +90,7 @@ int boundaryChoice(char* s);
 
 void boundaryGetBC(MESH* mesh, INPUT* input);
 
+double solverLocalTimeStep(SOLVER* solver, int ii);
+
+double solverCalcDt(SOLVER* solver);
 

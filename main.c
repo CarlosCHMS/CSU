@@ -55,18 +55,19 @@ int main(int argc, char **argv)
     solver->eFix = 0.1;
     solver->e = strtod(inputGetValue(input, "interpE"), NULL);
         
-    // Seletion of MUSCL and flux
+    // Selection of several variables
     solver->MUSCL = atoi(inputGetValue(input, "order")) - 1;
     solver->flux = fluxChoice(inputGetValue(input, "flux"));
     solver->stages = atoi(inputGetValue(input, "stages"));
+    solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);
 
-    // Inlet condition
+    // Environmental condition
     printf("main: Initialize U.\n");
     solver->inlet = conditionInit(strtod(inputGetValue(input, "pressure"), NULL), 
-                                      strtod(inputGetValue(input, "temperature"), NULL), 
-                                      strtod(inputGetValue(input, "mach"), NULL), 
-                                      strtod(inputGetValue(input, "nx"), NULL),
-                                      strtod(inputGetValue(input, "ny"), NULL));
+                                  strtod(inputGetValue(input, "temperature"), NULL), 
+                                  strtod(inputGetValue(input, "mach"), NULL), 
+                                  strtod(inputGetValue(input, "nx"), NULL),
+                                  strtod(inputGetValue(input, "ny"), NULL));
     
     conditionState(solver->inlet, solver);
     solverInitU(solver, solver->inlet);        
@@ -76,19 +77,12 @@ int main(int argc, char **argv)
         solver->pout = strtod(inputGetValue(input, "pout"), NULL);     
     }
     
-    // Time step calculation
-    solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);
-    double L = meshMinEdge(solver->mesh);
-    double Vref = conditionVref(solver->inlet, solver);
-    solver->dt = solver->CFL*0.5*solver->stages*L/Vref;
-
-    //Integration
-
-    // Calculate time step        
+    //Integration       
     printf("main: start solution calculation.\n");
     int Nmax = atoi(inputGetValue(input, "Nmax"));
     for(int ii=0; ii<Nmax; ii++)
     {
+        solver->dt = solver->CFL*0.5*solver->stages*solverCalcDt(solver);        
         solverStepRK(solver);
 
         if(ii%100==0)
@@ -97,18 +91,6 @@ int main(int argc, char **argv)
             solverCalcRes(solver);
         }
     }
-
-    /*
-    for(int ii=0; ii<solver->mesh->Nelem; ii++)
-    {        
-        for(int jj=0; jj<4; jj++)
-        {
-            printf("%.10e, ", solver->U[jj][ii]);
-        }
-        printf("\n");        
-    }
-    
-    */
 
     // Save solution
     s[0] = '\0';

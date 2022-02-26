@@ -619,3 +619,59 @@ void boundaryGetBC(MESH* mesh, INPUT* input)
 
     }
 }
+
+double solverLocalTimeStep(SOLVER* solver, int ii)
+{
+    int p0, p1;
+    double dSx, dSy, dSxm, dSym, Lx, Ly, u, v, c;
+    
+    dSxm = 0.;
+    dSym = 0.;
+    
+    p0 = solver->mesh->elem[ii][0];
+    p1 = solver->mesh->elem[ii][1];        
+    meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+    dSxm += fabs(dSx);
+    dSym += fabs(dSy);
+    
+    p0 = solver->mesh->elem[ii][1];
+    p1 = solver->mesh->elem[ii][2];        
+    meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+    dSxm += fabs(dSx);
+    dSym += fabs(dSy);
+
+    p0 = solver->mesh->elem[ii][2];
+    p1 = solver->mesh->elem[ii][0];        
+    meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+    dSxm += fabs(dSx);
+    dSym += fabs(dSy);
+    
+    dSxm *= 0.5;
+    dSym *= 0.5;
+    
+    solverCalcVel(solver, solver->U, ii, &u, &v, &c);
+    
+    Lx = (fabs(u) + c)*dSxm;
+    Ly = (fabs(v) + c)*dSym;
+    
+    return meshCalcOmega(solver->mesh, ii)/(Lx + Ly);
+    
+}
+
+double solverCalcDt(SOLVER* solver)
+{
+
+    double dtLocal;
+    double dt = solverLocalTimeStep(solver, 0);
+
+    for(int ii=1; ii<solver->mesh->Nelem; ii++)
+    {
+        dtLocal = solverLocalTimeStep(solver, ii);
+        if(dtLocal < dt)
+        {
+            dt = dtLocal;
+        }
+    }
+
+    return dt;
+}
