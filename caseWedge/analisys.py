@@ -5,6 +5,7 @@ import matplotlib.tri as mtri
 from su2MeshReader import reader
 import sys
 import numpy
+import readFluent as rf 
  
 class solution():
 
@@ -136,5 +137,33 @@ if __name__=="__main__":
     #plt.triplot(triang, 'ko-') 
     plt.axis('equal') 
     plt.colorbar()  
+    plt.show()
+        
+    mar = s.mesh.markers[0]
+    mar.getXY(s.mesh)
+    
+    inter = mtri.LinearTriInterpolator(triang, s.mach)
+    mach = inter(mar.x, mar.y)
+    inter = mtri.LinearTriInterpolator(triang, s.p)
+    p = inter(mar.x, mar.y)
+
+    fm = rf.read(path+"machxX")
+
+    mar.x = numpy.array(mar.x)
+
+    plt.figure()
+    plt.plot(mar.x, mach)
+    plt.plot(mar.x, mar.x*0 + 2.0)    
+    plt.plot(mar.x, mar.x*0 + 1.21021838)    
+    plt.plot(fm.x, fm.y)
+    plt.show()
+    
+    fp = rf.read(path+"pressurexX")    
+    
+    plt.figure()
+    plt.plot(mar.x, p)
+    plt.plot(mar.x, mar.x*0 + 1e5)    
+    plt.plot(mar.x, mar.x*0 + 2.84286270*1e5)    
+    plt.plot(fp.x, fp.y)    
     plt.show()
     

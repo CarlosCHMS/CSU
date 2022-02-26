@@ -5,17 +5,17 @@ temperature, 300.
 nx, 1.
 ny, 0.
 
-BC:sym, wall
+BC:sym, symmetry
 BC:outlet, outlet
 BC:wall, wall
 BC:inlet, inlet
 
-Nmax, 10000
+Nmax, 15000
 interpE, 1e-10
 order, 2
 stages, 5
 threads, 4
-flux, ROE
+flux, AUSMD
 tube, 0
 axisymmetric, 0
 CFL, 0.5

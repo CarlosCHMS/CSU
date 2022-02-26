@@ -81,6 +81,12 @@ void rotation(double* U, double dSx, double dSy, double dS);
 
 void inter(SOLVER* solver, double **U);
 
+void boundaryInlet(SOLVER* solver, double* Ua, double* Ud, double* Ub, double nx, double ny);
+
+void boundaryOutlet(SOLVER* solver, double* Ud, double* Ub, double nx, double ny);
+
+void boundaryWall(SOLVER* solver, double* Ud, double* Ub, double nx, double ny);
+
 void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc);
 
 void boundary(SOLVER* solver, double **U);

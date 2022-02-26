@@ -135,6 +135,17 @@ class marker():
 
         aux = row.split(' ')
         self.elem.append([int(aux[1]), int(aux[2])])
+        
+    def getXY(self, mesh):
+    
+        self.x = []
+        self.y = []
+        
+        for e in self.elem:
+            self.x.append(mesh.x[e[0]])
+            self.y.append(mesh.y[e[0]])
+            
+        return None
 
 
 if __name__=="__main__":
