@@ -98,3 +98,6 @@ void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, dou
 
 void solverCalcGrad(SOLVER* solver, double* U, int ii, double* dUx, double* dUy);
 
+void solverCalcGrad2(SOLVER* solver, double* U, int ii, double* dUx, double* dUy);
+
+void solverCheckGrad(SOLVER* solver);

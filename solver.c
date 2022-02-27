@@ -228,7 +228,7 @@ void inter(SOLVER* solver, double **U)
 			{
 			    if(solver->mesh->neiN[e0] == 3)
 			    {
-			        solverCalcGrad(solver, U[kk], e0, &dUx, &dUy);
+			        solverCalcGrad2(solver, U[kk], e0, &dUx, &dUy);
 			        UL[kk] += (dUx*(x1 - x0) + dUy*(y1 - y0))*0.5;
 			    }
 			}
@@ -242,7 +242,7 @@ void inter(SOLVER* solver, double **U)
 			{
 			    if(solver->mesh->neiN[e1] == 3)
 			    {
-			        solverCalcGrad(solver, U[kk], e1, &dUx, &dUy);
+			        solverCalcGrad2(solver, U[kk], e1, &dUx, &dUy);
 			        UR[kk] -= (dUx*(x1 - x0) + dUy*(y1 - y0))*0.5;
 			    }
 			}
@@ -728,6 +728,11 @@ void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, dou
 void solverCalcGrad(SOLVER* solver, double* U, int ii, double* dUx, double* dUy)
 {
 
+    /*
+    Green-Gauss calculation
+    */
+
+
     double dSx, dSy, aux;
     
     *dUx = 0.0;
@@ -748,26 +753,79 @@ void solverCalcGrad(SOLVER* solver, double* U, int ii, double* dUx, double* dUy)
 
 }
 
+void solverCalcGrad2(SOLVER* solver, double* U, int ii, double* dUx, double* dUy)
+{
+
+    /*
+    Least squares calculation
+    */
+
+    int e;
+    double xx, yy;
+    double x[4];
+    double y[4];    
+    double u[4];    
+    double a, b, c, A, B;
+        
+    meshElemCenter(solver->mesh, ii, &xx, &yy);
+    x[0] = xx;
+    y[0] = yy;
+    u[0] = U[ii];
+
+    for(int jj=0; jj<3; jj++)
+    {
+        e = solver->mesh->nei[ii][jj];
+        meshElemCenter(solver->mesh, e, &xx, &yy);
+        x[jj+1] = xx;
+        y[jj+1] = yy;
+        u[jj+1] = U[e];
+    }
+    
+    a = 0;    
+    b = 0;
+    c = 0;
+    A = 0;
+    B = 0;
+    for(int jj=1; jj<4; jj++)
+    {
+        a += (x[jj] - x[0])*(x[jj] - x[0]);
+        b += (x[jj] - x[0])*(y[jj] - y[0]);
+        c += (y[jj] - y[0])*(y[jj] - y[0]);
+        A += (x[jj] - x[0])*(u[jj] - u[0]);
+        B += (y[jj] - y[0])*(u[jj] - u[0]);
+    }
+        
+    *dUx = (c*A - b*B)/(a*c - b*b);
+    *dUy = (-b*A + a*B)/(a*c - b*b);
+
+}
+
+
 void solverCheckGrad(SOLVER* solver)
 {
 
     double *U = malloc(solver->mesh->Nelem*sizeof(double));
+    double *xx = malloc(solver->mesh->Nelem*sizeof(double));
     double x, y;
     double dUx, dUy;
     
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
         meshElemCenter(solver->mesh, ii, &x, &y);
-        U[ii] = y;
+        xx[ii] = x;
+        U[ii] = x*x;
     }
     
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
         if(solver->mesh->neiN[ii] == 3)
         {
-            solverCalcGrad(solver, U, ii, &dUx, &dUy);
-            printf("%+e, %+e\n",dUx, dUy);
+            solverCalcGrad2(solver, U, ii, &dUx, &dUy);
+            printf("%+e, %+e, %+e\n", dUx, 2*xx[ii], dUx - 2*xx[ii]);
         }
     }
+
+    free(U);
+    free(xx);
 
 }
