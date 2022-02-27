@@ -203,7 +203,8 @@ void inter(SOLVER* solver, double **U)
     for(int ii=0; ii<solver->mesh->Ncon; ii++)
     {
 	    int kk;
-        double dSx, dSy, dS, aux;
+        double dSx, dSy, dS, aux, delta, dUx, dUy;
+        double x0, x1, y0, y1;
         double UL[4];
 	    double UR[4];
         double f[4];
@@ -216,14 +217,35 @@ void inter(SOLVER* solver, double **U)
         meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
         dS = sqrt(dSx*dSx + dSy*dSy);
         
+        meshElemCenter(solver->mesh, e0, &x0, &y0);
+        meshElemCenter(solver->mesh, e1, &x1, &y1);
+        
         for(kk=0; kk<4; kk++)
 		{
 			UL[kk] = U[kk][e0];
+			
+			if(solver->order == 2)
+			{
+			    if(solver->mesh->neiN[e0] == 3)
+			    {
+			        solverCalcGrad(solver, U[kk], e0, &dUx, &dUy);
+			        UL[kk] += (dUx*(x1 - x0) + dUy*(y1 - y0))*0.5;
+			    }
+			}
 		}
         
         for(kk=0; kk<4; kk++)
 		{
 			UR[kk] = U[kk][e1];
+			
+			if(solver->order == 2)
+			{
+			    if(solver->mesh->neiN[e1] == 3)
+			    {
+			        solverCalcGrad(solver, U[kk], e1, &dUx, &dUy);
+			        UR[kk] -= (dUx*(x1 - x0) + dUy*(y1 - y0))*0.5;
+			    }
+			}
 		}
 		
         // Rotation of the velocity vectors
@@ -703,3 +725,49 @@ void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, dou
     }
 }
 
+void solverCalcGrad(SOLVER* solver, double* U, int ii, double* dUx, double* dUy)
+{
+
+    double dSx, dSy, aux;
+    
+    *dUx = 0.0;
+    *dUy = 0.0;
+    
+    for(int jj=0; jj<3; jj++)
+    {
+        meshCalcDS(solver->mesh, solver->mesh->neip0[ii][jj], solver->mesh->neip1[ii][jj], &dSx, &dSy);
+        aux = (U[ii] + U[solver->mesh->nei[ii][jj]])*0.5;
+        *dUx += dSx*aux;
+        *dUy += dSy*aux;
+    }
+ 
+    aux = meshCalcOmega(solver->mesh, ii);
+    
+    *dUx /= aux;
+    *dUy /= aux;
+
+}
+
+void solverCheckGrad(SOLVER* solver)
+{
+
+    double *U = malloc(solver->mesh->Nelem*sizeof(double));
+    double x, y;
+    double dUx, dUy;
+    
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        meshElemCenter(solver->mesh, ii, &x, &y);
+        U[ii] = y;
+    }
+    
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        if(solver->mesh->neiN[ii] == 3)
+        {
+            solverCalcGrad(solver, U, ii, &dUx, &dUy);
+            printf("%+e, %+e\n",dUx, dUy);
+        }
+    }
+
+}

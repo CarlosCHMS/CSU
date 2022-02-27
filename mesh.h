@@ -22,14 +22,19 @@ typedef struct
     int Nmark;
     int Ncon;
     int axi;
+    int order;
     
-    int** elem;
+    int* neiN;
     
+    int** elem; 
+    int** con;    
+    int** nei;
+    int** neip0;
+    int** neip1;
+
     double** p;
     
     MESHBC** bc;
-
-    int** con;
 
 } MESH;
 
@@ -74,3 +79,7 @@ void meshCheckUse(MESH* mesh);
 int meshPOri(MESH* mesh, int e, int p0, int p1);
 
 void meshCheckBorderOrientation(MESHBC* bc, MESH* mesh);
+
+void meshCalcNeighbors(MESH* mesh);
+
+void meshCheckNei(MESH* mesh);

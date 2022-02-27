@@ -25,14 +25,26 @@ int main(int argc, char **argv)
     printf("Input data:\n");
     inputPrint(input);
 
+    solver->order = atoi(inputGetValue(input, "order"));
+
     // Set number of threads
-    //omp_set_num_threads(atoi(inputGetValue(input, "threads")));
+    // omp_set_num_threads(atoi(inputGetValue(input, "threads")));
 
     // Load mesh    
     s[0] = '\0';
     strcat(s, argv[1]);
     strcat(s, "mesh.su2");
     solver->mesh = meshInit(s); 
+    
+    solver->mesh->order = solver->order;
+    if(solver->mesh->order == 2)
+    {
+        meshCalcNeighbors(solver->mesh);
+    }
+    
+    //meshCheckNei(solver->mesh);
+    
+    //solverCheckGrad(solver);
     
     // axisymmetric
     solver->mesh->axi = atoi(inputGetValue(input, "axisymmetric"));
@@ -56,7 +68,6 @@ int main(int argc, char **argv)
     solver->e = strtod(inputGetValue(input, "interpE"), NULL);
         
     // Selection of several variables
-    solver->MUSCL = atoi(inputGetValue(input, "order")) - 1;
     solver->flux = fluxChoice(inputGetValue(input, "flux"));
     solver->stages = atoi(inputGetValue(input, "stages"));
     solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);

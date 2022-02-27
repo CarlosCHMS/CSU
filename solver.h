@@ -16,7 +16,7 @@ typedef struct {
     int Nrow;
     int Ncol;
     int pOutFlag;
-    int MUSCL;
+    int order;
     int flux;
     int stages;
 
@@ -95,4 +95,6 @@ double solverLocalTimeStep(SOLVER* solver, int ii);
 double solverCalcDt(SOLVER* solver);
 
 void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, double xm);
+
+void solverCalcGrad(SOLVER* solver, double* U, int ii, double* dUx, double* dUy);
 

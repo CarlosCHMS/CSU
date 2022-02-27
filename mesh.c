@@ -230,10 +230,18 @@ void meshFree(MESH* mesh)
     tableFreeDouble(mesh->p, mesh->Np);
     tableFreeInit(mesh->con, mesh->Ncon);
     
+    if(mesh->order == 2)
+    {
+        tableFreeInit(mesh->nei, mesh->Nelem);
+        tableFreeInit(mesh->neip0, mesh->Nelem);
+        tableFreeInit(mesh->neip1, mesh->Nelem);        
+        free(mesh->neiN);
+    }
+    
     for(int ii; ii<mesh->Nmark; ii++)
     {
 
-        //meshBCFree(mesh->bc[ii]);
+        meshBCFree(mesh->bc[ii]);
         //free(mesh->bc[ii]);
 
     }
@@ -609,4 +617,74 @@ void meshCheckBorderOrientation(MESHBC* bc, MESH* mesh)
     }
 }
 
+void meshCalcNeighbors(MESH* mesh)
+{
 
+    int e0, e1, p0, p1;
+
+    mesh->neiN = malloc(mesh->Nelem*sizeof(int));
+    mesh->nei = tableMallocInt(mesh->Nelem, 3);
+    mesh->neip0 = tableMallocInt(mesh->Nelem, 3);
+    mesh->neip1 = tableMallocInt(mesh->Nelem, 3);    
+    
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        mesh->neiN[ii] = 0;
+    }
+    
+    for(int ii=0; ii<mesh->Ncon; ii++)
+    {
+        e0 = mesh->con[ii][0];
+        e1 = mesh->con[ii][1];
+        p0 = mesh->con[ii][2];
+        p1 = mesh->con[ii][3];
+        
+        mesh->nei[e0][mesh->neiN[e0]] = e1;
+        mesh->nei[e1][mesh->neiN[e1]] = e0;
+
+        mesh->neip0[e0][mesh->neiN[e0]] = p0;
+        mesh->neip1[e0][mesh->neiN[e0]] = p1;
+        mesh->neip0[e1][mesh->neiN[e1]] = p1;
+        mesh->neip1[e1][mesh->neiN[e1]] = p0;
+          
+        mesh->neiN[e0] += 1;
+        mesh->neiN[e1] += 1;
+    }
+}    
+
+void meshCheckNei(MESH* mesh)
+{
+
+    double dSx, dSy;
+    double dSxt, dSyt;
+
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        dSxt = 0.0;
+        dSyt = 0.0;
+
+        meshCalcDS(mesh, mesh->neip0[ii][0], mesh->neip1[ii][0], &dSx, &dSy);
+        dSxt += dSx;
+        dSyt += dSy;
+
+        meshCalcDS(mesh, mesh->neip0[ii][1], mesh->neip1[ii][1], &dSx, &dSy);
+        dSxt += dSx;
+        dSyt += dSy;
+
+        meshCalcDS(mesh, mesh->neip0[ii][2], mesh->neip1[ii][2], &dSx, &dSy);
+        dSxt += dSx;
+        dSyt += dSy;
+       
+        if(mesh->axi==1)
+        {
+        
+            dSyt -= meshCalcDSlateral(mesh, ii);
+        
+        }
+       
+        if(mesh->neiN[ii]<3)
+        {
+            printf("%i, %.4e, %.4e,\n", mesh->neiN[ii], dSxt, dSyt);
+        }
+    }
+}

@@ -18,4 +18,4 @@ threads, 4
 flux, AUSMD
 tube, 0
 axisymmetric, 0
-CFL, 1.0
+CFL, 0.5
