@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     
     //meshCheckNei(solver->mesh);
     
-    solverCheckGrad(solver);
+    //solverCheckGrad(solver);
     
     // axisymmetric
     solver->mesh->axi = atoi(inputGetValue(input, "axisymmetric"));
