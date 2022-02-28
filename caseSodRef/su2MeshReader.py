@@ -142,8 +142,8 @@ class marker():
         self.y = []
         
         for e in self.elem:
-            self.x.append(mesh.x[e[0]])
-            self.y.append(mesh.y[e[0]])
+            self.x.append((mesh.x[e[0]] + mesh.x[e[1]])*0.5)
+            self.y.append((mesh.y[e[0]] + mesh.y[e[1]])*0.5)
             
         return None
 
