@@ -59,7 +59,7 @@ void solverFree(SOLVER* solver)
     tableFreeDouble(solver->U, 4);
     tableFreeDouble(solver->Uaux, 4);
     tableFreeDouble(solver->R, 4);        
-    tableFreeDouble(solver->faceFlux, solver->mesh->Nelem);
+    tableFreeDouble(solver->faceFlux, 4);
     tableFreeDouble(solver->dUx, 4);
     tableFreeDouble(solver->dUy, 4);
     meshFree(solver->mesh);
@@ -251,8 +251,8 @@ void inter(SOLVER* solver, double **U)
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Ncon; ii++)
     {
-	    int jj, kk;
-        double dSx, dSy, dS, aux, delta, dUx, dUy;
+	    int kk;
+        double dSx, dSy, dS;
         double x0, x1, y0, y1, xm, ym;
         double UL[4];
 	    double UR[4];
@@ -305,7 +305,7 @@ void inter(SOLVER* solver, double **U)
         
         for(kk=0; kk<4; kk++)
         {
-            solver->faceFlux[ii][kk] = f[kk]*dS;
+            solver->faceFlux[kk][ii] = f[kk]*dS;
         }
     }
     
@@ -319,14 +319,14 @@ void inter(SOLVER* solver, double **U)
             {
                 for(int kk=0; kk<4; kk++)
                 {
-                    solver->R[kk][ii] += solver->faceFlux[face-1][kk];
+                    solver->R[kk][ii] += solver->faceFlux[kk][face-1];
                 }
             }
             else
             {
                 for(int kk=0; kk<4; kk++)
                 {
-                    solver->R[kk][ii] -= solver->faceFlux[-face-1][kk];
+                    solver->R[kk][ii] -= solver->faceFlux[kk][-face-1];
                 }            
             }
         }
@@ -429,7 +429,6 @@ void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc)
     double UL[4];
 	double Ub[4];
     double f[4];
-    double delta;
     int e0, p0, p1;
 
     for(int ii=0; ii<bc->Nelem; ii++)

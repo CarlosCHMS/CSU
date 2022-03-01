@@ -29,15 +29,13 @@ INPUT* inputInit(char* fileName, int N)
         input->value[ii] = (char*)malloc(N*sizeof(char));
         input->value[ii][0] = '\0';
     }
-    
-    
+        
     name = 1;
     value = 0;
     ii = 0;
     jj = 0;
     while(c != EOF)
-    {
-    
+    {   
         c = fgetc(ff);
         if(c != ' ')
         {
@@ -82,11 +80,11 @@ INPUT* inputInit(char* fileName, int N)
             {
                 input->value[ii][jj] = c;
                 jj += 1;
-            }
-                    
-        }
-    
+            }           
+        } 
     }
+    
+    fclose(ff);
     
     input->N = ii;
     

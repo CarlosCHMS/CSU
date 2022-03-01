@@ -590,17 +590,17 @@ int meshPOri(MESH* mesh, int e, int p0, int p1)
 
     int ans = -1;
 
-    if(mesh->elem[e][0] == p0 & mesh->elem[e][1] == p1)
+    if((mesh->elem[e][0] == p0) & (mesh->elem[e][1] == p1))
     {
         ans = 1;
     }
 
-    if(mesh->elem[e][1] == p0 & mesh->elem[e][2] == p1)
+    if((mesh->elem[e][1] == p0) & (mesh->elem[e][2] == p1))
     {
         ans = 1;
     }
     
-    if(mesh->elem[e][2] == p0 & mesh->elem[e][0] == p1)
+    if((mesh->elem[e][2] == p0) & (mesh->elem[e][0] == p1))
     {
         ans = 1;
     }

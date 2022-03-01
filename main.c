@@ -60,7 +60,7 @@ int main(int argc, char **argv)
     solver->U = tableMallocDouble(4, solver->mesh->Nelem);
     solver->Uaux = tableMallocDouble(4, solver->mesh->Nelem);    
     solver->R = tableMallocDouble(4, solver->mesh->Nelem);
-    solver->faceFlux = tableMallocDouble(solver->mesh->Ncon, 4);
+    solver->faceFlux = tableMallocDouble(4, solver->mesh->Ncon);
     solver->dUx = tableMallocDouble(4, solver->mesh->Nelem);
     solver->dUy = tableMallocDouble(4, solver->mesh->Nelem);    
 

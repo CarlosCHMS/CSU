@@ -35,7 +35,7 @@ void entropyFix(SOLVER* solver, double *l)
 {
 
     // Harten Hyman entropy fix
-    if(*l < solver->eFix & *l > -solver->eFix )
+    if((*l < solver->eFix) & (*l > -solver->eFix))
     {
         *l = 0.5*(*l * *l/solver->eFix + solver->eFix);
     }
