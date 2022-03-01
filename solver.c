@@ -229,6 +229,7 @@ void inter(SOLVER* solver, double **U)
                         xm = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
                         ym = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;        
                         d2 = (dUx*(xm - x0) + dUy*(ym - y0));
+                        //phi0 = limiterBJ(U[kk][ii], Umin, Umax, d2);                        
                         phi0 = limiterV(U[kk][ii], Umin, Umax, d2, solver->e);
                         
                         if(jj==0)
@@ -253,7 +254,7 @@ void inter(SOLVER* solver, double **U)
     {
 	    int kk;
         double dSx, dSy, dS;
-        double x0, x1, y0, y1, xm, ym;
+        double x0, y0, xm, ym;
         double UL[4];
 	    double UR[4];
         double f[4];
@@ -266,29 +267,33 @@ void inter(SOLVER* solver, double **U)
         meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
         dS = sqrt(dSx*dSx + dSy*dSy);
         
-        meshElemCenter(solver->mesh, e0, &x0, &y0);
-        meshElemCenter(solver->mesh, e1, &x1, &y1);
-                
-        for(kk=0; kk<4; kk++)
-		{
-			UL[kk] = U[kk][e0];
-			UR[kk] = U[kk][e1];
-			
-			if(solver->order == 2)
-			{
-       			xm = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
+        if(solver->order == 2)
+        {
+            for(kk=0; kk<4; kk++)
+		    {                
+           	    xm = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
                 ym = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
-                
-			    if(solver->mesh->neiN[e0] > 1)
-			    {			                                                	        
-			        UL[kk] += solver->dUx[kk][e0]*(xm - x0) + solver->dUy[kk][e0]*(ym - y0);
-			    }
 
-			    if(solver->mesh->neiN[e1] > 1)
-			    {      	        
-			        UR[kk] += solver->dUx[kk][e1]*(xm - x1) + solver->dUy[kk][e1]*(ym - y1);
-			    }
-			}
+		        if(solver->mesh->neiN[e0] > 1)
+		        {
+		            meshElemCenter(solver->mesh, e0, &x0, &y0);			                                                	        
+		            UL[kk] = U[kk][e0] + solver->dUx[kk][e0]*(xm - x0) + solver->dUy[kk][e0]*(ym - y0);
+		        }
+
+		        if(solver->mesh->neiN[e1] > 1)
+		        {      	        
+		            meshElemCenter(solver->mesh, e1, &x0, &y0);
+		            UR[kk] = U[kk][e1] + solver->dUx[kk][e1]*(xm - x0) + solver->dUy[kk][e1]*(ym - y0);
+		        }
+            }   
+        }
+        else
+        {       
+            for(kk=0; kk<4; kk++)
+		    {
+			    UL[kk] = U[kk][e0];
+			    UR[kk] = U[kk][e1];			    
+		    }
 		}
 		
         // Rotation of the velocity vectors
