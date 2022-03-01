@@ -34,9 +34,10 @@ typedef struct {
             
     double **U;
     double **R;
-    double **Uaux; 
-    
-    double** faceFlux;       
+    double **Uaux;     
+    double **faceFlux;       
+    double **dUx;
+    double **dUy;    
     
     CONDITION* inlet;
         

@@ -60,6 +60,8 @@ void solverFree(SOLVER* solver)
     tableFreeDouble(solver->Uaux, 4);
     tableFreeDouble(solver->R, 4);        
     tableFreeDouble(solver->faceFlux, solver->mesh->Nelem);
+    tableFreeDouble(solver->dUx, 4);
+    tableFreeDouble(solver->dUy, 4);
     meshFree(solver->mesh);
     
 }
@@ -201,16 +203,60 @@ void rotation(double* U, double dSx, double dSy, double dS)
 void inter(SOLVER* solver, double **U)
 {
 
+    if(solver->order == 2)
+	{
+        # pragma omp parallel for
+        for(int ii=0; ii<solver->mesh->Nelem; ii++)
+        {
+	        int jj, kk, p0, p1;
+            double dUx, dUy;
+            double x0, y0, d2, phi0, phi, xm, ym;
+            double Umin, Umax; 
+            double blend = 1.0;        
+
+	        if(solver->mesh->neiN[ii] > 1)
+	        {  
+          	    meshElemCenter(solver->mesh, ii, &x0, &y0);
+          	    
+                for(kk=0; kk<4; kk++)
+                {
+                    solverCalcGrad2(solver, U[kk], ii, &dUx, &dUy, &Umin, &Umax);
+                    
+                    for(jj=0; jj<3; jj++)
+                    {
+                        p0 = solver->mesh->elem[ii][jj]; 
+                        p1 = solver->mesh->elem[ii][(jj+1)%3];
+                        xm = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
+                        ym = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;        
+                        d2 = (dUx*(xm - x0) + dUy*(ym - y0));
+                        phi0 = limiterV(U[kk][ii], Umin, Umax, d2, solver->e);
+                        
+                        if(jj==0)
+                        {
+                            phi = phi0;
+                        }
+                        else
+                        {
+                            phi = fmin(phi, phi0);
+                        }			            
+                    }
+
+                    solver->dUx[kk][ii] = phi*dUx*blend;
+	                solver->dUy[kk][ii] = phi*dUy*blend;
+	            }   
+	        }
+        }
+    }
+    
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Ncon; ii++)
     {
-	    int kk;
+	    int jj, kk;
         double dSx, dSy, dS, aux, delta, dUx, dUy;
-        double x0, x1, y0, y1, x, y, d2, phi0, phi;
+        double x0, x1, y0, y1, xm, ym;
         double UL[4];
 	    double UR[4];
         double f[4];
-        double Umin, Umax; 
  
         int e0 = solver->mesh->con[ii][0];
         int e1 = solver->mesh->con[ii][1];
@@ -222,7 +268,7 @@ void inter(SOLVER* solver, double **U)
         
         meshElemCenter(solver->mesh, e0, &x0, &y0);
         meshElemCenter(solver->mesh, e1, &x1, &y1);
-        
+                
         for(kk=0; kk<4; kk++)
 		{
 			UL[kk] = U[kk][e0];
@@ -230,46 +276,17 @@ void inter(SOLVER* solver, double **U)
 			
 			if(solver->order == 2)
 			{
+       			xm = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
+                ym = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
+                
 			    if(solver->mesh->neiN[e0] > 1)
-			    {
-			        solverCalcGrad2(solver, U[kk], e0, &dUx, &dUy, &Umin, &Umax);
-			        for(int mm=0; mm<solver->mesh->neiN[e0]; mm++)
-			        {
-			            meshElemCenter(solver->mesh, solver->mesh->nei[e0][mm], &x, &y);
-			            d2 = (dUx*(x - x0) + dUy*(y - y0))*0.5;
-			            //phi0 = limiterBJ(UL[kk], Umin, Umax, d2);
-			            phi0 = limiterV(UL[kk], Umin, Umax, d2, solver->e);
-			            if(mm==0)
-			            {
-			                phi = phi0;
-			            }
-			            else
-			            {
-			                phi = fmin(phi, phi0);
-			            }			        
-			        }			        
-			        UL[kk] += phi*(dUx*(x1 - x0) + dUy*(y1 - y0))*0.5;
+			    {			                                                	        
+			        UL[kk] += solver->dUx[kk][e0]*(xm - x0) + solver->dUy[kk][e0]*(ym - y0);
 			    }
 
 			    if(solver->mesh->neiN[e1] > 1)
-			    {
-			        solverCalcGrad2(solver, U[kk], e1, &dUx, &dUy, &Umin, &Umax);
-			        for(int mm=0; mm<solver->mesh->neiN[e1]; mm++)
-			        {
-			            meshElemCenter(solver->mesh, solver->mesh->nei[e1][mm], &x, &y);
-			            d2 = (dUx*(x - x1) + dUy*(y - y1))*0.5;
-			            //phi0 = limiterBJ(UR[kk], Umin, Umax, d2);
-			            phi0 = limiterV(UR[kk], Umin, Umax, d2, solver->e);
-			            if(mm==0)
-			            {
-			                phi = phi0;
-			            }
-			            else
-			            {
-			                phi = fmin(phi, phi0);
-			            }			        
-			        }			        
-			        UR[kk] += phi*(dUx*(x0 - x1) + dUy*(y0 - y1))*0.5;
+			    {      	        
+			        UR[kk] += solver->dUx[kk][e1]*(xm - x1) + solver->dUy[kk][e1]*(ym - y1);
 			    }
 			}
 		}

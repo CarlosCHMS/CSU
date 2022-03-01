@@ -61,6 +61,8 @@ int main(int argc, char **argv)
     solver->Uaux = tableMallocDouble(4, solver->mesh->Nelem);    
     solver->R = tableMallocDouble(4, solver->mesh->Nelem);
     solver->faceFlux = tableMallocDouble(solver->mesh->Ncon, 4);
+    solver->dUx = tableMallocDouble(4, solver->mesh->Nelem);
+    solver->dUy = tableMallocDouble(4, solver->mesh->Nelem);    
 
     // Constants
     solver->Rgas = 287.5;
