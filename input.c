@@ -12,7 +12,6 @@ INPUT* inputInit(char* fileName, int N)
     char c;
     int name, value;
     int ii, jj;
-    char s[N];
     
     input->Nmax = N;
     
@@ -34,9 +33,9 @@ INPUT* inputInit(char* fileName, int N)
     value = 0;
     ii = 0;
     jj = 0;
+    c = fgetc(ff);
     while(c != EOF)
     {   
-        c = fgetc(ff);
         if(c != ' ')
         {
         
@@ -81,11 +80,13 @@ INPUT* inputInit(char* fileName, int N)
                 input->value[ii][jj] = c;
                 jj += 1;
             }           
-        } 
+        }
+         
+        c = fgetc(ff);
     }
     
     fclose(ff);
-    
+       
     input->N = ii;
     
     return input;
@@ -94,14 +95,10 @@ INPUT* inputInit(char* fileName, int N)
 
 void inputPrint(INPUT* input)
 {
-
     for(int ii=0; ii<input->N; ii++)
     {
-    
         printf(" %s, %s\n", input->name[ii], input->value[ii]);
-    
     }
-
 }
 
 int inputNameIsInput(INPUT* input, char* name)
