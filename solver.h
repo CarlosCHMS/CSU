@@ -103,3 +103,5 @@ void solverCalcGrad(SOLVER* solver, double* U, int ii, double* dUx, double* dUy)
 void solverCalcGrad2(SOLVER* solver, double* U, int ii, double* dUx, double* dUy, double* Umin, double* Umax);
 
 void solverCheckGrad(SOLVER* solver);
+
+double limiterBJ(double Ui, double Umin, double Umax, double d2);
