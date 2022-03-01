@@ -237,7 +237,8 @@ void inter(SOLVER* solver, double **U)
 			        {
 			            meshElemCenter(solver->mesh, solver->mesh->nei[e0][mm], &x, &y);
 			            d2 = (dUx*(x - x0) + dUy*(y - y0))*0.5;
-			            phi0 = limiterBJ(UL[kk], Umin, Umax, d2);
+			            //phi0 = limiterBJ(UL[kk], Umin, Umax, d2);
+			            phi0 = limiterV(UL[kk], Umin, Umax, d2, solver->e);
 			            if(mm==0)
 			            {
 			                phi = phi0;
@@ -257,7 +258,8 @@ void inter(SOLVER* solver, double **U)
 			        {
 			            meshElemCenter(solver->mesh, solver->mesh->nei[e1][mm], &x, &y);
 			            d2 = (dUx*(x - x1) + dUy*(y - y1))*0.5;
-			            phi0 = limiterBJ(UR[kk], Umin, Umax, d2);
+			            //phi0 = limiterBJ(UR[kk], Umin, Umax, d2);
+			            phi0 = limiterV(UR[kk], Umin, Umax, d2, solver->e);
 			            if(mm==0)
 			            {
 			                phi = phi0;
@@ -288,7 +290,6 @@ void inter(SOLVER* solver, double **U)
         {
             solver->faceFlux[ii][kk] = f[kk]*dS;
         }
-
     }
     
     # pragma omp parallel for
@@ -904,3 +905,30 @@ double limiterBJ(double Ui, double Umin, double Umax, double d2)
 
 }
 
+double limiterV(double Ui, double Umin, double Umax, double d2, double e)
+{
+
+    double ans;
+    double d1max = Umax - Ui;
+    double d1min = Umin - Ui;
+    
+    if(d2 == 0)
+    {
+        ans = 1;
+    }
+    else if(d2 > 0)
+    {
+        ans = (d1max*d1max + e*e)*d2 + 2*d2*d2*d1max;
+        ans /= d1max*d1max + 2*d2*d2 + d1max*d2 + e*e;
+        ans /= d2;
+    }
+    else
+    {
+        ans = (d1min*d1min + e*e)*d2 + 2*d2*d2*d1min;
+        ans /= d1min*d1min + 2*d2*d2 + d1min*d2 + e*e;
+        ans /= d2;
+    }
+    
+    return ans;
+
+}
