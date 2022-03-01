@@ -206,7 +206,7 @@ void inter(SOLVER* solver, double **U)
     {
 	    int kk;
         double dSx, dSy, dS, aux, delta, dUx, dUy;
-        double x0, x1, y0, y1;
+        double x0, x1, y0, y1, xm, ym;
         double UL[4];
 	    double UR[4];
         double f[4];
@@ -223,6 +223,9 @@ void inter(SOLVER* solver, double **U)
         meshElemCenter(solver->mesh, e0, &x0, &y0);
         meshElemCenter(solver->mesh, e1, &x1, &y1);
         
+        xm = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
+        ym = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
+
         for(kk=0; kk<4; kk++)
 		{
 			UL[kk] = U[kk][e0];
@@ -233,7 +236,7 @@ void inter(SOLVER* solver, double **U)
 			    if(solver->mesh->neiN[e0] > 1)
 			    {
 			        solverCalcGrad2(solver, U[kk], e0, &dUx, &dUy, &Umin, &Umax);
-			        UL[kk] += (dUx*(x1 - x0) + dUy*(y1 - y0))*0.5;
+			        UL[kk] += (dUx*(xm - x0) + dUy*(ym - y0))*0.5; // TODO:Improve this
 			        if(UL[kk] > Umax)
 			        {
 			            UL[kk] = Umax;
@@ -247,7 +250,7 @@ void inter(SOLVER* solver, double **U)
 			    if(solver->mesh->neiN[e1] > 1)
 			    {
 			        solverCalcGrad2(solver, U[kk], e1, &dUx, &dUy, &Umin, &Umax);
-			        UR[kk] += (dUx*(x0 - x1) + dUy*(y0 - y1))*0.5;
+			        UR[kk] += (dUx*(xm - x1) + dUy*(ym - y1))*0.5; // TODO:Improve this
 			        if(UR[kk] > Umax)
 			        {
 			            UR[kk] = Umax;
@@ -271,18 +274,6 @@ void inter(SOLVER* solver, double **U)
 
         // Rotation of the flux
 		rotation(f, dSx, -dSy, dS);
-        
-        /*                 
-        for(kk=0; kk<4; kk++)
-        {
-            aux = f[kk]*dS;            
-            //#pragma omp critical
-            {            
-                solver->R[kk][e0] += aux;
-                solver->R[kk][e1] -= aux;
-            }
-        }
-        */
         
         for(kk=0; kk<4; kk++)
         {
@@ -847,18 +838,10 @@ void solverCalcGrad2(SOLVER* solver, double* U, int ii, double* dUx, double* dUy
     
     for(int ii=1; ii<nN+1; ii++)
     {
-        if(*Umax < u[ii])
-        {
-            *Umax = u[ii];
-        }
-
-        if(*Umin > u[ii])
-        {
-            *Umin = u[ii];
-        }
+        *Umax = fmax(*Umax, u[ii]);
+        *Umin = fmin(*Umin, u[ii]);        
     }
 }
-
 
 void solverCheckGrad(SOLVER* solver)
 {
