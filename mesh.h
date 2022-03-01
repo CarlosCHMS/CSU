@@ -25,12 +25,14 @@ typedef struct
     int order;
     
     int* neiN;
+    int* faceN;
     
     int** elem; 
     int** con;    
     int** nei;
     int** neip0;
     int** neip1;
+    int** elemFace;
 
     double** p;
     
@@ -83,3 +85,5 @@ void meshCheckBorderOrientation(MESHBC* bc, MESH* mesh);
 void meshCalcNeighbors(MESH* mesh);
 
 void meshCheckNei(MESH* mesh);
+
+void meshCalcFaceElem(MESH* mesh);

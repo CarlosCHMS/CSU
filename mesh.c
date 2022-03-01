@@ -156,13 +156,15 @@ MESH* meshInit(char* fileName)
 
 
     printf("mesh: calculating conections.\n");
-    meshCalcConnection(mesh);
+    meshCalcConnection(mesh);    
     
     printf("mesh: calculating domain marks.\n");
     for(ii=0; ii<mesh->Nmark; ii++)
     {
         meshBCDomain(mesh->bc[ii], mesh);
     }
+
+    meshCalcFaceElem(mesh);
 
     return mesh;
 
@@ -229,12 +231,15 @@ void meshFree(MESH* mesh)
     tableFreeInit(mesh->elem, mesh->Nelem);
     tableFreeDouble(mesh->p, mesh->Np);
     tableFreeInit(mesh->con, mesh->Ncon);
+    tableFreeInit(mesh->elemFace, mesh->Nelem);
+    free(mesh->faceN);    
     
     if(mesh->order == 2)
     {
         tableFreeInit(mesh->nei, mesh->Nelem);
         tableFreeInit(mesh->neip0, mesh->Nelem);
         tableFreeInit(mesh->neip1, mesh->Nelem);        
+
         free(mesh->neiN);
     }
     
@@ -498,7 +503,9 @@ double meshMinEdge(MESH* mesh)
                 ans = meshEdgeLength(mesh, p0, p1);
             }
         }        
-    }    
+    } 
+    
+    return ans;   
 }
 
 void meshPrintDStotal(MESH* mesh)
@@ -686,5 +693,30 @@ void meshCheckNei(MESH* mesh)
         {
             printf("%i, %.4e, %.4e,\n", mesh->neiN[ii], dSxt, dSyt);
         }
+    }
+}
+
+void meshCalcFaceElem(MESH* mesh)
+{
+
+    int e0, e1;
+    mesh->elemFace = tableMallocInt(mesh->Nelem, 3);
+    mesh->faceN = malloc(mesh->Nelem*sizeof(int));
+
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        mesh->faceN[ii] = 0;
+    }
+       
+    for(int ii=0; ii<mesh->Ncon; ii++)
+    {
+        e0 = mesh->con[ii][0];
+        e1 = mesh->con[ii][1];
+        
+        mesh->elemFace[e0][mesh->faceN[e0]] = (ii+1);
+        mesh->elemFace[e1][mesh->faceN[e1]] = -(ii+1);
+        
+        mesh->faceN[e0] += 1;
+        mesh->faceN[e1] += 1;
     }
 }

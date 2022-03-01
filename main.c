@@ -28,7 +28,7 @@ int main(int argc, char **argv)
     solver->order = atoi(inputGetValue(input, "order"));
 
     // Set number of threads
-    // omp_set_num_threads(atoi(inputGetValue(input, "threads")));
+    omp_set_num_threads(atoi(inputGetValue(input, "threads")));
 
     // Load mesh    
     s[0] = '\0';
@@ -60,6 +60,7 @@ int main(int argc, char **argv)
     solver->U = tableMallocDouble(4, solver->mesh->Nelem);
     solver->Uaux = tableMallocDouble(4, solver->mesh->Nelem);    
     solver->R = tableMallocDouble(4, solver->mesh->Nelem);
+    solver->faceFlux = tableMallocDouble(solver->mesh->Ncon, 4);
 
     // Constants
     solver->Rgas = 287.5;

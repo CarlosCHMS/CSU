@@ -56,11 +56,12 @@ double conditionVref(CONDITION* cond, SOLVER* solver)
 void solverFree(SOLVER* solver)
 {
 
-    meshFree(solver->mesh);
     tableFreeDouble(solver->U, 4);
     tableFreeDouble(solver->Uaux, 4);
     tableFreeDouble(solver->R, 4);        
-
+    tableFreeDouble(solver->faceFlux, solver->mesh->Nelem);
+    meshFree(solver->mesh);
+    
 }
 
 void solverWrite(SOLVER* solver, char* fileName)
@@ -153,9 +154,10 @@ void solverInitU(SOLVER* solver, CONDITION* inside)
 
 void solverResetR(SOLVER* solver)
 {
-    for(int kk=0; kk<4; kk++)
+    # pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
-        for(int ii=0; ii<solver->mesh->Nelem; ii++)
+        for(int kk=0; kk<4; kk++)
         {
             solver->R[kk][ii] = 0.0; 
         }
@@ -199,7 +201,7 @@ void rotation(double* U, double dSx, double dSy, double dS)
 void inter(SOLVER* solver, double **U)
 {
 
-    //# pragma omp parallel for
+    # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Ncon; ii++)
     {
 	    int kk;
@@ -269,7 +271,8 @@ void inter(SOLVER* solver, double **U)
 
         // Rotation of the flux
 		rotation(f, dSx, -dSy, dS);
-                         
+        
+        /*                 
         for(kk=0; kk<4; kk++)
         {
             aux = f[kk]*dS;            
@@ -278,8 +281,38 @@ void inter(SOLVER* solver, double **U)
                 solver->R[kk][e0] += aux;
                 solver->R[kk][e1] -= aux;
             }
-        } 
+        }
+        */
+        
+        for(kk=0; kk<4; kk++)
+        {
+            solver->faceFlux[ii][kk] = f[kk]*dS;
+        }
+
     }
+    
+    # pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        for(int jj=0; jj<solver->mesh->faceN[ii]; jj++)
+        {
+            int face = solver->mesh->elemFace[ii][jj];
+            if(face > 0)
+            {
+                for(int kk=0; kk<4; kk++)
+                {
+                    solver->R[kk][ii] += solver->faceFlux[face-1][kk];
+                }
+            }
+            else
+            {
+                for(int kk=0; kk<4; kk++)
+                {
+                    solver->R[kk][ii] -= solver->faceFlux[-face-1][kk];
+                }            
+            }
+        }
+    } 
 }
 
 void boundaryInlet(SOLVER* solver, double* Ua, double* Ud, double* Ub, double nx, double ny)
@@ -368,7 +401,6 @@ void boundaryWall(SOLVER* solver, double* Ud, double* Ub, double nx, double ny)
     Ub[3] = pb/(solver->gamma-1) + 0.5*(ub*ub + vb*vb)*rb;
     
 }
-
 
 void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc)
 {
@@ -480,11 +512,10 @@ void boundary(SOLVER* solver, double **U)
 
 void interAxisPressure(SOLVER* solver, double **U)
 {
-
-    double dS;
-
+    # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
-    {        
+    {
+        double dS;        
         dS = meshCalcDSlateral(solver->mesh, ii);
         solver->R[2][ii] -= solverCalcP(solver, U, ii)*dS;
     }
@@ -508,6 +539,7 @@ void solverCalcR(SOLVER* solver, double** U)
 
 void solverRK(SOLVER* solver, double a)
 {   
+    # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
         double omega = meshCalcOmega(solver->mesh, ii);
@@ -522,6 +554,7 @@ void solverRK(SOLVER* solver, double a)
 
 void solverUpdateU(SOLVER* solver)
 {
+    # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
         for(int kk=0; kk<4; kk++)
