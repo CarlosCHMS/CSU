@@ -68,6 +68,7 @@ void solverFree(SOLVER* solver)
     tableFreeDouble(solver->faceFlux, 4);
     tableFreeDouble(solver->dPx, 4);
     tableFreeDouble(solver->dPy, 4);
+    solverFreeP(solver);
     meshFree(solver->mesh);
     
 }
@@ -973,10 +974,11 @@ double limiterV(double Ui, double Umin, double Umax, double d2, double e)
 
 void solverCalcPrimitive(SOLVER* solver, double** U)
 {   
+    solver->P[0] = U[0]; // Reduce memory usage
+
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
-    {
-        solver->P[0][ii] = U[0][ii];
+    {        
         solver->P[1][ii] = U[1][ii]/U[0][ii];
         solver->P[2][ii] = U[2][ii]/U[0][ii];
         solver->P[3][ii] = solverCalcP(solver, U, ii);
@@ -990,5 +992,29 @@ void solverCalcUfromP(SOLVER* solver, double r, double u, double v, double p, do
     *U1 = r*u;
     *U2 = r*v;
     *U3 = p/(solver->gamma-1) + 0.5*(u*u + v*v)*r;
+
+}
+
+void solverMallocP(SOLVER* solver)
+{
+
+    solver->P = malloc(4*sizeof(double*));
+
+    for(int ii=1; ii<4; ii++)
+    {    
+        solver->P[ii] = malloc(solver->mesh->Nelem*sizeof(double));
+    }
+
+}    
+ 
+void solverFreeP(SOLVER* solver)
+{
+
+    for(int ii=1; ii<4; ii++)
+    {    
+        free(solver->P[ii]);
+    }    
+
+    free(solver->P);
 
 }

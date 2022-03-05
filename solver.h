@@ -114,3 +114,7 @@ double limiterV(double Ui, double Umin, double Umax, double d2, double e);
 void solverCalcPrimitive(SOLVER* solver, double** U);
 
 void solverCalcUfromP(SOLVER* solver, double r, double u, double v, double p, double* U0, double* U1, double* U2, double* U3);
+
+void solverMallocP(SOLVER* solver);
+
+void solverFreeP(SOLVER* solver);
