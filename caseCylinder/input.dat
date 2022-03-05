@@ -10,7 +10,7 @@ BC:outlet, outlet
 BC:wall, wall
 BC:inlet, inlet
 
-Nmax, 9000
+Nmax, 3000
 interpE, 1e-10
 order, 2
 stages, 5
@@ -18,4 +18,4 @@ threads, 4
 flux, AUSMD
 tube, 0
 axisymmetric, 0
-CFL, 0.5
+CFL, 1.0
