@@ -41,6 +41,12 @@ void conditionState(CONDITION* cond, SOLVER* solver)
     cond->Uin[2] = r*v;
     cond->Uin[3] = r*E;   
 
+    cond->Pin[0] = r;
+    cond->Pin[1] = u;
+    cond->Pin[2] = v;
+    cond->Pin[3] = solver->Rgas*cond->T*r;   
+
+
 }
 
 double conditionVref(CONDITION* cond, SOLVER* solver)
@@ -60,8 +66,8 @@ void solverFree(SOLVER* solver)
     tableFreeDouble(solver->Uaux, 4);
     tableFreeDouble(solver->R, 4);        
     tableFreeDouble(solver->faceFlux, 4);
-    tableFreeDouble(solver->dUx, 4);
-    tableFreeDouble(solver->dUy, 4);
+    tableFreeDouble(solver->dPx, 4);
+    tableFreeDouble(solver->dPy, 4);
     meshFree(solver->mesh);
     
 }
@@ -200,7 +206,7 @@ void rotation(double* U, double dSx, double dSy, double dS)
 	
 }
 
-void inter(SOLVER* solver, double **U)
+void inter(SOLVER* solver)
 {
 
     if(solver->order == 2)
@@ -209,9 +215,9 @@ void inter(SOLVER* solver, double **U)
         for(int ii=0; ii<solver->mesh->Nelem; ii++)
         {
 	        int jj, kk, p0, p1;
-            double dUx, dUy;
+            double dPx, dPy;
             double x0, y0, d2, phi0, phi, xm, ym;
-            double Umin, Umax; 
+            double Pmin, Pmax; 
             double blend = 1.0;        
 
 	        if(solver->mesh->neiN[ii] > 1)
@@ -220,7 +226,7 @@ void inter(SOLVER* solver, double **U)
           	    
                 for(kk=0; kk<4; kk++)
                 {
-                    solverCalcGrad2(solver, U[kk], ii, &dUx, &dUy, &Umin, &Umax);
+                    solverCalcGrad2(solver, solver->P[kk], ii, &dPx, &dPy, &Pmin, &Pmax);
                     
                     for(jj=0; jj<3; jj++)
                     {
@@ -228,9 +234,9 @@ void inter(SOLVER* solver, double **U)
                         p1 = solver->mesh->elem[ii][(jj+1)%3];
                         xm = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
                         ym = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;        
-                        d2 = (dUx*(xm - x0) + dUy*(ym - y0));
-                        //phi0 = limiterBJ(U[kk][ii], Umin, Umax, d2);                        
-                        phi0 = limiterV(U[kk][ii], Umin, Umax, d2, solver->e);
+                        d2 = (dPx*(xm - x0) + dPy*(ym - y0));
+                        //phi0 = limiterBJ(solver->P[kk][ii], Pmin, Pmax, d2);                        
+                        phi0 = limiterV(solver->P[kk][ii], Pmin, Pmax, d2, solver->e);
                         
                         if(jj==0)
                         {
@@ -242,8 +248,8 @@ void inter(SOLVER* solver, double **U)
                         }			            
                     }
 
-                    solver->dUx[kk][ii] = phi*dUx*blend;
-	                solver->dUy[kk][ii] = phi*dUy*blend;
+                    solver->dPx[kk][ii] = phi*dPx*blend;
+	                solver->dPy[kk][ii] = phi*dPy*blend;
 	            }   
 	        }
         }
@@ -255,8 +261,8 @@ void inter(SOLVER* solver, double **U)
 	    int kk;
         double dSx, dSy, dS;
         double x0, y0, x1, y1, xm, ym;
-        double UL[4];
-	    double UR[4];
+        double PL[4];
+	    double PR[4];
         double f[4];
  
         int e0 = solver->mesh->con[ii][0];
@@ -279,20 +285,20 @@ void inter(SOLVER* solver, double **U)
 		    {                
 		        if(solver->mesh->neiN[e0] > 1)
 		        {		    
-		            UL[kk] = U[kk][e0] + solver->dUx[kk][e0]*(xm - x0) + solver->dUy[kk][e0]*(ym - y0);
+		            PL[kk] = solver->P[kk][e0] + solver->dPx[kk][e0]*(xm - x0) + solver->dPy[kk][e0]*(ym - y0);
 		        }
 		        else
 		        {
-		            UL[kk] = U[kk][e0];
+		            PL[kk] = solver->P[kk][e0];
 		        }
 
 		        if(solver->mesh->neiN[e1] > 1)
 		        {      	        
-		            UR[kk] = U[kk][e1] + solver->dUx[kk][e1]*(xm - x1) + solver->dUy[kk][e1]*(ym - y1);
+		            PR[kk] = solver->P[kk][e1] + solver->dPx[kk][e1]*(xm - x1) + solver->dPy[kk][e1]*(ym - y1);
 		        }
 		        else
 		        {
-		            UR[kk] = U[kk][e1];
+		            PR[kk] = solver->P[kk][e1];
 		        }
             }   
         }
@@ -300,19 +306,19 @@ void inter(SOLVER* solver, double **U)
         {       
             for(kk=0; kk<4; kk++)
 		    {
-			    UL[kk] = U[kk][e0];
-			    UR[kk] = U[kk][e1];			    
+			    PL[kk] = solver->P[kk][e0];
+			    PR[kk] = solver->P[kk][e1];			    
 		    }
 		}
 		
         // Rotation of the velocity vectors
-		rotation(UL, dSx, dSy, dS);
+		rotation(PL, dSx, dSy, dS);
                     
         // Rotation of the velocity vectors
-		rotation(UR, dSx, dSy, dS);
+		rotation(PR, dSx, dSy, dS);
         
         // Flux calculation
-        flux(solver, UL[0], UL[1], UL[2], UL[3], UR[0], UR[1], UR[2], UR[3], f);
+        flux2(solver, PL[0], PL[1], PL[2], PL[3], PR[0], PR[1], PR[2], PR[3], f);
 
         // Rotation of the flux
 		rotation(f, dSx, -dSy, dS);
@@ -347,48 +353,48 @@ void inter(SOLVER* solver, double **U)
     } 
 }
 
-void boundaryInlet(SOLVER* solver, double* Ua, double* Ud, double* Ub, double nx, double ny)
+void boundaryInlet(SOLVER* solver, double* Pa, double* Pd, double* Pb, double nx, double ny)
 {
-    double rd = Ud[0];
-    double ud = Ud[1]/Ud[0];
-    double vd = Ud[2]/Ud[0];
-    double pd = (solver->gamma - 1)*(Ud[3] - 0.5*(ud*ud + vd*vd)*rd);
+    double rd = Pd[0];
+    double ud = Pd[1];
+    double vd = Pd[2];
+    double pd = Pd[3];
     double c0 = sqrt(solver->gamma*pd/rd);    
     double m = sqrt(ud*ud + vd*vd)/c0;
     
     if(m < 1.)
     {
-        double ra = Ua[0];
-        double ua = Ua[1]/Ua[0];
-        double va = Ua[2]/Ua[0];
-        double pa = (solver->gamma - 1)*(Ua[3] - 0.5*(ua*ua + va*va)*ra);
+        double ra = Pa[0];
+        double ua = Pa[1];
+        double va = Pa[2];
+        double pa = Pa[3];
 
         double pb = 0.5*(pa + pd - rd*c0*(nx*(ua-ud) + ny*(va-vd)));
         double rb = ra + (pb - pa)/(c0*c0);
         double ub = ua - nx*(pa - pb)/(rd*c0);
         double vb = va - ny*(pa - pb)/(rd*c0);
 
-        Ub[0] = rb;
-        Ub[1] = rb*ub;
-        Ub[2] = rb*vb;
-        Ub[3] = pb/(solver->gamma-1) + 0.5*(ub*ub + vb*vb)*rb;
+        Pb[0] = rb;
+        Pb[1] = ub;
+        Pb[2] = vb;
+        Pb[3] = pb;
     }
     else
     {
         for(int ii=0; ii<4; ii++)
         {
-            Ub[ii] = Ua[ii];
+            Pb[ii] = Pa[ii];
         }
     }    
 }
 
-void boundaryOutlet(SOLVER* solver, double* Ud, double* Ub, double nx, double ny)
+void boundaryOutlet(SOLVER* solver, double* Pd, double* Pb, double nx, double ny)
 {
 
-    double rd = Ud[0];
-    double ud = Ud[1]/Ud[0];
-    double vd = Ud[2]/Ud[0];
-    double pd = (solver->gamma - 1)*(Ud[3] - 0.5*(ud*ud + vd*vd)*rd);
+    double rd = Pd[0];
+    double ud = Pd[1];
+    double vd = Pd[2];
+    double pd = Pd[3];
     double c0 = sqrt(solver->gamma*pd/rd);    
     double m = sqrt(ud*ud + vd*vd)/c0;
     
@@ -399,27 +405,27 @@ void boundaryOutlet(SOLVER* solver, double* Ud, double* Ub, double nx, double ny
         double ub = ud + nx*(pd - pb)/(rd*c0);
         double vb = vd + ny*(pd - pb)/(rd*c0);
 
-        Ub[0] = rb;
-        Ub[1] = rb*ub;
-        Ub[2] = rb*vb;
-        Ub[3] = pb/(solver->gamma-1) + 0.5*(ub*ub + vb*vb)*rb;
+        Pb[0] = rb;
+        Pb[1] = ub;
+        Pb[2] = vb;
+        Pb[3] = pb;
     }
     else
     {
         for(int ii=0; ii<4; ii++)
         {
-            Ub[ii] = Ud[ii];
+            Pb[ii] = Pd[ii];
         }
     }    
 }
 
-void boundaryWall(SOLVER* solver, double* Ud, double* Ub, double nx, double ny)
+void boundaryWall(SOLVER* solver, double* Pd, double* Pb, double nx, double ny)
 {
 
-    double rd = Ud[0];
-    double ud = Ud[1]/Ud[0];
-    double vd = Ud[2]/Ud[0];
-    double pd = (solver->gamma - 1)*(Ud[3] - 0.5*(ud*ud + vd*vd)*rd);
+    double rd = Pd[0];
+    double ud = Pd[1];
+    double vd = Pd[2];
+    double pd = Pd[3];
     double c0 = sqrt(solver->gamma*pd/rd);
     
     double pb = pd + rd*c0*(nx*ud + ny*vd);
@@ -427,21 +433,21 @@ void boundaryWall(SOLVER* solver, double* Ud, double* Ub, double nx, double ny)
     double ub = ud - nx*(nx*ud + ny*vd);
     double vb = vd - ny*(nx*ud + ny*vd);
 
-    Ub[0] = rb;
-    Ub[1] = rb*ub;
-    Ub[2] = rb*vb;
-    Ub[3] = pb/(solver->gamma-1) + 0.5*(ub*ub + vb*vb)*rb;
+    Pb[0] = rb;
+    Pb[1] = ub;
+    Pb[2] = vb;
+    Pb[3] = pb;
     
 }
 
-void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc)
+void boundaryCalc(SOLVER* solver, MESHBC* bc)
 {
     
 	int kk;
     double dSx, dSy, dS;
     double aux;
-    double UL[4];
-	double Ub[4];
+    double PL[4];
+	double Pb[4];
     double f[4];
     int e0, p0, p1;
 
@@ -457,59 +463,58 @@ void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc)
         
         for(kk=0; kk<4; kk++)
 		{
-			UL[kk] = U[kk][e0];
+			PL[kk] = solver->P[kk][e0];
 		}      		
         
         if(bc->flagBC == 0)
         {
 
             // Rotation of the velocity vectors
-            rotation(UL, dSx, dSy, dS);
+            rotation(PL, dSx, dSy, dS);
         
             // Reflexive
-            flux(solver, UL[0], UL[1], UL[2], UL[3], UL[0], -UL[1], UL[2], UL[3], f);
+            flux2(solver, PL[0], PL[1], PL[2], PL[3], PL[0], -PL[1], PL[2], PL[3], f);
 
         }
         else if(bc->flagBC == 1)
         {
 
-            boundaryInlet(solver, solver->inlet->Uin, UL, Ub, dSx/dS, dSy/dS);
+            boundaryInlet(solver, solver->inlet->Pin, PL, Pb, dSx/dS, dSy/dS);
 
             // Rotation of the velocity vectors
-            rotation(UL, dSx, dSy, dS);
-	        rotation(Ub, dSx, dSy, dS);
+            rotation(PL, dSx, dSy, dS);
+	        rotation(Pb, dSx, dSy, dS);
 
-            //solverFlux(solver, UL[0], UL[1], UL[2], UL[3], Ub[0], Ub[1], Ub[2], Ub[3], f);
-		    fluxFree(solver, Ub[0], Ub[1], Ub[2], Ub[3], f);
+            flux2(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
         
         }
         else if(bc->flagBC == 2)
         {           
 
-            boundaryOutlet(solver, UL, Ub, dSx/dS, dSy/dS);
+            boundaryOutlet(solver, PL, Pb, dSx/dS, dSy/dS);
 
             // Rotation of the velocity vectors
-            rotation(UL, dSx, dSy, dS);
-	        rotation(Ub, dSx, dSy, dS);
+            rotation(PL, dSx, dSy, dS);
+	        rotation(Pb, dSx, dSy, dS);
         
-            flux(solver, UL[0], UL[1], UL[2], UL[3], Ub[0], Ub[1], Ub[2], Ub[3], f);
+            flux2(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
 		
         }
         else if(bc->flagBC == 3)
         {
 
             /*
-            boundaryWall(solver, UL, Ub, dSx/dS, dSy/dS);
+            boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
 
             // Rotation of the velocity vectors
-            rotation(UL, dSx, dSy, dS);
-	        rotation(Ub, dSx, dSy, dS);
+            rotation(PL, dSx, dSy, dS);
+	        rotation(Pb, dSx, dSy, dS);
         
-            flux(solver, UL[0], UL[1], UL[2], UL[3], Ub[0], Ub[1], Ub[2], Ub[3], f);
-            //fluxFree(solver, Ub[0], Ub[1], Ub[2], Ub[3], f);
+            //flux(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
+            fluxFree(solver, Pb[0], Pb[1], Pb[2], Pb[3], f);
             */
-
-		    double p2 = solverCalcP(solver, U, e0);
+            
+		    double p2 = PL[3];
 	
             // Outlet
             f[0] = .0;
@@ -517,6 +522,7 @@ void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc)
             f[3] = .0;
 
             f[1] =  p2;
+            
         }       
 
         // Rotation of the flux
@@ -533,22 +539,22 @@ void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc)
     }
 }
 
-void boundary(SOLVER* solver, double **U)
+void boundary(SOLVER* solver)
 {
     for(int ii=0; ii<solver->mesh->Nmark; ii++)
     {
-        boundaryCalc(solver, U, solver->mesh->bc[ii]);
+        boundaryCalc(solver, solver->mesh->bc[ii]);
     }
 }
 
-void interAxisPressure(SOLVER* solver, double **U)
+void interAxisPressure(SOLVER* solver)
 {
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
         double dS;        
         dS = meshCalcDSlateral(solver->mesh, ii);
-        solver->R[2][ii] -= solverCalcP(solver, U, ii)*dS;
+        solver->R[2][ii] -= solver->P[3][ii]*dS;
     }
 }
 
@@ -557,13 +563,15 @@ void solverCalcR(SOLVER* solver, double** U)
 
     solverResetR(solver);
 
-    inter(solver, U);
+    solverCalcPrimitive(solver, U);
+
+    inter(solver);
     
-    boundary(solver, U); 
+    boundary(solver); 
     
     if(solver->mesh->axi==1)
     {
-        interAxisPressure(solver, U);
+        interAxisPressure(solver);
     }    
 
 }
@@ -960,5 +968,27 @@ double limiterV(double Ui, double Umin, double Umax, double d2, double e)
     }
     
     return ans;
+
+}
+
+void solverCalcPrimitive(SOLVER* solver, double** U)
+{   
+    # pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        solver->P[0][ii] = U[0][ii];
+        solver->P[1][ii] = U[1][ii]/U[0][ii];
+        solver->P[2][ii] = U[2][ii]/U[0][ii];
+        solver->P[3][ii] = solverCalcP(solver, U, ii);
+    }
+}
+
+void solverCalcUfromP(SOLVER* solver, double r, double u, double v, double p, double* U0, double* U1, double* U2, double* U3)
+{
+
+    *U0 = r;
+    *U1 = r*u;
+    *U2 = r*v;
+    *U3 = p/(solver->gamma-1) + 0.5*(u*u + v*v)*r;
 
 }

@@ -112,6 +112,35 @@ void fluxRoe(SOLVER* solver,
 	}
 }
 
+
+void fluxRoe2(SOLVER* solver, double rL, double uL, double vL, double pL,
+                              double rR, double uR, double vR, double pR, double* f)
+{
+
+    double U0L, U1L, U2L, U3L;
+    double U0R, U1R, U2R, U3R;
+
+    solverCalcUfromP(solver, rL, uL, vL, pL, &U0L, &U1L, &U2L, &U3L);
+    solverCalcUfromP(solver, rR, uR, vR, pR, &U0R, &U1R, &U2R, &U3R);
+        
+    fluxRoe(solver, U0L, U1L, U2L, U3L, U0R, U1R, U2R, U3R, f);
+
+}	      
+	
+void flux2(SOLVER* solver, double rL, double uL, double vL, double pL,
+                              double rR, double uR, double vR, double pR, double* f)
+{
+
+    double U0L, U1L, U2L, U3L;
+    double U0R, U1R, U2R, U3R;
+
+    solverCalcUfromP(solver, rL, uL, vL, pL, &U0L, &U1L, &U2L, &U3L);
+    solverCalcUfromP(solver, rR, uR, vR, pR, &U0R, &U1R, &U2R, &U3R);
+        
+    flux(solver, U0L, U1L, U2L, U3L, U0R, U1R, U2R, U3R, f);
+
+}		
+	      
 void fluxAUSMD(SOLVER* solver, 
                double U0L, double U1L, double U2L, double U3L, 
                double U0R, double U1R, double U2R, double U3R,
@@ -164,24 +193,6 @@ void fluxAUSMD(SOLVER* solver,
 	f[3] = 0.5*(rU * (HR + HL) - fabs(rU) * (HR - HL));
 }
 
-
-void fluxFree(SOLVER* solver, 
-               double U0L, double U1L, double U2L, double U3L,
-	           double* f)
-{
-
-	double uL = U1L/U0L;
-	double vL = U2L/U0L;
-    double pL = (solver->gamma - 1)*(U3L - (uL*uL + vL*vL)*U0L/2);
-
-    // Fluxes
-	f[0] = U1L;
-	f[1] = U1L*uL + pL;
-	f[2] = U1L*vL;
-	f[3] = uL*(U3L + pL);
-
-}
-
 void flux(SOLVER* solver, 
                double U0L, double U1L, double U2L, double U3L, 
                double U0R, double U1R, double U2R, double U3R,
@@ -195,4 +206,12 @@ void flux(SOLVER* solver,
     {
         fluxAUSMD(solver, U0L, U1L, U2L, U3L, U0R, U1R, U2R, U3R, f);
     }
+}
+
+void fluxFree2(SOLVER* solver, double rL, double uL, double vL, double pL, double* f)
+{
+    f[0] = rL*uL;   
+    f[1] = rL*uL*uL + pL;
+    f[2] = rL*uL*vL;
+    f[3] = uL*(pL/(solver->gamma-1) + 0.5*(uL*uL + vL*vL)*rL);    
 }

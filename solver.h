@@ -8,6 +8,7 @@ typedef struct{
     double ny;  
     
     double Uin[4];  
+    double Pin[4];     
 
 } CONDITION;
 
@@ -36,8 +37,9 @@ typedef struct {
     double **R;
     double **Uaux;     
     double **faceFlux;       
-    double **dUx;
-    double **dUy;    
+    double **dPx;
+    double **dPy;    
+    double **P;    
     
     CONDITION* inlet;
         
@@ -65,7 +67,7 @@ void solverCalcVel(SOLVER* solver, double** U, int ii, double* u, double* v, dou
 
 void rotation(double* U, double dSx, double dSy, double dS);
 
-void inter(SOLVER* solver, double **U);
+void inter(SOLVER* solver);
 
 void boundaryInlet(SOLVER* solver, double* Ua, double* Ud, double* Ub, double nx, double ny);
 
@@ -73,11 +75,11 @@ void boundaryOutlet(SOLVER* solver, double* Ud, double* Ub, double nx, double ny
 
 void boundaryWall(SOLVER* solver, double* Ud, double* Ub, double nx, double ny);
 
-void boundaryCalc(SOLVER* solver, double **U, MESHBC* bc);
+void boundaryCalc(SOLVER* solver, MESHBC* bc);
 
-void boundary(SOLVER* solver, double **U);
+void boundary(SOLVER* solver);
 
-void interAxisPressure(SOLVER* solver, double **U);
+void interAxisPressure(SOLVER* solver);
 
 void solverCalcR(SOLVER* solver, double** U);
 
@@ -108,3 +110,7 @@ void solverCheckGrad(SOLVER* solver);
 double limiterBJ(double Ui, double Umin, double Umax, double d2);
 
 double limiterV(double Ui, double Umin, double Umax, double d2, double e);
+
+void solverCalcPrimitive(SOLVER* solver, double** U);
+
+void solverCalcUfromP(SOLVER* solver, double r, double u, double v, double p, double* U0, double* U1, double* U2, double* U3);
