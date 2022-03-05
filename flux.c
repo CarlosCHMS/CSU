@@ -43,8 +43,8 @@ void entropyFix(SOLVER* solver, double *l)
 }
 
 void fluxRoe(SOLVER* solver, 
-               double U0L, double U1L, double U2L, double U3L, 
-               double U0R, double U1R, double U2R, double U3R,
+               double rL, double uL, double vL, double pL, 
+               double rR, double uR, double vR, double pR,
 	           double* f)
 {
 
@@ -52,19 +52,21 @@ void fluxRoe(SOLVER* solver,
     Based on: P. L. ROE, Riemann Solvers, Parameter Vectors, and Difference Schemes, (1981)
     */
       
-	double uL = U1L/U0L;
-	double vL = U2L/U0L;
-    double pL = (solver->gamma - 1)*(U3L - (uL*uL + vL*vL)*U0L/2);
-    double HL = (U3L + pL)/U0L;
+	double U0L = rL;
+	double U1L = rL*uL;	
+	double U2L = rL*vL;	
+	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+    double HL = (U3L + pL)/rL;
 
-	double uR = U1R/U0R;
-	double vR = U2R/U0R;
-    double pR = (solver->gamma - 1)*(U3R - (uR*uR + vR*vR)*U0R/2);
-    double HR = (U3R + pR)/U0R;
+	double U0R = rR;
+	double U1R = rR*uR;	
+	double U2R = rR*vR;	
+	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double HR = (U3R + pR)/rR;
 
     // Mean values calculation
-	double rqL = sqrt(U0L);
-    double rqR = sqrt(U0R);
+	double rqL = sqrt(rL);
+    double rqR = sqrt(rR);
 
 	double ub = (rqL*uL + rqR*uR)/(rqL + rqR);
 	double vb = (rqL*vL + rqR*vR)/(rqL + rqR);
@@ -111,39 +113,11 @@ void fluxRoe(SOLVER* solver,
 		f[ii] = 0.5 * (fR[ii] + fL[ii] - a1*fabs(l1)*e1[ii] - a2v*fabs(l2)*e2v[ii] - a4*fabs(l4)*e4[ii] - a5*fabs(l5)*e5[ii]);
 	}
 }
-
-
-void fluxRoe2(SOLVER* solver, double rL, double uL, double vL, double pL,
-                              double rR, double uR, double vR, double pR, double* f)
-{
-
-    double U0L, U1L, U2L, U3L;
-    double U0R, U1R, U2R, U3R;
-
-    solverCalcUfromP(solver, rL, uL, vL, pL, &U0L, &U1L, &U2L, &U3L);
-    solverCalcUfromP(solver, rR, uR, vR, pR, &U0R, &U1R, &U2R, &U3R);
-        
-    fluxRoe(solver, U0L, U1L, U2L, U3L, U0R, U1R, U2R, U3R, f);
-
-}	      
 	
-void flux2(SOLVER* solver, double rL, double uL, double vL, double pL,
-                              double rR, double uR, double vR, double pR, double* f)
-{
-
-    double U0L, U1L, U2L, U3L;
-    double U0R, U1R, U2R, U3R;
-
-    solverCalcUfromP(solver, rL, uL, vL, pL, &U0L, &U1L, &U2L, &U3L);
-    solverCalcUfromP(solver, rR, uR, vR, pR, &U0R, &U1R, &U2R, &U3R);
-        
-    flux(solver, U0L, U1L, U2L, U3L, U0R, U1R, U2R, U3R, f);
-
-}		
 	      
 void fluxAUSMD(SOLVER* solver, 
-               double U0L, double U1L, double U2L, double U3L, 
-               double U0R, double U1R, double U2R, double U3R,
+               double rL, double uL, double vL, double pL, 
+               double rR, double uR, double vR, double pR,
 	           double* f)
 {
 
@@ -152,15 +126,13 @@ void fluxAUSMD(SOLVER* solver,
     SPLITTING SCHEME FOR SHOCK AND CONTACT DISCONTINUITIES, (1997)
     */
     
-	double uL = U1L/U0L;
-	double vL = U2L/U0L;
-    double pL = (solver->gamma - 1)*(U3L - (uL*uL + vL*vL)*U0L/2);
-    double HL = (U3L + pL)/U0L;
+	double U0L = rL;
+	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+    double HL = (U3L + pL)/rL;
 
-	double uR = U1R/U0R;
-	double vR = U2R/U0R;
-    double pR = (solver->gamma - 1)*(U3R - (uR*uR + vR*vR)*U0R/2);
-    double HR = (U3R + pR)/U0R;
+	double U0R = rR;
+	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double HR = (U3R + pR)/rR;
 
 	double cm = fmax(sqrt(solver->gamma*pL/U0L), sqrt(solver->gamma*pR/U0R));
 
@@ -193,22 +165,20 @@ void fluxAUSMD(SOLVER* solver,
 	f[3] = 0.5*(rU * (HR + HL) - fabs(rU) * (HR - HL));
 }
 
-void flux(SOLVER* solver, 
-               double U0L, double U1L, double U2L, double U3L, 
-               double U0R, double U1R, double U2R, double U3R,
-	           double* f)
-{	           
+void flux(SOLVER* solver, double rL, double uL, double vL, double pL,
+                              double rR, double uR, double vR, double pR, double* f)
+{
 	if(solver->flux == 0)
 	{
-        fluxRoe(solver, U0L, U1L, U2L, U3L, U0R, U1R, U2R, U3R, f);
+        fluxRoe(solver, rL, uL, vL, pL, rR, uR, vR, pR, f);
     }
     else if(solver->flux == 1)     
     {
-        fluxAUSMD(solver, U0L, U1L, U2L, U3L, U0R, U1R, U2R, U3R, f);
+        fluxAUSMD(solver, rL, uL, vL, pL, rR, uR, vR, pR, f);
     }
-}
+}	
 
-void fluxFree2(SOLVER* solver, double rL, double uL, double vL, double pL, double* f)
+void fluxFree(SOLVER* solver, double rL, double uL, double vL, double pL, double* f)
 {
     f[0] = rL*uL;   
     f[1] = rL*uL*uL + pL;
