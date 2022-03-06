@@ -14,15 +14,7 @@ void fluxAUSMD(SOLVER* solver,
                double U0R, double U1R, double U2R, double U3R,
 	           double* f);
 
-void flux(SOLVER* solver, 
-               double U0L, double U1L, double U2L, double U3L, 
-               double U0R, double U1R, double U2R, double U3R,
-	           double* f);
-
-void fluxRoe2(SOLVER* solver, double rL, double uL, double vL, double pL,
-                              double rR, double uR, double vR, double pR, double* f);
-
-void flux2(SOLVER* solver, double rL, double uL, double vL, double pL,
+void flux(SOLVER* solver, double rL, double uL, double vL, double pL,
                            double rR, double uR, double vR, double pR, double* f);
                            
-void fluxFree2(SOLVER* solver, double rL, double uL, double vL, double pL, double* f);
+void fluxFree(SOLVER* solver, double rL, double uL, double vL, double pL, double* f);
