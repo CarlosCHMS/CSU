@@ -17,7 +17,7 @@ class solution():
         
         self.x = self.mesh.x
         self.y = self.mesh.y
-        self.elem = self.mesh.elem
+        self.elemToTri()
                 
         self.pConnect()        
                 
@@ -52,6 +52,18 @@ class solution():
         self.rE = numpy.array(self.rE)
 
         return None
+        
+    def elemToTri(self):
+    
+        self.elem = []
+        for e in self.mesh.elem:
+            if(len(e) == 3):
+                self.elem.append(e)
+            elif(len(e) == 4):
+                self.elem.append([e[0], e[1], e[2]])
+                self.elem.append([e[2], e[3], e[0]])
+            
+        return None                
         
     def calcPMT(self):
        
@@ -89,7 +101,7 @@ class solution():
     
         self.con = numpy.zeros(len(self.mesh.p))
         
-        for ii in range(0, len(self.mesh.elem)):
+        for ii in range(0, len(self.elem)):
             self.con[self.elem[ii][0]] += 1
             self.con[self.elem[ii][1]] += 1
             self.con[self.elem[ii][2]] += 1

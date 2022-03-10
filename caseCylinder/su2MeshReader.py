@@ -41,7 +41,11 @@ class reader():
 
                 if mod == 1:
                     aux = row.split(' ')
-                    self.elem.append([int(aux[1]), int(aux[2]), int(aux[3])])
+                    if int(aux[0]) == 5:                    
+                        self.elem.append([int(aux[1]), int(aux[2]), int(aux[3])])
+                    elif int(aux[0]) == 9:                    
+                        self.elem.append([int(aux[1]), int(aux[2]), int(aux[3]), int(aux[4])])
+                        
                     ii += 1
 
                 elif mod == 2:
@@ -135,6 +139,17 @@ class marker():
 
         aux = row.split(' ')
         self.elem.append([int(aux[1]), int(aux[2])])
+        
+    def getXY(self, mesh):
+    
+        self.x = []
+        self.y = []
+        
+        for e in self.elem:
+            self.x.append(mesh.x[e[0]])
+            self.y.append(mesh.y[e[0]])
+            
+        return None
 
 
 if __name__=="__main__":
