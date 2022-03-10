@@ -16,6 +16,19 @@ typedef struct
 typedef struct
 {
 
+    int Np;
+    
+    int neiN;
+    
+    int* p;
+    int* nei;
+    int* f;
+    
+} ELEMENT;
+
+typedef struct
+{
+
     int Ndim;
     int Nelem;
     int Np;
@@ -24,17 +37,11 @@ typedef struct
     int axi;
     int order;
     
-    int* neiN;
-    int* faceN;
-    
-    int** elem; 
     int** con;    
-    int** nei;
-    int** neip0;
-    int** neip1;
-    int** elemFace;
 
     double** p;
+
+    ELEMENT** elemL;
     
     MESHBC** bc;
 
@@ -56,17 +63,19 @@ void meshFree(MESH* mesh);
 
 void meshElemCenter(MESH* mesh, int ii, double* x, double* y);
 
+double meshCalcOmegaTri(MESH* mesh, int p0, int p1, int p2);
+
 double meshCalcDSlateral(MESH* mesh, int ii);
 
 double meshCalcOmega(MESH* mesh, int ii);
 
-double meshIsConnected(MESH* mesh, int ii, int jj, int* p0, int* p1);
+double elementIsConnected(ELEMENT* e0, ELEMENT* e1, int* p0, int* p1);
 
 void meshCalcConnection(MESH* mesh);
 
 void meshCalcDS(MESH* mesh, int p0, int p1, double* dSx, double* dSy);
 
-int meshBCIsConnect(int* BCp, int* p);
+int meshBCIsConnect(int* BCp, ELEMENT* e);
 
 void meshBCDomain(MESHBC* bc, MESH* mesh);
 
@@ -78,12 +87,8 @@ void meshPrintDStotal(MESH* mesh);
 
 void meshCheckUse(MESH* mesh);
 
-int meshPOri(MESH* mesh, int e, int p0, int p1);
+int meshPOri(MESH* mesh, ELEMENT* e, int p0, int p1);
 
 void meshCheckBorderOrientation(MESHBC* bc, MESH* mesh);
 
 void meshCalcNeighbors(MESH* mesh);
-
-void meshCheckNei(MESH* mesh);
-
-void meshCalcFaceElem(MESH* mesh);

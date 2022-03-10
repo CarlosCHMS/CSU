@@ -87,6 +87,7 @@ void solverWrite(SOLVER* solver, char* fileName)
     double* den = malloc(solver->mesh->Np*sizeof(double));
     int ii, jj, kk, p;
     double xc, yc, xp, yp, L;
+    ELEMENT* e;
 
     for(ii=0; ii<solver->mesh->Np; ii++)
     {       
@@ -100,10 +101,11 @@ void solverWrite(SOLVER* solver, char* fileName)
     for(ii=0; ii<solver->mesh->Nelem; ii++)
     {
         meshElemCenter(solver->mesh, ii, &xc, &yc);
+        e = solver->mesh->elemL[ii];
         
-        for(jj=0; jj<3; jj++)
+        for(jj=0; jj<e->Np; jj++)
         {
-            p = solver->mesh->elem[ii][jj];
+            p = e->p[jj];
             xp = solver->mesh->p[p][0];
             yp = solver->mesh->p[p][1];
             L = sqrt((xp-xc)*(xp-xc) + (yp-yc)*(yp-yc));
@@ -222,7 +224,7 @@ void inter(SOLVER* solver)
             double Pmin, Pmax; 
             double blend = 1.0;        
 
-	        if(solver->mesh->neiN[ii] > 1)
+	        if(solver->mesh->elemL[ii]->neiN > 1)
 	        {  
           	    meshElemCenter(solver->mesh, ii, &x0, &y0);
           	    
@@ -230,10 +232,10 @@ void inter(SOLVER* solver)
                 {
                     solverCalcGrad2(solver, solver->P[kk], ii, &dPx, &dPy, &Pmin, &Pmax);
                     
-                    for(jj=0; jj<3; jj++)
+                    for(jj=0; jj<solver->mesh->elemL[ii]->Np; jj++)
                     {
-                        p0 = solver->mesh->elem[ii][jj]; 
-                        p1 = solver->mesh->elem[ii][(jj+1)%3];
+                        p0 = solver->mesh->elemL[ii]->p[jj]; 
+                        p1 = solver->mesh->elemL[ii]->p[(jj+1)%solver->mesh->elemL[ii]->Np];
                         xm = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
                         ym = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;        
                         d2 = (dPx*(xm - x0) + dPy*(ym - y0));
@@ -285,7 +287,7 @@ void inter(SOLVER* solver)
 		    
             for(kk=0; kk<4; kk++)
 		    {                
-		        if(solver->mesh->neiN[e0] > 1)
+		        if(solver->mesh->elemL[e0]->neiN > 1)
 		        {		    
 		            PL[kk] = solver->P[kk][e0] + solver->dPx[kk][e0]*(xm - x0) + solver->dPy[kk][e0]*(ym - y0);
 		        }
@@ -294,7 +296,7 @@ void inter(SOLVER* solver)
 		            PL[kk] = solver->P[kk][e0];
 		        }
 
-		        if(solver->mesh->neiN[e1] > 1)
+		        if(solver->mesh->elemL[e1]->neiN > 1)
 		        {      	        
 		            PR[kk] = solver->P[kk][e1] + solver->dPx[kk][e1]*(xm - x1) + solver->dPy[kk][e1]*(ym - y1);
 		        }
@@ -334,9 +336,9 @@ void inter(SOLVER* solver)
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
-        for(int jj=0; jj<solver->mesh->faceN[ii]; jj++)
+        for(int jj=0; jj<solver->mesh->elemL[ii]->neiN; jj++)
         {
-            int face = solver->mesh->elemFace[ii][jj];
+            int face = solver->mesh->elemL[ii]->f[jj];
             if(face > 0)
             {
                 for(int kk=0; kk<4; kk++)
@@ -537,28 +539,22 @@ double solverLocalTimeStep(SOLVER* solver, int ii)
 {
     int p0, p1;
     double dSx, dSy, dSxm, dSym, Lx, Ly, u, v, c;
+    ELEMENT* e = solver->mesh->elemL[ii];
     
     dSxm = 0.;
     dSym = 0.;
     
-    p0 = solver->mesh->elem[ii][0];
-    p1 = solver->mesh->elem[ii][1];        
-    meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-    dSxm += fabs(dSx);
-    dSym += fabs(dSy);
+    for(int jj=0; jj<e->Np; jj++)
+    {
     
-    p0 = solver->mesh->elem[ii][1];
-    p1 = solver->mesh->elem[ii][2];        
-    meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-    dSxm += fabs(dSx);
-    dSym += fabs(dSy);
-
-    p0 = solver->mesh->elem[ii][2];
-    p1 = solver->mesh->elem[ii][0];        
-    meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-    dSxm += fabs(dSx);
-    dSym += fabs(dSy);
-    
+        p0 = e->p[jj];
+        p1 = e->p[(jj+1)%e->Np];
+        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+        dSxm += fabs(dSx);
+        dSym += fabs(dSy);
+        
+    }
+        
     dSxm *= 0.5;
     dSym *= 0.5;
     
@@ -616,34 +612,6 @@ void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, dou
     }
 }
 
-void solverCalcGrad(SOLVER* solver, double* U, int ii, double* dUx, double* dUy)
-{
-
-    /*
-    Green-Gauss calculation
-    */
-
-
-    double dSx, dSy, aux;
-    
-    *dUx = 0.0;
-    *dUy = 0.0;
-    
-    for(int jj=0; jj<3; jj++)
-    {
-        meshCalcDS(solver->mesh, solver->mesh->neip0[ii][jj], solver->mesh->neip1[ii][jj], &dSx, &dSy);
-        aux = (U[ii] + U[solver->mesh->nei[ii][jj]])*0.5;
-        *dUx += dSx*aux;
-        *dUy += dSy*aux;
-    }
- 
-    aux = meshCalcOmega(solver->mesh, ii);
-    
-    *dUx /= aux;
-    *dUy /= aux;
-
-}
-
 void solverCalcGrad2(SOLVER* solver, double* U, int ii, double* dUx, double* dUy, double* Umin, double* Umax)
 {
 
@@ -657,7 +625,7 @@ void solverCalcGrad2(SOLVER* solver, double* U, int ii, double* dUx, double* dUy
     double y[4];    
     double u[4];    
     double a, b, c, A, B;
-    int nN = solver->mesh->neiN[ii];
+    int nN = solver->mesh->elemL[ii]->neiN;
         
     meshElemCenter(solver->mesh, ii, &xx, &yy);
     x[0] = xx;
@@ -666,7 +634,7 @@ void solverCalcGrad2(SOLVER* solver, double* U, int ii, double* dUx, double* dUy
 
     for(int jj=0; jj<nN; jj++)
     {
-        e = solver->mesh->nei[ii][jj];
+        e = solver->mesh->elemL[ii]->nei[jj];
         meshElemCenter(solver->mesh, e, &xx, &yy);
         x[jj+1] = xx;
         y[jj+1] = yy;
@@ -718,7 +686,7 @@ void solverCheckGrad(SOLVER* solver)
     
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
-        if(solver->mesh->neiN[ii] == 2)
+        if(solver->mesh->elemL[ii]->neiN == 2)
         {
             solverCalcGrad2(solver, U, ii, &dUx, &dUy, &Umin, &Umax);
             printf("%+e, %+e, %+e\n", dUx, 2*xx[ii], dUx - 2*xx[ii]);

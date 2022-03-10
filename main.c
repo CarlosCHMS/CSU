@@ -37,15 +37,11 @@ int main(int argc, char **argv)
     solver->mesh = meshInit(s); 
     
     solver->mesh->order = solver->order;
-    if(solver->mesh->order == 2)
-    {
-        meshCalcNeighbors(solver->mesh);
-    }
     
     //meshCheckNei(solver->mesh);
     
     //solverCheckGrad(solver);
-    
+        
     // axisymmetric
     solver->mesh->axi = atoi(inputGetValue(input, "axisymmetric"));
     
