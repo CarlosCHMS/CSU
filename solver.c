@@ -621,9 +621,9 @@ void solverCalcGrad2(SOLVER* solver, double* U, int ii, double* dUx, double* dUy
 
     int e;
     double xx, yy;
-    double x[4];
-    double y[4];    
-    double u[4];    
+    double x[5];
+    double y[5];    
+    double u[5];    
     double a, b, c, A, B;
     int nN = solver->mesh->elemL[ii]->neiN;
         
