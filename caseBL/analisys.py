@@ -74,6 +74,7 @@ class solution():
         self.mach = numpy.zeros(Np)
         self.entro = numpy.zeros(Np)               
         self.H = numpy.zeros(Np)                
+        self.u = numpy.zeros(Np)
        
         for ii in range(0, Np):
        
@@ -82,6 +83,8 @@ class solution():
                 u = self.ru[ii]/self.r[ii]
                 v = self.rv[ii]/self.r[ii]
                 E = self.rE[ii]/self.r[ii]
+                
+                self.u[ii] = u
                 
                 RT = (E - (u**2 + v**2)/2)*(self.gamma - 1)
                 
@@ -130,6 +133,8 @@ class BL():
 
     def __init__(self, p, T, m, mi, L):
     
+        # Blasius solution
+    
         gamma = 1.4
         Rgas = 287.5
         
@@ -139,22 +144,32 @@ class BL():
         
         Re = r*self.U*L/mi
         
-        self.h = 5.0*L/numpy.sqrt(Re)
-        
-    def u(self, y):
-    
-        aux = y/self.h
-        ans = []
-        for a in aux:
-            if(a > 1):
-                ans.append(self.U)
-            else:
-                ans.append(a*(2-a)*self.U)
-    
-        ans = numpy.array(ans)
-    
-        return ans
-                     
+        self.h = L/numpy.sqrt(Re)
+
+        self.tab = [[0, 0],
+                    [0.5, 0.16503],
+                    [1, 0.32819], 
+                    [1.5, 0.48471],
+                    [2, 0.62755 ],
+                    [2.5, 0.74927],
+                    [3, 0.84452 ],
+                    [3.5,  0.91205],
+                    [4, 0.95499 ],
+                    [4.5, 0.97929 ],
+                    [4.91, 0.98991 ],
+                    [4.92, 0.99009 ],
+                    [5, 0.99147 ],
+                    [6, 0.99898 ],
+                    [7, 0.99993 ],
+                    [8, 1]]
+
+        for t in self.tab:
+            t = numpy.array(t)
+            
+        self.tab = numpy.array(self.tab)
+
+        self.y = self.h*self.tab[:, 0]        
+        self.u = self.U*self.tab[:, 1]                      
     
     
 if __name__=="__main__":
@@ -188,8 +203,8 @@ if __name__=="__main__":
     mar = s.mesh.markers[1]
     mar.getXY(s.mesh)
     
-    inter = mtri.LinearTriInterpolator(triang, s.mach)
-    mach = inter(mar.x, mar.y)
+    inter = mtri.LinearTriInterpolator(triang, s.u)
+    u = inter(mar.x, mar.y)
     inter = mtri.LinearTriInterpolator(triang, s.p)
     p = inter(mar.x, mar.y)
     inter = mtri.LinearTriInterpolator(triang, s.r)
@@ -198,13 +213,11 @@ if __name__=="__main__":
     bl = BL(1e5, 300, 0.1, 1.81e-5, 1)
 
     mar.y = numpy.array(mar.y)
-    
-    print(bl.h)
 
     plt.figure()
-    plt.title("Mach")
-    plt.plot(mar.y, mach, 'b')
-    plt.plot(mar.y, bl.u(mar.y)/bl.c, 'r--')    
+    plt.title("u")
+    plt.plot(mar.y, u, 'b')
+    plt.plot(bl.y, bl.u, 'r--')    
     plt.show()
     
 
