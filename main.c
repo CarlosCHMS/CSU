@@ -9,6 +9,7 @@
 #include"mesh.h"
 #include"solver.h"
 #include"flux.h"
+#include"boundary.h"
 
 void mainSetData(SOLVER* solver, INPUT* input)
 {
