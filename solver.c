@@ -357,6 +357,108 @@ void inter(SOLVER* solver)
     } 
 }
 
+void interVis(SOLVER* solver)
+{
+
+    # pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        int kk;
+        double dPx, dPy, Pmin, Pmax;
+
+        if(solver->mesh->elemL[ii]->neiN > 1)
+        {   
+      	    kk = 1;
+            solverCalcGrad2(solver, solver->P[kk], ii, &dPx, &dPy, &Pmin, &Pmax);
+            solver->dPx[kk][ii] = dPx;
+            solver->dPy[kk][ii] = dPy;
+            
+            kk = 2;
+            solverCalcGrad2(solver, solver->P[kk], ii, &dPx, &dPy, &Pmin, &Pmax);
+            solver->dPx[kk][ii] = dPx;
+            solver->dPy[kk][ii] = dPy;
+        }
+    }
+    
+    # pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Ncon; ii++)
+    {
+        double dSx, dSy;
+        double x0, y0, x1, y1;
+
+        int e0 = solver->mesh->con[ii][0];
+        int e1 = solver->mesh->con[ii][1];
+        int p0 = solver->mesh->con[ii][2];
+        int p1 = solver->mesh->con[ii][3];
+
+        if((solver->mesh->elemL[e0]->neiN > 1) & (solver->mesh->elemL[e1]->neiN > 1))
+		{		    
+            meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+            
+            double duxm = (solver->dPx[1][e0] + solver->dPx[1][e1])*0.5;
+            double dvxm = (solver->dPx[2][e0] + solver->dPx[2][e1])*0.5;        
+            
+            double duym = (solver->dPy[1][e0] + solver->dPy[1][e1])*0.5;
+            double dvym = (solver->dPy[2][e0] + solver->dPy[2][e1])*0.5;        
+            
+	        meshElemCenter(solver->mesh, e0, &x0, &y0);
+	        meshElemCenter(solver->mesh, e1, &x1, &y1);
+		        
+            double dx = x1 - x0;		    
+            double dy = y1 - y0;
+            double L = sqrt(dx*dx + dy*dy);
+            
+            double dul = (solver->P[1][e1] - solver->P[1][e0])/L;
+            double dvl = (solver->P[2][e1] - solver->P[2][e0])/L;        
+            
+            double dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
+            double duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
+
+            double dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
+            double dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;        
+		        
+		    double txx = 2*solver->mi*(dux - (dux + dvy)/3);
+		    double tyy = 2*solver->mi*(dvy - (dux + dvy)/3);		    
+		    double txy = solver->mi*(duy + dvx);  
+		    
+		    double u = (solver->P[1][e0] + solver->P[1][e1])*0.5;
+            double v = (solver->P[2][e0] + solver->P[2][e1])*0.5;
+	    
+		    solver->faceFlux[1][ii] = txx*dSx + txy*dSy;
+		    solver->faceFlux[2][ii] = txy*dSx + tyy*dSy;
+		    solver->faceFlux[3][ii] = (txx*dSx + txy*dSy)*u + (txy*dSx + tyy*dSy)*v;
+		}
+		else
+		{
+		    solver->faceFlux[1][ii] = 0.0;
+		    solver->faceFlux[2][ii] = 0.0;
+		    solver->faceFlux[3][ii] = 0.0;
+		}
+    }
+    
+    # pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        for(int jj=0; jj<solver->mesh->elemL[ii]->neiN; jj++)
+        {
+            int face = solver->mesh->elemL[ii]->f[jj];
+            if(face > 0)
+            {
+                for(int kk=1; kk<4; kk++)
+                {
+                    solver->R[kk][ii] -= solver->faceFlux[kk][face-1];
+                }
+            }
+            else
+            {
+                for(int kk=1; kk<4; kk++)
+                {
+                    solver->R[kk][ii] += solver->faceFlux[kk][-face-1];
+                }            
+            }
+        }
+    } 
+}
 
 void interAxisPressure(SOLVER* solver)
 {
@@ -377,6 +479,11 @@ void solverCalcR(SOLVER* solver, double** U)
     solverCalcPrimitive(solver, U);
 
     inter(solver);
+    
+    if(solver->mi > 0.0)
+    {
+        interVis(solver);
+    }
     
     boundary(solver); 
     

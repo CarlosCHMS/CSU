@@ -66,6 +66,15 @@ int main(int argc, char **argv)
     solver->gamma = 1.4;  
     solver->eFix = 0.1;
     solver->e = strtod(inputGetValue(input, "interpE"), NULL);
+    if(inputNameIsInput(input, "mi"))
+    {
+        solver->mi = strtod(inputGetValue(input, "mi"), NULL);     
+    }
+    else
+    {
+        solver->mi = 0.0;
+    }
+
         
     // Selection of several variables
     solver->flux = fluxChoice(inputGetValue(input, "flux"));

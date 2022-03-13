@@ -32,6 +32,7 @@ typedef struct {
     double res0[4];
     double res[4];
     double CFL;
+    double mi;
             
     double **U;
     double **R;
