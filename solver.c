@@ -60,6 +60,17 @@ double conditionVref(CONDITION* cond, SOLVER* solver)
 
 }
 
+void solverMalloc(SOLVER* solver)
+{
+    solver->U = tableMallocDouble(4, solver->mesh->Nelem);
+    solver->Uaux = tableMallocDouble(4, solver->mesh->Nelem);    
+    solver->R = tableMallocDouble(4, solver->mesh->Nelem);
+    solver->faceFlux = tableMallocDouble(4, solver->mesh->Ncon);
+    solver->dPx = tableMallocDouble(4, solver->mesh->Nelem);
+    solver->dPy = tableMallocDouble(4, solver->mesh->Nelem);    
+    solverMallocP(solver);
+}
+
 void solverFree(SOLVER* solver)
 {
 
@@ -597,49 +608,6 @@ void solverCalcRes(SOLVER* solver)
     }
     printf("\n");    
    
-}
-
-int boundaryChoice(char* s)
-{
-    int ans;
-
-    if(strcmp(s, "symmetry") == 0)
-    {
-        ans = 0;
-    }
-    else if(strcmp(s, "inlet") == 0)
-    {
-        ans = 1;
-    }
-    else if(strcmp(s, "outlet") == 0)
-    {
-        ans = 2;
-    }
-    else if(strcmp(s, "wall") == 0)
-    {
-        ans = 3;
-    }
-    else
-    {
-        printf("Error: incorrent input of bc: %s\n", s);
-        exit(0);
-    }
- 
-    return ans;
-
-}
-
-void boundaryGetBC(MESH* mesh, INPUT* input)
-{
-    char s[50];
-    for(int ii=0; ii<mesh->Nmark; ii++)
-    {
-        s[0] = '\0';
-        strcat(s, "BC:");
-        strcat(s, mesh->bc[ii]->name);
-        mesh->bc[ii]->flagBC = boundaryChoice(inputGetValue(input, s));
-
-    }
 }
 
 double solverLocalTimeStep(SOLVER* solver, int ii)

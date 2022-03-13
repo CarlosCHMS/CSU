@@ -309,3 +309,46 @@ void boundary(SOLVER* solver)
     }
 }
 
+void boundaryGetBC(MESH* mesh, INPUT* input)
+{
+    char s[50];
+    for(int ii=0; ii<mesh->Nmark; ii++)
+    {
+        s[0] = '\0';
+        strcat(s, "BC:");
+        strcat(s, mesh->bc[ii]->name);
+        mesh->bc[ii]->flagBC = boundaryChoice(inputGetValue(input, s));
+
+    }
+}
+
+int boundaryChoice(char* s)
+{
+    int ans;
+
+    if(strcmp(s, "symmetry") == 0)
+    {
+        ans = 0;
+    }
+    else if(strcmp(s, "inlet") == 0)
+    {
+        ans = 1;
+    }
+    else if(strcmp(s, "outlet") == 0)
+    {
+        ans = 2;
+    }
+    else if(strcmp(s, "wall") == 0)
+    {
+        ans = 3;
+    }
+    else
+    {
+        printf("Error: incorrent input of bc: %s\n", s);
+        exit(0);
+    }
+ 
+    return ans;
+
+}
+

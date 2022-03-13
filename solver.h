@@ -54,6 +54,8 @@ void conditionState(CONDITION* cond, SOLVER* solver);
 
 double conditionVref(CONDITION* cond, SOLVER* solver);
 
+void solverMalloc(SOLVER* solver);
+
 void solverFree(SOLVER* solver);
 
 void solverWrite(SOLVER* solver, char* fileName);
@@ -70,16 +72,6 @@ void rotation(double* U, double dSx, double dSy, double dS);
 
 void inter(SOLVER* solver);
 
-void boundaryInlet(SOLVER* solver, double* Ua, double* Ud, double* Ub, double nx, double ny);
-
-void boundaryOutlet(SOLVER* solver, double* Ud, double* Ub, double nx, double ny);
-
-void boundaryWall(SOLVER* solver, double* Ud, double* Ub, double nx, double ny);
-
-void boundaryCalc(SOLVER* solver, MESHBC* bc);
-
-void boundary(SOLVER* solver);
-
 void interAxisPressure(SOLVER* solver);
 
 void solverCalcR(SOLVER* solver, double** U);
@@ -91,10 +83,6 @@ void solverUpdateU(SOLVER* solver);
 void solverStepRK(SOLVER* solver);
 
 void solverCalcRes(SOLVER* solver);
-
-int boundaryChoice(char* s);
-
-void boundaryGetBC(MESH* mesh, INPUT* input);
 
 double solverLocalTimeStep(SOLVER* solver, int ii);
 

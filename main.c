@@ -10,6 +10,45 @@
 #include"solver.h"
 #include"flux.h"
 
+void mainSetData(SOLVER* solver, INPUT* input)
+{
+
+    solver->order = atoi(inputGetValue(input, "order"));
+    solver->mesh->order = solver->order;
+    solver->mesh->axi = atoi(inputGetValue(input, "axisymmetric"));
+
+    //Get boundary conditions
+    printf("main: get boundary conditions.\n");
+    boundaryGetBC(solver->mesh, input);
+
+    // Constants
+    solver->Rgas = 287.5;
+    solver->gamma = 1.4;  
+    solver->eFix = 0.1;
+    solver->e = strtod(inputGetValue(input, "interpE"), NULL);
+    
+    if(inputNameIsInput(input, "mi"))
+    {
+        solver->mi = strtod(inputGetValue(input, "mi"), NULL);     
+    }
+    else
+    {
+        solver->mi = 0.0;
+    }
+
+    // Selection of several variables
+    solver->flux = fluxChoice(inputGetValue(input, "flux"));
+    solver->stages = atoi(inputGetValue(input, "stages"));
+    solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);
+
+    // Environmental condition
+    if(inputNameIsInput(input, "pout"))
+    {
+        solver->pout = strtod(inputGetValue(input, "pout"), NULL);     
+    }
+
+
+}
 
 int main(int argc, char **argv)
 {
@@ -25,8 +64,6 @@ int main(int argc, char **argv)
     printf("Input data:\n");
     inputPrint(input);
 
-    solver->order = atoi(inputGetValue(input, "order"));
-
     // Set number of threads
     omp_set_num_threads(atoi(inputGetValue(input, "threads")));
 
@@ -35,57 +72,17 @@ int main(int argc, char **argv)
     strcat(s, argv[1]);
     strcat(s, "mesh.su2");
     solver->mesh = meshInit(s); 
-    
-    solver->mesh->order = solver->order;
-    
+       
+    mainSetData(solver, input);
+       
     //meshCheckNei(solver->mesh);
-    
     //solverCheckGrad(solver);
-        
-    // axisymmetric
-    solver->mesh->axi = atoi(inputGetValue(input, "axisymmetric"));
-    
     //meshPrint(solver->mesh);
     //meshPrintDStotal(solver->mesh);
 
-    //Get boundary conditions
-    printf("main: get boundary conditions.\n");
-    boundaryGetBC(solver->mesh, input);
 
     // Memory allocation
-    solver->U = tableMallocDouble(4, solver->mesh->Nelem);
-    solver->Uaux = tableMallocDouble(4, solver->mesh->Nelem);    
-    solver->R = tableMallocDouble(4, solver->mesh->Nelem);
-    solver->faceFlux = tableMallocDouble(4, solver->mesh->Ncon);
-    solver->dPx = tableMallocDouble(4, solver->mesh->Nelem);
-    solver->dPy = tableMallocDouble(4, solver->mesh->Nelem);    
-    solverMallocP(solver);      
-
-    // Constants
-    solver->Rgas = 287.5;
-    solver->gamma = 1.4;  
-    solver->eFix = 0.1;
-    solver->e = strtod(inputGetValue(input, "interpE"), NULL);
-    if(inputNameIsInput(input, "mi"))
-    {
-        solver->mi = strtod(inputGetValue(input, "mi"), NULL);     
-    }
-    else
-    {
-        solver->mi = 0.0;
-    }
-
-        
-    // Selection of several variables
-    solver->flux = fluxChoice(inputGetValue(input, "flux"));
-    solver->stages = atoi(inputGetValue(input, "stages"));
-    solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);
-
-    // Environmental condition
-    if(inputNameIsInput(input, "pout"))
-    {
-        solver->pout = strtod(inputGetValue(input, "pout"), NULL);     
-    }
+    solverMalloc(solver);
        
     if(atoi(inputGetValue(input, "tube")) == 0)
     {
