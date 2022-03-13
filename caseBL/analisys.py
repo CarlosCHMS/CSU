@@ -5,7 +5,6 @@ import matplotlib.tri as mtri
 from su2MeshReader import reader
 import sys
 import numpy
-import characteristics as ch
  
 class solution():
 
@@ -75,6 +74,7 @@ class solution():
         self.entro = numpy.zeros(Np)               
         self.H = numpy.zeros(Np)                
         self.u = numpy.zeros(Np)
+        self.T = numpy.zeros(Np)
        
         for ii in range(0, Np):
        
@@ -98,6 +98,8 @@ class solution():
                 self.entro[ii] = self.p[ii]/(self.r[ii]**self.gamma)
 
                 self.H[ii] = E + self.p[ii]/self.r[ii]
+                
+                self.T[ii] = RT/self.Rgas
         
         return None        
 
@@ -131,7 +133,7 @@ def levels(v, n):
     
 class BL():
 
-    def __init__(self, p, T, m, mi, L):
+    def __init__(self, p, T, m, L):
     
         # Blasius solution
     
@@ -141,6 +143,8 @@ class BL():
         r = p/(Rgas*T)
         self.c = numpy.sqrt(gamma*p/r)
         self.U = self.c*m
+        
+        mi = 1.45e-6*T*numpy.sqrt(T)/(T + 110.0)
         
         Re = r*self.U*L/mi
         
@@ -205,12 +209,12 @@ if __name__=="__main__":
     
     inter = mtri.LinearTriInterpolator(triang, s.u)
     u = inter(mar.x, mar.y)
-    inter = mtri.LinearTriInterpolator(triang, s.p)
-    p = inter(mar.x, mar.y)
+    inter = mtri.LinearTriInterpolator(triang, s.T)
+    T = inter(mar.x, mar.y)
     inter = mtri.LinearTriInterpolator(triang, s.r)
     r = inter(mar.x, mar.y)
 
-    bl = BL(1e5, 300, 0.1, 1.81e-5, 1)
+    bl = BL(1e5, 300, 0.1, 1)
 
     mar.y = numpy.array(mar.y)
 
@@ -220,4 +224,8 @@ if __name__=="__main__":
     plt.plot(bl.y, bl.u, 'r--')    
     plt.show()
     
+    plt.figure()
+    plt.title("T")
+    plt.plot(mar.y, T, 'b') 
+    plt.show()
 

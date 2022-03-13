@@ -20,4 +20,4 @@ flux, ROE
 tube, 0
 axisymmetric, 0
 CFL, 1.0
-mi, 1.81e-5
+laminar, 1

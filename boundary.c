@@ -171,7 +171,7 @@ void boundaryCalc(SOLVER* solver, MESHBC* bc)
             fluxFree(solver, Pb[0], Pb[1], Pb[2], Pb[3], f);
             */
             
-            if(solver->mi > 0.0)
+            if(solver->laminar==1)
             {
                 // Rotation of the velocity vectors
                 rotation(PL, dSx, dSy, dS);
@@ -211,7 +211,7 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
     double dSx, dSy;
     int e0, p0, p1;
     double x0, x1, y0, y1;
-    double dux, duy, dvx, dvy;
+    double dux, duy, dvx, dvy, dTx, dTy;
 
     for(int ii=0; ii<bc->Nelem; ii++)
     {
@@ -236,18 +236,25 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
                 
                 double dul = (solver->inlet->Pin[1] - solver->P[1][e0])/L;
                 double dvl = (solver->inlet->Pin[2] - solver->P[2][e0])/L;            
+                double dTl = (solver->inlet->Pin[4] - solver->P[4][e0])/L; 
 
                 double duxm = solver->dPx[1][e0];
                 double dvxm = solver->dPx[2][e0];
+                double dTxm = solver->dPx[3][e0];
                 
                 double duym = solver->dPy[1][e0];
                 double dvym = solver->dPy[2][e0];
+                double dTym = solver->dPy[3][e0];
 
                 dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
                 duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
 
                 dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
-                dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;               
+                dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;  
+                
+                dTx = dTxm + (dTl - (dTxm*dx + dTym*dy)/L)*dx/L;
+                dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;
+                
             }
             else if(bc->flagBC == 3)
             {
@@ -273,23 +280,34 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
                 duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
 
                 dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
-                dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;               
+                dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
+                
+                //Adiabatic wall
+                dTx = 0;
+                dTy = 0;
             }
             else
             {
                 dux = solver->dPx[1][e0];
                 dvx = solver->dPx[2][e0];
+                dTx = solver->dPx[3][e0];
                 
                 duy = solver->dPy[1][e0];
-                dvy = solver->dPy[2][e0];            
+                dvy = solver->dPy[2][e0];
+                dTy = solver->dPy[3][e0];                
             }
+
+            double T = solver->P[4][e0];
+            double mi = sutherland(T);
+            double k = solver->Cp*mi/solver->Pr;            
 		        
-		    double txx = 2*solver->mi*(dux - (dux + dvy)/3);
-		    double tyy = 2*solver->mi*(dvy - (dux + dvy)/3);		    
-		    double txy = solver->mi*(duy + dvx);  
+		    double txx = 2*mi*(dux - (dux + dvy)/3);
+		    double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+		    double txy = mi*(duy + dvx);  
 		    
 		    solver->R[1][e0] -= txx*dSx + txy*dSy;
 		    solver->R[2][e0] -= txy*dSx + tyy*dSy;
+		    solver->R[2][e0] -= k*(dTx*dSx + dTy*dSy);
 		}        
     }
 }
@@ -301,13 +319,17 @@ void boundary(SOLVER* solver)
     for(int ii=0; ii<solver->mesh->Nmark; ii++)
     {
         boundaryCalc(solver, solver->mesh->bc[ii]);
-        
-        if(solver->mi>0.0)
-        {
-            boundaryCalcVisc(solver, solver->mesh->bc[ii]);
-        }
     }
 }
+
+void boundaryVisc(SOLVER* solver)
+{
+    for(int ii=0; ii<solver->mesh->Nmark; ii++)
+    {
+        boundaryCalcVisc(solver, solver->mesh->bc[ii]);
+    }
+}
+
 
 void boundaryGetBC(MESH* mesh, INPUT* input)
 {

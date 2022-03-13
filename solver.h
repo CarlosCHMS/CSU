@@ -8,7 +8,7 @@ typedef struct{
     double ny;  
     
     double Uin[4];  
-    double Pin[4];     
+    double Pin[5];     
 
 } CONDITION;
 
@@ -20,6 +20,7 @@ typedef struct {
     int order;
     int flux;
     int stages;
+    int laminar;
 
     double Rgas;
     double gamma;
@@ -32,7 +33,8 @@ typedef struct {
     double res0[4];
     double res[4];
     double CFL;
-    double mi;
+    double Cp;
+    double Pr;
             
     double **U;
     double **R;
@@ -72,6 +74,8 @@ void rotation(double* U, double dSx, double dSy, double dS);
 
 void inter(SOLVER* solver);
 
+void interVisc(SOLVER* solver);
+
 void interAxisPressure(SOLVER* solver);
 
 void solverCalcR(SOLVER* solver, double** U);
@@ -105,3 +109,5 @@ void solverCalcUfromP(SOLVER* solver, double r, double u, double v, double p, do
 void solverMallocP(SOLVER* solver);
 
 void solverFreeP(SOLVER* solver);
+
+double sutherland(double T);

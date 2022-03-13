@@ -45,7 +45,8 @@ void conditionState(CONDITION* cond, SOLVER* solver)
     cond->Pin[0] = r;
     cond->Pin[1] = u;
     cond->Pin[2] = v;
-    cond->Pin[3] = solver->Rgas*cond->T*r;   
+    cond->Pin[3] = solver->Rgas*cond->T*r;
+    cond->Pin[4] = cond->T;
 
 
 }
@@ -368,7 +369,7 @@ void inter(SOLVER* solver)
     } 
 }
 
-void interVis(SOLVER* solver)
+void interVisc(SOLVER* solver)
 {
 
     # pragma omp parallel for
@@ -388,6 +389,13 @@ void interVis(SOLVER* solver)
             solverCalcGrad2(solver, solver->P[kk], ii, &dPx, &dPy, &Pmin, &Pmax);
             solver->dPx[kk][ii] = dPx;
             solver->dPy[kk][ii] = dPy;
+            
+            // grad p storage is being reused for T grad
+            kk = 3;
+            solverCalcGrad2(solver, solver->P[4], ii, &dPx, &dPy, &Pmin, &Pmax);
+            solver->dPx[kk][ii] = dPx;
+            solver->dPy[kk][ii] = dPy;
+            
         }
     }
     
@@ -405,12 +413,14 @@ void interVis(SOLVER* solver)
         if((solver->mesh->elemL[e0]->neiN > 1) & (solver->mesh->elemL[e1]->neiN > 1))
 		{		    
             meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-            
+                        
             double duxm = (solver->dPx[1][e0] + solver->dPx[1][e1])*0.5;
             double dvxm = (solver->dPx[2][e0] + solver->dPx[2][e1])*0.5;        
+            double dTxm = (solver->dPx[3][e0] + solver->dPx[3][e1])*0.5;
             
             double duym = (solver->dPy[1][e0] + solver->dPy[1][e1])*0.5;
-            double dvym = (solver->dPy[2][e0] + solver->dPy[2][e1])*0.5;        
+            double dvym = (solver->dPy[2][e0] + solver->dPy[2][e1])*0.5;
+            double dTym = (solver->dPy[3][e0] + solver->dPy[3][e1])*0.5;
             
 	        meshElemCenter(solver->mesh, e0, &x0, &y0);
 	        meshElemCenter(solver->mesh, e1, &x1, &y1);
@@ -421,23 +431,31 @@ void interVis(SOLVER* solver)
             
             double dul = (solver->P[1][e1] - solver->P[1][e0])/L;
             double dvl = (solver->P[2][e1] - solver->P[2][e0])/L;        
+            double dTl = (solver->P[4][e1] - solver->P[4][e0])/L;
             
             double dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
             double duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
 
             double dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
             double dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;        
-		        
-		    double txx = 2*solver->mi*(dux - (dux + dvy)/3);
-		    double tyy = 2*solver->mi*(dvy - (dux + dvy)/3);		    
-		    double txy = solver->mi*(duy + dvx);  
+
+            double dTx = dTxm + (dTl - (dTxm*dx + dTym*dy)/L)*dx/L;
+            double dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;        
+		    
+            double T = (solver->P[4][e0] + solver->P[4][e1])*0.5;            
+            double mi = sutherland(T);
+            double k = solver->Cp*mi/solver->Pr;
+		    		        
+		    double txx = 2*mi*(dux - (dux + dvy)/3);
+		    double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+		    double txy = mi*(duy + dvx);  
 		    
 		    double u = (solver->P[1][e0] + solver->P[1][e1])*0.5;
             double v = (solver->P[2][e0] + solver->P[2][e1])*0.5;
 	    
 		    solver->faceFlux[1][ii] = txx*dSx + txy*dSy;
 		    solver->faceFlux[2][ii] = txy*dSx + tyy*dSy;
-		    solver->faceFlux[3][ii] = (txx*dSx + txy*dSy)*u + (txy*dSx + tyy*dSy)*v;
+		    solver->faceFlux[3][ii] = (txx*dSx + txy*dSy)*u + (txy*dSx + tyy*dSy)*v + k*(dTx*dSx + dTy*dSy);
 		}
 		else
 		{
@@ -490,19 +508,19 @@ void solverCalcR(SOLVER* solver, double** U)
     solverCalcPrimitive(solver, U);
 
     inter(solver);
-    
-    if(solver->mi > 0.0)
-    {
-        interVis(solver);
-    }
-    
+        
     boundary(solver); 
     
     if(solver->mesh->axi==1)
     {
         interAxisPressure(solver);
     }    
-
+    
+    if(solver->laminar==1)
+    {
+        interVisc(solver);
+        boundaryVisc(solver);
+    }
 }
 
 void solverRK(SOLVER* solver, double a)
@@ -833,6 +851,7 @@ void solverCalcPrimitive(SOLVER* solver, double** U)
         solver->P[1][ii] = U[1][ii]/U[0][ii];
         solver->P[2][ii] = U[2][ii]/U[0][ii];
         solver->P[3][ii] = solverCalcP(solver, U, ii);
+        solver->P[4][ii] = solver->P[3][ii]/(solver->P[0][ii]*solver->Rgas);
     }
 }
 
@@ -849,9 +868,9 @@ void solverCalcUfromP(SOLVER* solver, double r, double u, double v, double p, do
 void solverMallocP(SOLVER* solver)
 {
 
-    solver->P = malloc(4*sizeof(double*));
+    solver->P = malloc(5*sizeof(double*));
 
-    for(int ii=1; ii<4; ii++)
+    for(int ii=1; ii<5; ii++)
     {    
         solver->P[ii] = malloc(solver->mesh->Nelem*sizeof(double));
     }
@@ -861,11 +880,16 @@ void solverMallocP(SOLVER* solver)
 void solverFreeP(SOLVER* solver)
 {
 
-    for(int ii=1; ii<4; ii++)
+    for(int ii=1; ii<5; ii++)
     {    
         free(solver->P[ii]);
     }    
 
     free(solver->P);
 
+}
+
+double sutherland(double T)
+{
+    return 1.45e-6*T*sqrt(T)/(T + 110.0);
 }

@@ -25,16 +25,18 @@ void mainSetData(SOLVER* solver, INPUT* input)
     // Constants
     solver->Rgas = 287.5;
     solver->gamma = 1.4;  
+    solver->Pr = 0.72;
+    solver->Cp = solver->gamma*solver->Rgas/(solver->gamma-1);
     solver->eFix = 0.1;
     solver->e = strtod(inputGetValue(input, "interpE"), NULL);
     
-    if(inputNameIsInput(input, "mi"))
+    if(inputNameIsInput(input, "laminar"))
     {
-        solver->mi = strtod(inputGetValue(input, "mi"), NULL);     
+        solver->laminar = atoi(inputGetValue(input, "laminar"));     
     }
     else
     {
-        solver->mi = 0.0;
+        solver->laminar = 0;
     }
 
     // Selection of several variables

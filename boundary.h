@@ -12,6 +12,8 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc);
 
 void boundary(SOLVER* solver);
 
+void boundaryVisc(SOLVER* solver);
+
 void boundaryGetBC(MESH* mesh, INPUT* input);
 
 int boundaryChoice(char* s);
