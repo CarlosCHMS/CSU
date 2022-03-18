@@ -97,7 +97,7 @@ void solverWrite(SOLVER* solver, char* fileName)
     double* den = malloc(solver->mesh->Np*sizeof(double));
     int ii, jj, kk, p;
     double xc, yc, xp, yp, L;
-    ELEMENT* e;
+    ELEMENT* E;
 
     for(ii=0; ii<solver->mesh->Np; ii++)
     {       
@@ -110,12 +110,12 @@ void solverWrite(SOLVER* solver, char* fileName)
 
     for(ii=0; ii<solver->mesh->Nelem; ii++)
     {
-        meshElemCenter(solver->mesh, ii, &xc, &yc);
-        e = solver->mesh->elemL[ii];
+        E = solver->mesh->elemL[ii];
+        elementCenter(E, solver->mesh, &xc, &yc);
         
-        for(jj=0; jj<e->Np; jj++)
+        for(jj=0; jj<E->Np; jj++)
         {
-            p = e->p[jj];
+            p = E->p[jj];
             xp = solver->mesh->p[p][0];
             yp = solver->mesh->p[p][1];
             L = sqrt((xp-xc)*(xp-xc) + (yp-yc)*(yp-yc));
@@ -235,7 +235,7 @@ void inter(SOLVER* solver)
             double blend = 1.0;        
             ELEMENT* E = solver->mesh->elemL[ii];
 
-      	    meshElemCenter(solver->mesh, ii, &x0, &y0);
+      	    elementCenter(E, solver->mesh, &x0, &y0);
       	    
             for(kk=0; kk<4; kk++)
             {
@@ -293,8 +293,8 @@ void inter(SOLVER* solver)
            	xm = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
             ym = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
 
-		    meshElemCenter(solver->mesh, e0, &x0, &y0);
-		    meshElemCenter(solver->mesh, e1, &x1, &y1);
+		    elementCenter(E0, solver->mesh, &x0, &y0);
+		    elementCenter(E1, solver->mesh, &x1, &y1);
 		    
             for(kk=0; kk<4; kk++)
 		    {                
@@ -404,8 +404,8 @@ void interVisc(SOLVER* solver)
         double dvym = (solver->dPy[2][e0] + solver->dPy[2][e1])*0.5;
         double dTym = (solver->dPy[3][e0] + solver->dPy[3][e1])*0.5;
         
-        meshElemCenter(solver->mesh, e0, &x0, &y0);
-        meshElemCenter(solver->mesh, e1, &x1, &y1);
+	    elementCenter(E0, solver->mesh, &x0, &y0);
+	    elementCenter(E1, solver->mesh, &x1, &y1);
 	        
         double dx = x1 - x0;		    
         double dy = y1 - y0;
@@ -660,7 +660,7 @@ void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, dou
     {
         for(int ii=0; ii<solver->mesh->Nelem; ii++)
         {
-            meshElemCenter(solver->mesh, ii, &x, &y);
+    	    elementCenter(solver->mesh->elemL[ii], solver->mesh, &x, &y);
             if(x<xm)
             {
                 solver->U[kk][ii] = inside1->Uin[kk];

@@ -227,7 +227,7 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
 
             if(bc->flagBC == 1)
             {
-                meshElemCenter(solver->mesh, e0, &x0, &y0);
+                elementCenter(E0, solver->mesh, &x0, &y0);
 
                	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
                 y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
@@ -275,7 +275,7 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
             }
             else if(bc->flagBC == 3)
             {
-                meshElemCenter(solver->mesh, e0, &x0, &y0);
+                elementCenter(E0, solver->mesh, &x0, &y0);
 
                	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
                 y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;

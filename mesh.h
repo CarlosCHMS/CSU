@@ -68,8 +68,6 @@ void meshBCFree(MESHBC* bc);
 
 void meshFree(MESH* mesh);
 
-void meshElemCenter(MESH* mesh, int ii, double* x, double* y);
-
 void elementCenter(ELEMENT* E, MESH* mesh, double* x, double* y);
 
 double meshCalcOmegaTri(MESH* mesh, int p0, int p1, int p2);

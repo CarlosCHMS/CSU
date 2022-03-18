@@ -338,23 +338,6 @@ void meshFree(MESH* mesh)
 
 }
 
-void meshElemCenter(MESH* mesh, int ii, double* x, double* y)    
-{
-
-    *x = 0.0;
-    *y = 0.0;
-    
-    for(int jj=0; jj<mesh->elemL[ii]->Np; jj++)
-    {
-        *x += mesh->p[mesh->elemL[ii]->p[jj]][0];
-        *y += mesh->p[mesh->elemL[ii]->p[jj]][1];
-    }
-
-    *x /= mesh->elemL[ii]->Np;
-    *y /= mesh->elemL[ii]->Np;
-
-}
-
 void elementCenter(ELEMENT* E, MESH* mesh, double* x, double* y)    
 {
 
@@ -408,16 +391,18 @@ double meshCalcOmega(MESH* mesh, int ii)
 {
  
     double x, y;
-    double ans = meshCalcOmegaTri(mesh, mesh->elemL[ii]->p[0], mesh->elemL[ii]->p[1], mesh->elemL[ii]->p[2]);
+    ELEMENT* E = mesh->elemL[ii];
+    
+    double ans = meshCalcOmegaTri(mesh, E->p[0], E->p[1], E->p[2]);
  
     if(mesh->elemL[ii]->Np==4)
     {
-        ans += meshCalcOmegaTri(mesh, mesh->elemL[ii]->p[2], mesh->elemL[ii]->p[3], mesh->elemL[ii]->p[0]);
+        ans += meshCalcOmegaTri(mesh, E->p[2], E->p[3], E->p[0]);
     }
 
     if(mesh->axi == 1)
     {
-        meshElemCenter(mesh, ii, &x, &y);
+        elementCenter(E, mesh, &x, &y);
         ans *= y;
     }
 
