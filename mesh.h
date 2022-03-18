@@ -1,17 +1,4 @@
 
-typedef struct
-{
-
-    int Nelem;
-    int** elem;
-    char name[50];
-    
-    int* domain;
-
-    int flagBC;
-
-
-} MESHBC;
 
 typedef struct
 {
@@ -25,6 +12,22 @@ typedef struct
     int* f;
     
 } ELEMENT;
+
+typedef struct
+{
+
+    int Nelem;
+    
+    char name[50];
+    
+    int* domain;
+
+    int flagBC;
+
+    ELEMENT** elemL;
+
+} MESHBC;
+
 
 typedef struct
 {
@@ -57,6 +60,8 @@ void meshPrintBC(MESHBC* bc);
 
 void meshPrint(MESH* mesh);
 
+void meshElementFree(ELEMENT* e);
+
 void meshBCFree(MESHBC* bc);
 
 void meshFree(MESH* mesh);
@@ -75,7 +80,7 @@ void meshCalcConnection(MESH* mesh);
 
 void meshCalcDS(MESH* mesh, int p0, int p1, double* dSx, double* dSy);
 
-int meshBCIsConnect(int* BCp, ELEMENT* e);
+int meshBCIsConnect(ELEMENT* BCe, ELEMENT* e);
 
 void meshBCDomain(MESHBC* bc, MESH* mesh);
 

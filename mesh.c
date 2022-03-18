@@ -40,6 +40,39 @@ char meshGetWord(FILE* ff, char* s)
 
 } 
 
+ELEMENT* meshElementMalloc(int type)
+{
+
+    ELEMENT* e = malloc(sizeof(ELEMENT));
+    
+    if(type==5)
+    {
+        e->Np = 3;
+        e->p = malloc(e->Np*sizeof(int));
+        e->nei = malloc(e->Np*sizeof(int));
+        e->f = malloc(e->Np*sizeof(int));
+        e->neiN = 0;        
+    }
+    else if(type==9)
+    {
+        e->Np = 4;
+        e->p = malloc(e->Np*sizeof(int));
+        e->nei = malloc(e->Np*sizeof(int));
+        e->f = malloc(e->Np*sizeof(int));
+        e->neiN = 0;        
+    }
+    else if(type==0)
+    {
+        e->Np = 2;
+        e->p = malloc(e->Np*sizeof(int));
+        e->nei = malloc(sizeof(int));        
+        e->neiN = 0;        
+    }
+  
+    return e;
+
+}
+
 MESHBC* meshBCread(FILE* ff) 
 {
     int jj;
@@ -55,43 +88,23 @@ MESHBC* meshBCread(FILE* ff)
         bc->Nelem = atoi(s);
     }    
 
-    bc->elem = tableMallocInt(bc->Nelem, 2);
+    bc->elemL = malloc(bc->Nelem*sizeof(ELEMENT));
+    
     jj = 0;
     while(jj<bc->Nelem)
     {
+        bc->elemL[jj] = meshElementMalloc(0);   
+    
         meshGetWord(ff, s);
         meshGetWord(ff, s);
-        bc->elem[jj][0] = atoi(s);
+        bc->elemL[jj]->p[0] = atoi(s);
         meshGetWord(ff, s);        
-        bc->elem[jj][1] = atoi(s);
+        bc->elemL[jj]->p[1] = atoi(s);        
         meshGetWord(ff, s);
         jj++;
     }
 
     return bc;
-
-}
-
-ELEMENT* meshElementMalloc(int type)
-{
-
-    ELEMENT* e = malloc(sizeof(ELEMENT));
-    
-    if(type==5)
-    {
-        e->Np = 3;
-    }
-    else if(type==9)
-    {
-        e->Np = 4;
-    }
-
-    e->p = malloc(e->Np*sizeof(int));
-    e->nei = malloc(e->Np*sizeof(int));
-    e->f = malloc(e->Np*sizeof(int));
-    e->neiN = 0;
-    
-    return e;
 
 }
 
@@ -223,7 +236,7 @@ void meshPrintBC(MESHBC* bc)
 
     for(int ii=0; ii<bc->Nelem; ii++)
     {
-        printf("%i, %i, %i\n", bc->elem[ii][0], bc->elem[ii][1], bc->domain[ii]);
+        printf("%i, %i\n", bc->elemL[ii]->p[0], bc->elemL[ii]->p[1]);
     }
 
 }
@@ -266,12 +279,30 @@ void meshPrint(MESH* mesh)
 
 }
 
-void meshBCFree(MESHBC* bc)
+void meshElementFree(ELEMENT* e)
 {
+    if(e->Np==2)
+    {
+        free(e->p);
+        free(e->nei);
+    }        
+    else
+    {
+        free(e->p);
+        free(e->nei);        
+        free(e->f);    
+    }
+    free(e);
+}
 
-    tableFreeInit(bc->elem, bc->Nelem);
+void meshBCFree(MESHBC* bc)
+{   
+    for(int ii=0; ii<bc->Nelem; ii++)
+    {
+        meshElementFree(bc->elemL[ii]);
+    }
+    free(bc->elemL);
     free(bc->name);
-
 }
 
 void meshFree(MESH* mesh)
@@ -282,9 +313,7 @@ void meshFree(MESH* mesh)
         
     for(int ii=0; ii<mesh->Nelem; ii++)    
     {    
-        free(mesh->elemL[ii]->p);
-        free(mesh->elemL[ii]->nei);        
-        free(mesh->elemL[ii]->f);
+        meshElementFree(mesh->elemL[ii]);
     }
     
     free(mesh->elemL);
@@ -293,11 +322,11 @@ void meshFree(MESH* mesh)
     {
 
         meshBCFree(mesh->bc[ii]);
-        //free(mesh->bc[ii]);
+        free(mesh->bc);
 
     }
 
-    //free(mesh);
+    free(mesh);
 
 }
 
@@ -484,7 +513,7 @@ void meshCalcDS(MESH* mesh, int p0, int p1, double* dSx, double* dSy)
 
 }
 
-int meshBCIsConnect(int* BCp, ELEMENT* e)
+int meshBCIsConnect(ELEMENT* BCe, ELEMENT* e)
 {
 
     int link = 0;
@@ -494,7 +523,7 @@ int meshBCIsConnect(int* BCp, ELEMENT* e)
     {
         for(int jj=0; jj<e->Np; jj++)
         {
-            if(BCp[ii]==e->p[jj])
+            if(BCe->p[ii]==e->p[jj])
             {
                 link += 1;
             }
@@ -518,9 +547,11 @@ void meshBCDomain(MESHBC* bc, MESH* mesh)
     {
         for(int jj=0; jj<mesh->Nelem; jj++)
         {
-            if(meshBCIsConnect(bc->elem[ii], mesh->elemL[jj]))
+            if(meshBCIsConnect(bc->elemL[ii], mesh->elemL[jj]))
             {
                 bc->domain[ii] = jj;
+                bc->elemL[ii]->nei[0] = jj;
+                bc->elemL[ii]->neiN += 1;
                 break;
             }
         }
@@ -666,9 +697,9 @@ void meshCheckBorderOrientation(MESHBC* bc, MESH* mesh)
     for(int ii=0; ii<bc->Nelem; ii++)
     {
 
-        e0 = bc->domain[ii];
-        p0 = bc->elem[ii][0];
-        p1 = bc->elem[ii][1];
+        e0 = bc->elemL[ii]->nei[0];
+        p0 = bc->elemL[ii]->p[0];
+        p1 = bc->elemL[ii]->p[1];
         
         printf("%i,\n", meshPOri(mesh, mesh->elemL[e0], p0, p1));
 

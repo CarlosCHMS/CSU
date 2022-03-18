@@ -111,9 +111,9 @@ void boundaryCalc(SOLVER* solver, MESHBC* bc)
     for(int ii=0; ii<bc->Nelem; ii++)
     {
  
-        e0 = bc->domain[ii];
-        p0 = bc->elem[ii][0];
-        p1 = bc->elem[ii][1];
+        e0 = bc->elemL[ii]->nei[0];
+        p0 = bc->elemL[ii]->p[0];
+        p1 = bc->elemL[ii]->p[1];
  
         meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
         dS = sqrt(dSx*dSx + dSy*dSy);
@@ -215,9 +215,9 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
 
     for(int ii=0; ii<bc->Nelem; ii++)
     {
-        e0 = bc->domain[ii];
-        p0 = bc->elem[ii][0];
-        p1 = bc->elem[ii][1];
+        e0 = bc->elemL[ii]->nei[0];
+        p0 = bc->elemL[ii]->p[0];
+        p1 = bc->elemL[ii]->p[1];
 
         if(solver->mesh->elemL[e0]->neiN > 1)
 		{		    
