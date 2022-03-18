@@ -111,7 +111,7 @@ void boundaryCalc(SOLVER* solver, MESHBC* bc)
     for(int ii=0; ii<bc->Nelem; ii++)
     {
  
-        e0 = bc->elemL[ii]->nei[0];
+        e0 = bc->elemL[ii]->neiL[0]->ii;
         p0 = bc->elemL[ii]->p[0];
         p1 = bc->elemL[ii]->p[1];
  
@@ -215,7 +215,7 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
 
     for(int ii=0; ii<bc->Nelem; ii++)
     {
-        e0 = bc->elemL[ii]->nei[0];
+        e0 = bc->elemL[ii]->neiL[0]->ii;
         p0 = bc->elemL[ii]->p[0];
         p1 = bc->elemL[ii]->p[1];
 
@@ -307,7 +307,7 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
 		    
 		    solver->R[1][e0] -= txx*dSx + txy*dSy;
 		    solver->R[2][e0] -= txy*dSx + tyy*dSy;
-		    solver->R[2][e0] -= k*(dTx*dSx + dTy*dSy);
+		    solver->R[3][e0] -= k*(dTx*dSx + dTy*dSy);
 		}        
     }
 }

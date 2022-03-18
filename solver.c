@@ -727,7 +727,7 @@ void solverCalcGrad2(SOLVER* solver, double* U, int ii, double* dUx, double* dUy
 
     for(int jj=0; jj<nN; jj++)
     {
-        e = solver->mesh->elemL[ii]->nei[jj];
+        e = solver->mesh->elemL[ii]->neiL[jj]->ii;
         meshElemCenter(solver->mesh, e, &xx, &yy);
         x[jj+1] = xx;
         y[jj+1] = yy;

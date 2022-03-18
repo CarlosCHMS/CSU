@@ -1,14 +1,15 @@
 
-
-typedef struct
+typedef struct ELEM
 {
 
+    int ii;
     int Np;
     
     int neiN;
     
     int* p;
-    int* nei;
+
+    struct ELEM** neiL;
     int* f;
     
 } ELEMENT;

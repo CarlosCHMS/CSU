@@ -49,7 +49,7 @@ ELEMENT* meshElementMalloc(int type)
     {
         e->Np = 3;
         e->p = malloc(e->Np*sizeof(int));
-        e->nei = malloc(e->Np*sizeof(int));
+        e->neiL = malloc(e->Np*sizeof(ELEMENT));
         e->f = malloc(e->Np*sizeof(int));
         e->neiN = 0;        
     }
@@ -57,7 +57,7 @@ ELEMENT* meshElementMalloc(int type)
     {
         e->Np = 4;
         e->p = malloc(e->Np*sizeof(int));
-        e->nei = malloc(e->Np*sizeof(int));
+        e->neiL = malloc(e->Np*sizeof(ELEMENT));        
         e->f = malloc(e->Np*sizeof(int));
         e->neiN = 0;        
     }
@@ -65,7 +65,7 @@ ELEMENT* meshElementMalloc(int type)
     {
         e->Np = 2;
         e->p = malloc(e->Np*sizeof(int));
-        e->nei = malloc(sizeof(int));        
+        e->neiL = malloc(sizeof(ELEMENT));                
         e->neiN = 0;        
     }
   
@@ -94,6 +94,7 @@ MESHBC* meshBCread(FILE* ff)
     while(jj<bc->Nelem)
     {
         bc->elemL[jj] = meshElementMalloc(0);   
+        bc->elemL[jj]->ii = jj;
     
         meshGetWord(ff, s);
         meshGetWord(ff, s);
@@ -165,6 +166,8 @@ MESH* meshInit(char* fileName)
             meshGetWord(ff, s);                
             mesh->elemL[ii]->p[3] = atoi(s);                        
         }
+        
+        mesh->elemL[ii]->ii = ii;
         
         meshGetWord(ff, s);
         ii++;
@@ -284,12 +287,12 @@ void meshElementFree(ELEMENT* e)
     if(e->Np==2)
     {
         free(e->p);
-        free(e->nei);
+        free(e->neiL);        
     }        
     else
     {
         free(e->p);
-        free(e->nei);        
+        free(e->neiL);
         free(e->f);    
     }
     free(e);
@@ -550,7 +553,7 @@ void meshBCDomain(MESHBC* bc, MESH* mesh)
             if(meshBCIsConnect(bc->elemL[ii], mesh->elemL[jj]))
             {
                 bc->domain[ii] = jj;
-                bc->elemL[ii]->nei[0] = jj;
+                bc->elemL[ii]->neiL[0] = mesh->elemL[jj];
                 bc->elemL[ii]->neiN += 1;
                 break;
             }
@@ -693,15 +696,16 @@ int meshPOri(MESH* mesh, ELEMENT* e, int p0, int p1)
 
 void meshCheckBorderOrientation(MESHBC* bc, MESH* mesh)
 {
-    int e0, p0, p1;
+    int p0, p1;
+    ELEMENT* e0;
     for(int ii=0; ii<bc->Nelem; ii++)
     {
 
-        e0 = bc->elemL[ii]->nei[0];
+        e0 = bc->elemL[ii]->neiL[0];
         p0 = bc->elemL[ii]->p[0];
         p1 = bc->elemL[ii]->p[1];
         
-        printf("%i,\n", meshPOri(mesh, mesh->elemL[e0], p0, p1));
+        printf("%i,\n", meshPOri(mesh, e0, p0, p1));
 
     }
 }
@@ -715,10 +719,10 @@ void meshCalcNeighbors(MESH* mesh)
     {
         e0 = mesh->con[ii][0];
         e1 = mesh->con[ii][1];
-                
-        mesh->elemL[e0]->nei[mesh->elemL[e0]->neiN] = e1;
-        mesh->elemL[e1]->nei[mesh->elemL[e1]->neiN] = e0;
-        
+
+        mesh->elemL[e0]->neiL[mesh->elemL[e0]->neiN] = mesh->elemL[e1];
+        mesh->elemL[e1]->neiL[mesh->elemL[e1]->neiN] = mesh->elemL[e0];
+       
         mesh->elemL[e0]->f[mesh->elemL[e0]->neiN] = ii+1;
         mesh->elemL[e1]->f[mesh->elemL[e1]->neiN] = -(ii+1);
         
