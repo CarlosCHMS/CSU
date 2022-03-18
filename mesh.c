@@ -564,6 +564,26 @@ int meshBCIsConnect(ELEMENT* BCe, ELEMENT* e)
     return ans;
 }
 
+void meshCalcNeighbors(MESH* mesh)
+{
+
+    int e0, e1;
+    
+    for(int ii=0; ii<mesh->Ncon; ii++)
+    {
+        e0 = mesh->con[ii][0];
+        e1 = mesh->con[ii][1];
+
+        mesh->elemL[e0]->neiL[mesh->elemL[e0]->neiN] = mesh->elemL[e1];
+        mesh->elemL[e1]->neiL[mesh->elemL[e1]->neiN] = mesh->elemL[e0];
+               
+        mesh->elemL[e0]->neiN += 1;
+        mesh->elemL[e1]->neiN += 1;
+        
+    }
+}    
+
+
 void meshBCneighbors(MESHBC* bc, MESH* mesh)
 {
     
@@ -733,25 +753,6 @@ void meshCheckBorderOrientation(MESHBC* bc, MESH* mesh)
     }
 }
 
-void meshCalcNeighbors(MESH* mesh)
-{
-
-    int e0, e1;
-    
-    for(int ii=0; ii<mesh->Ncon; ii++)
-    {
-        e0 = mesh->con[ii][0];
-        e1 = mesh->con[ii][1];
-
-        mesh->elemL[e0]->neiL[mesh->elemL[e0]->neiN] = mesh->elemL[e1];
-        mesh->elemL[e1]->neiL[mesh->elemL[e1]->neiN] = mesh->elemL[e0];
-               
-        mesh->elemL[e0]->neiN += 1;
-        mesh->elemL[e1]->neiN += 1;
-        
-    }
-}    
-
 void meshCalcFaces(MESH* mesh)
 {
 
@@ -759,7 +760,12 @@ void meshCalcFaces(MESH* mesh)
     for(int ii=0; ii<mesh->Nelem; ii++)
     {
         mesh->elemL[ii]->neiN = 0;
+        for(int kk=0; kk<mesh->elemL[ii]->Np; kk++)
+        {
+            mesh->elemL[ii]->f[kk] = 0;
+        }
     }
+    
     
     for(int ii=0; ii<mesh->Ncon; ii++)
     {

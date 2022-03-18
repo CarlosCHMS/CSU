@@ -86,6 +86,8 @@ void meshCalcDS(MESH* mesh, int p0, int p1, double* dSx, double* dSy);
 
 int meshBCIsConnect(ELEMENT* BCe, ELEMENT* e);
 
+void meshCalcNeighbors(MESH* mesh);
+
 void meshBCneighbors(MESHBC* bc, MESH* mesh);
 
 double meshEdgeLength(MESH* mesh, int p0, int p1);
@@ -99,7 +101,5 @@ void meshCheckUse(MESH* mesh);
 int meshPOri(MESH* mesh, ELEMENT* e, int p0, int p1);
 
 void meshCheckBorderOrientation(MESHBC* bc, MESH* mesh);
-
-void meshCalcNeighbors(MESH* mesh);
 
 void meshCalcFaces(MESH* mesh);

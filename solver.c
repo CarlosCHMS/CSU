@@ -332,7 +332,7 @@ void inter(SOLVER* solver)
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
-        for(int jj=0; jj<solver->mesh->elemL[ii]->neiN; jj++)
+        for(int jj=0; jj<solver->mesh->elemL[ii]->Np; jj++)
         {
             int face = solver->mesh->elemL[ii]->f[jj];
             if(face > 0)
@@ -342,7 +342,7 @@ void inter(SOLVER* solver)
                     solver->R[kk][ii] += solver->faceFlux[kk][face-1];
                 }
             }
-            else
+            else if(face < 0)
             {
                 for(int kk=0; kk<4; kk++)
                 {
@@ -377,8 +377,7 @@ void interVisc(SOLVER* solver)
         kk = 3;
         solverCalcGrad2(solver, E, 4, &dPx, &dPy, &Pmin, &Pmax);
         solver->dPx[kk][ii] = dPx;
-        solver->dPy[kk][ii] = dPy;
-            
+        solver->dPy[kk][ii] = dPy;            
     }
     
     # pragma omp parallel for
@@ -444,7 +443,7 @@ void interVisc(SOLVER* solver)
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
-        for(int jj=0; jj<solver->mesh->elemL[ii]->neiN; jj++)
+        for(int jj=0; jj<solver->mesh->elemL[ii]->Np; jj++)
         {
             int face = solver->mesh->elemL[ii]->f[jj];
             if(face > 0)
@@ -454,7 +453,7 @@ void interVisc(SOLVER* solver)
                     solver->R[kk][ii] -= solver->faceFlux[kk][face-1];
                 }
             }
-            else
+            else if(face < 0)
             {
                 for(int kk=1; kk<4; kk++)
                 {
@@ -676,12 +675,10 @@ void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, dou
 
 void solverCalcGrad2(SOLVER* solver, ELEMENT* E, int kk, double* dUx, double* dUy, double* Umin, double* Umax)
 {
-
     /*
     Least squares calculation
     */
 
-    int e;
     double xx, yy;
     double x[5];
     double y[5];    
@@ -732,30 +729,45 @@ void solverCalcGrad2(SOLVER* solver, ELEMENT* E, int kk, double* dUx, double* dU
 
 void solverCheckGrad(SOLVER* solver)
 {
-
-    double *U = malloc(solver->mesh->Nelem*sizeof(double));
     double *xx = malloc(solver->mesh->Nelem*sizeof(double));
     double x, y;
     double dUx, dUy;
     double Umin, Umax;
+    ELEMENT* E;
+    double aux;
     
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
-        meshElemCenter(solver->mesh, ii, &x, &y);
+        E = solver->mesh->elemL[ii];
+        elementCenter(E, solver->mesh, &x, &y);
         xx[ii] = x;
-        U[ii] = x*x;
+        E->P[0] = x*x;
     }
-    
+
+    for(int kk=0; kk<solver->mesh->Nmark; kk++)
+    {
+        for(int ii=0; ii<solver->mesh->bc[kk]->Nelem; ii++)
+        {
+            E = solver->mesh->bc[kk]->elemL[ii];
+            elementCenter(E, solver->mesh, &x, &y);
+            E->P[0] = x*x;
+        }    
+    }
+  
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
-        //solverCalcGrad2(solver, U, ii, &dUx, &dUy, &Umin, &Umax);
-        //printf("%+e, %+e, %+e\n", dUx, 2*xx[ii], dUx - 2*xx[ii]);
-        //printf("%+e, %+e\n", Umin, Umax);            
+        E = solver->mesh->elemL[ii];    
+        solverCalcGrad2(solver, E, 0, &dUx, &dUy, &Umin, &Umax);
+        if(E->neiN==1)
+        {
+            //printf("%+e, %+e, %+e\n", dUx, 2*xx[ii], dUx/(2*xx[ii])-1);
+            aux = xx[ii]*xx[ii];
+            printf("%+e, %+e\n", aux - Umin, Umax - aux);  
+        }
+        
     }
-
-    free(U);
+    
     free(xx);
-
 }
 
 double limiterBJ(double Ui, double Umin, double Umax, double d2)
