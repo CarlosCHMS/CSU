@@ -41,8 +41,7 @@ typedef struct {
     double **Uaux;     
     double **faceFlux;       
     double **dPx;
-    double **dPy;    
-    double **P;    
+    double **dPy;  
     
     CONDITION* inlet;
         
@@ -94,7 +93,7 @@ double solverCalcDt(SOLVER* solver);
 
 void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, double xm);
 
-void solverCalcGrad2(SOLVER* solver, double* U, int ii, double* dUx, double* dUy, double* Umin, double* Umax);
+void solverCalcGrad2(SOLVER* solver, ELEMENT* E, int kk, double* dUx, double* dUy, double* Umin, double* Umax);
 
 void solverCheckGrad(SOLVER* solver);
 
@@ -105,9 +104,5 @@ double limiterV(double Ui, double Umin, double Umax, double d2, double e);
 void solverCalcPrimitive(SOLVER* solver, double** U);
 
 void solverCalcUfromP(SOLVER* solver, double r, double u, double v, double p, double* U0, double* U1, double* U2, double* U3);
-
-void solverMallocP(SOLVER* solver);
-
-void solverFreeP(SOLVER* solver);
 
 double sutherland(double T);

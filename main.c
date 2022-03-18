@@ -77,12 +77,11 @@ int main(int argc, char **argv)
     solver->mesh = meshInit(s); 
        
     mainSetData(solver, input);
-       
+        
     //meshCheckNei(solver->mesh);
     //solverCheckGrad(solver);
     //meshPrint(solver->mesh);
     //meshPrintDStotal(solver->mesh);
-
 
     // Memory allocation
     solverMalloc(solver);

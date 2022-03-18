@@ -10,7 +10,10 @@ typedef struct ELEM
     int* p;
 
     struct ELEM** neiL;
+
     int* f;
+    
+    double* P;    
     
 } ELEMENT;
 
@@ -20,8 +23,6 @@ typedef struct
     int Nelem;
     
     char name[50];
-    
-    int* domain;
 
     int flagBC;
 
@@ -69,6 +70,8 @@ void meshFree(MESH* mesh);
 
 void meshElemCenter(MESH* mesh, int ii, double* x, double* y);
 
+void elementCenter(ELEMENT* E, MESH* mesh, double* x, double* y);
+
 double meshCalcOmegaTri(MESH* mesh, int p0, int p1, int p2);
 
 double meshCalcDSlateral(MESH* mesh, int ii);
@@ -83,7 +86,7 @@ void meshCalcDS(MESH* mesh, int p0, int p1, double* dSx, double* dSy);
 
 int meshBCIsConnect(ELEMENT* BCe, ELEMENT* e);
 
-void meshBCDomain(MESHBC* bc, MESH* mesh);
+void meshBCneighbors(MESHBC* bc, MESH* mesh);
 
 double meshEdgeLength(MESH* mesh, int p0, int p1);
 
@@ -98,3 +101,5 @@ int meshPOri(MESH* mesh, ELEMENT* e, int p0, int p1);
 void meshCheckBorderOrientation(MESHBC* bc, MESH* mesh);
 
 void meshCalcNeighbors(MESH* mesh);
+
+void meshCalcFaces(MESH* mesh);

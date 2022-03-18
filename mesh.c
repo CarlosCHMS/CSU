@@ -69,6 +69,8 @@ ELEMENT* meshElementMalloc(int type)
         e->neiN = 0;        
     }
   
+    e->P = malloc(5*sizeof(double));
+  
     return e;
 
 }
@@ -219,13 +221,14 @@ MESH* meshInit(char* fileName)
     printf("mesh: calculating conections.\n");
     meshCalcConnection(mesh);    
     
-    printf("mesh: calculating domain marks.\n");
+    printf("mesh: calculating neighbors.\n");
+    meshCalcNeighbors(mesh);
     for(ii=0; ii<mesh->Nmark; ii++)
     {
-        meshBCDomain(mesh->bc[ii], mesh);
+        meshBCneighbors(mesh->bc[ii], mesh);
     }
 
-    meshCalcNeighbors(mesh);
+    meshCalcFaces(mesh);        
 
     return mesh;
 
@@ -295,6 +298,8 @@ void meshElementFree(ELEMENT* e)
         free(e->neiL);
         free(e->f);    
     }
+    
+    free(e->P);
     free(e);
 }
 
@@ -347,6 +352,23 @@ void meshElemCenter(MESH* mesh, int ii, double* x, double* y)
 
     *x /= mesh->elemL[ii]->Np;
     *y /= mesh->elemL[ii]->Np;
+
+}
+
+void elementCenter(ELEMENT* E, MESH* mesh, double* x, double* y)    
+{
+
+    *x = 0.0;
+    *y = 0.0;
+    
+    for(int jj=0; jj<E->Np; jj++)
+    {
+        *x += mesh->p[E->p[jj]][0];
+        *y += mesh->p[E->p[jj]][1];
+    }
+
+    *x /= E->Np;
+    *y /= E->Np;
 
 }
 
@@ -542,19 +564,20 @@ int meshBCIsConnect(ELEMENT* BCe, ELEMENT* e)
     return ans;
 }
 
-void meshBCDomain(MESHBC* bc, MESH* mesh)
+void meshBCneighbors(MESHBC* bc, MESH* mesh)
 {
-    bc->domain = malloc(bc->Nelem*sizeof(int));
     
     for(int ii=0; ii<bc->Nelem; ii++)
     {
         for(int jj=0; jj<mesh->Nelem; jj++)
         {
             if(meshBCIsConnect(bc->elemL[ii], mesh->elemL[jj]))
-            {
-                bc->domain[ii] = jj;
+            {   
                 bc->elemL[ii]->neiL[0] = mesh->elemL[jj];
+                mesh->elemL[jj]->neiL[mesh->elemL[jj]->neiN] = bc->elemL[ii];
+                
                 bc->elemL[ii]->neiN += 1;
+                mesh->elemL[jj]->neiN += 1;
                 break;
             }
         }
@@ -659,7 +682,7 @@ void meshCheckUse(MESH* mesh)
     {
         for(int jj=0; jj<mesh->bc[ii]->Nelem; jj++)
         {
-            e0 = mesh->bc[ii]->domain[jj];
+            e0 = mesh->bc[ii]->elemL[jj]->neiL[0]->ii;
             use[e0] += 1;
         }
     }
@@ -722,6 +745,26 @@ void meshCalcNeighbors(MESH* mesh)
 
         mesh->elemL[e0]->neiL[mesh->elemL[e0]->neiN] = mesh->elemL[e1];
         mesh->elemL[e1]->neiL[mesh->elemL[e1]->neiN] = mesh->elemL[e0];
+               
+        mesh->elemL[e0]->neiN += 1;
+        mesh->elemL[e1]->neiN += 1;
+        
+    }
+}    
+
+void meshCalcFaces(MESH* mesh)
+{
+
+    int e0, e1;
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        mesh->elemL[ii]->neiN = 0;
+    }
+    
+    for(int ii=0; ii<mesh->Ncon; ii++)
+    {
+        e0 = mesh->con[ii][0];
+        e1 = mesh->con[ii][1];
        
         mesh->elemL[e0]->f[mesh->elemL[e0]->neiN] = ii+1;
         mesh->elemL[e1]->f[mesh->elemL[e1]->neiN] = -(ii+1);
@@ -730,5 +773,5 @@ void meshCalcNeighbors(MESH* mesh)
         mesh->elemL[e1]->neiN += 1;
         
     }
-}    
+}
 

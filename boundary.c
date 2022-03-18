@@ -120,7 +120,7 @@ void boundaryCalc(SOLVER* solver, MESHBC* bc)
         
         for(kk=0; kk<4; kk++)
 		{
-			PL[kk] = solver->P[kk][e0];
+			PL[kk] = solver->mesh->elemL[e0]->P[kk];
 		}      		
         
         if(bc->flagBC == 0)
@@ -219,6 +219,8 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
         p0 = bc->elemL[ii]->p[0];
         p1 = bc->elemL[ii]->p[1];
 
+        ELEMENT* E0 = bc->elemL[ii]->neiL[0];
+
         if(solver->mesh->elemL[e0]->neiN > 1)
 		{		    
             meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
@@ -234,9 +236,9 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
                 double dy = y1 - y0;
                 double L = sqrt(dx*dx + dy*dy);
                 
-                double dul = (solver->inlet->Pin[1] - solver->P[1][e0])/L;
-                double dvl = (solver->inlet->Pin[2] - solver->P[2][e0])/L;            
-                double dTl = (solver->inlet->Pin[4] - solver->P[4][e0])/L; 
+                double dul = (solver->inlet->Pin[1] - E0->P[1])/L;
+                double dvl = (solver->inlet->Pin[2] - E0->P[2])/L;            
+                double dTl = (solver->inlet->Pin[4] - E0->P[4])/L; 
 
                 double duxm = solver->dPx[1][e0];
                 double dvxm = solver->dPx[2][e0];
@@ -255,6 +257,21 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
                 dTx = dTxm + (dTl - (dTxm*dx + dTym*dy)/L)*dx/L;
                 dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;
                 
+                double T = E0->P[4];
+                double mi = sutherland(T);
+                double k = solver->Cp*mi/solver->Pr;            
+		            
+		        double txx = 2*mi*(dux - (dux + dvy)/3);
+		        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+		        double txy = mi*(duy + dvx);  
+		        
+		        double u = E0->P[1];
+		        double v = E0->P[2];		        
+		        
+		        solver->R[1][e0] -= txx*dSx + txy*dSy;
+		        solver->R[2][e0] -= txy*dSx + tyy*dSy;
+		        solver->R[3][e0] -= u*(txx*dSx + txy*dSy) + v*(txy*dSx + tyy*dSy) + k*(dTx*dSx + dTy*dSy);
+                
             }
             else if(bc->flagBC == 3)
             {
@@ -267,8 +284,8 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
                 double dy = y1 - y0;
                 double L = sqrt(dx*dx + dy*dy);
                 
-                double dul = (0 - solver->P[1][e0])/L;
-                double dvl = (0 - solver->P[2][e0])/L;            
+                double dul = (0 - E0->P[1])/L;
+                double dvl = (0 - E0->P[2])/L;            
 
                 double duxm = solver->dPx[1][e0];
                 double dvxm = solver->dPx[2][e0];
@@ -281,10 +298,17 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
 
                 dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
                 dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
+                                
+                double T = E0->P[4];
+                double mi = sutherland(T);
+		            
+		        double txx = 2*mi*(dux - (dux + dvy)/3);
+		        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+		        double txy = mi*(duy + dvx);  
+		        
+		        solver->R[1][e0] -= txx*dSx + txy*dSy;
+		        solver->R[2][e0] -= txy*dSx + tyy*dSy;
                 
-                //Adiabatic wall
-                dTx = 0;
-                dTy = 0;
             }
             else
             {
@@ -295,19 +319,24 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
                 duy = solver->dPy[1][e0];
                 dvy = solver->dPy[2][e0];
                 dTy = solver->dPy[3][e0];                
+
+                double T = E0->P[4];
+                double mi = sutherland(T);
+                double k = solver->Cp*mi/solver->Pr;            
+		            
+		        double txx = 2*mi*(dux - (dux + dvy)/3);
+		        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+		        double txy = mi*(duy + dvx);  
+		        
+		        double u = E0->P[1];
+		        double v = E0->P[2];		        
+		        
+		        solver->R[1][e0] -= txx*dSx + txy*dSy;
+		        solver->R[2][e0] -= txy*dSx + tyy*dSy;
+		        solver->R[3][e0] -= u*(txx*dSx + txy*dSy) + v*(txy*dSx + tyy*dSy) + k*(dTx*dSx + dTy*dSy);
+                
             }
 
-            double T = solver->P[4][e0];
-            double mi = sutherland(T);
-            double k = solver->Cp*mi/solver->Pr;            
-		        
-		    double txx = 2*mi*(dux - (dux + dvy)/3);
-		    double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
-		    double txy = mi*(duy + dvx);  
-		    
-		    solver->R[1][e0] -= txx*dSx + txy*dSy;
-		    solver->R[2][e0] -= txy*dSx + tyy*dSy;
-		    solver->R[3][e0] -= k*(dTx*dSx + dTy*dSy);
 		}        
     }
 }
@@ -372,5 +401,104 @@ int boundaryChoice(char* s)
  
     return ans;
 
+}
+
+
+void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
+{
+    
+	int kk;
+    double dSx, dSy, dS;
+    double PL[4];
+	double Pb[4];
+    int p0, p1;
+
+    for(int ii=0; ii<bc->Nelem; ii++)
+    {
+ 
+        ELEMENT* E0 = bc->elemL[ii]->neiL[0];
+        p0 = bc->elemL[ii]->p[0];
+        p1 = bc->elemL[ii]->p[1];
+ 
+        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+        dS = sqrt(dSx*dSx + dSy*dSy);
+        
+        for(kk=0; kk<4; kk++)
+		{
+			PL[kk] = E0->P[kk];
+		}      		
+        
+        if(bc->flagBC == 0)
+        {
+
+            rotation(PL, dSx, dSy, dS);
+        
+            PL[1] = 0.0;
+        
+            rotation(PL, dSx, -dSy, dS);
+            
+            for(kk=0; kk<4; kk++)
+            {
+                bc->elemL[ii]->P[kk] = PL[kk];
+            }
+            
+            bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);
+        
+        }
+        else if(bc->flagBC == 1)
+        {
+
+            boundaryInlet(solver, solver->inlet->Pin, PL, Pb, dSx/dS, dSy/dS);
+
+            for(kk=0; kk<4; kk++)
+            {
+                bc->elemL[ii]->P[kk] = Pb[kk];
+            }
+            
+            bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);            
+        
+        }
+        else if(bc->flagBC == 2)
+        {           
+
+            boundaryOutlet(solver, PL, Pb, dSx/dS, dSy/dS);
+
+            for(kk=0; kk<4; kk++)
+            {
+                bc->elemL[ii]->P[kk] = Pb[kk];
+            }
+            
+            bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);            
+		
+        }
+        else if(bc->flagBC == 3)
+        {
+            
+            if(solver->laminar==1)
+            {
+                bc->elemL[ii]->P[0] = PL[0];
+                bc->elemL[ii]->P[1] = 0.0;
+                bc->elemL[ii]->P[2] = 0.0;
+                bc->elemL[ii]->P[3] = PL[3];
+
+                bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);
+            }
+            else
+            {            
+                rotation(PL, dSx, dSy, dS);
+            
+                PL[1] = 0.0;
+            
+                rotation(PL, dSx, -dSy, dS);
+                
+                for(kk=0; kk<4; kk++)
+                {
+                    bc->elemL[ii]->P[kk] = PL[kk];
+                }
+                
+                bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);
+            }
+        }       
+    }
 }
 
