@@ -217,7 +217,6 @@ MESH* meshInit(char* fileName)
     
     fclose(ff);
 
-
     printf("mesh: calculating conections.\n");
     meshCalcConnection(mesh);    
     
@@ -227,6 +226,9 @@ MESH* meshInit(char* fileName)
     {
         meshBCneighbors(mesh->bc[ii], mesh);
     }
+
+    printf("mesh: fix border orientation.\n");
+    meshFixBorderOrientation(mesh);
 
     meshCalcFaces(mesh);        
 
@@ -722,19 +724,49 @@ int meshPOri(MESH* mesh, ELEMENT* e, int p0, int p1)
 
 }
 
-void meshCheckBorderOrientation(MESHBC* bc, MESH* mesh)
+void meshCheckBorderOrientation(MESH* mesh)
 {
     int p0, p1;
     ELEMENT* e0;
-    for(int ii=0; ii<bc->Nelem; ii++)
+    MESHBC* bc;
+    
+    for(int jj=0; jj<mesh->Nmark; jj++)
     {
+        bc = mesh->bc[jj];
+        for(int ii=0; ii<bc->Nelem; ii++)
+        {
 
-        e0 = bc->elemL[ii]->neiL[0];
-        p0 = bc->elemL[ii]->p[0];
-        p1 = bc->elemL[ii]->p[1];
-        
-        printf("%i,\n", meshPOri(mesh, e0, p0, p1));
+            e0 = bc->elemL[ii]->neiL[0];
+            p0 = bc->elemL[ii]->p[0];
+            p1 = bc->elemL[ii]->p[1];
+            
+            printf("%i,\n", meshPOri(mesh, e0, p0, p1));
 
+        }
+    }
+}
+
+void meshFixBorderOrientation(MESH* mesh)
+{
+    int p0, p1;
+    ELEMENT* e0;
+    MESHBC* bc;
+    
+    for(int jj=0; jj<mesh->Nmark; jj++)
+    {
+        bc = mesh->bc[jj];
+        for(int ii=0; ii<bc->Nelem; ii++)
+        {
+            e0 = bc->elemL[ii]->neiL[0];
+            p0 = bc->elemL[ii]->p[0];
+            p1 = bc->elemL[ii]->p[1];
+            
+            if(meshPOri(mesh, e0, p0, p1)<0)
+            {
+                bc->elemL[ii]->p[0] = p1;
+                bc->elemL[ii]->p[1] = p0;            
+            }
+        }
     }
 }
 

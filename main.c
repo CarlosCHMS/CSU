@@ -82,6 +82,7 @@ int main(int argc, char **argv)
     //solverCheckGrad(solver);
     //meshPrint(solver->mesh);
     //meshPrintDStotal(solver->mesh);
+    //meshCheckBorderOrientation(solver->mesh);
 
     // Memory allocation
     solverMalloc(solver);
