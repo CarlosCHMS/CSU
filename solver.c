@@ -879,3 +879,48 @@ void solverPrintP(SOLVER* solver)
     }
 
 }
+
+void solverCalcCoeff(SOLVER* solver, double *Cx, double *Cy)
+{
+    int p0, p1;
+    MESHBC* bc;
+    double cp, dSx, dSy, fx, fy, x, y;
+
+    *Cx = 0.0;
+    *Cy = 0.0;
+    
+    double r = solver->inlet->Pin[0];
+    double u = solver->inlet->Pin[1];
+    double v = solver->inlet->Pin[2];
+    double P = solver->inlet->Pin[3];
+    double q = 0.5*r*(u*u + v*v);    
+        
+    for(int jj=0; jj<solver->mesh->Nmark; jj++)
+    {
+        bc = solver->mesh->bc[jj];
+        if(bc->flagBC == 3)
+        {
+            for(int ii=0; ii<bc->Nelem; ii++)
+            {
+                cp = (bc->elemL[ii]->P[3] - P)/q;
+                p0 = bc->elemL[ii]->p[0];
+                p1 = bc->elemL[ii]->p[1];
+                
+                meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);                
+             
+                *Cx += cp*dSx;   
+                *Cy += cp*dSy;                
+                
+                if(solver->laminar==1)
+                {
+                    boundaryCalcFrictionWall(solver, bc->elemL[ii], &fx, &fy);
+                    *Cx += fx/q;
+                    *Cy += fy/q;
+                }                               
+            }
+        }
+    }
+        
+    *Cx /= solver->Sref;
+    *Cy /= solver->Sref;
+}

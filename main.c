@@ -39,6 +39,15 @@ void mainSetData(SOLVER* solver, INPUT* input)
         solver->laminar = 0;
     }
 
+    if(inputNameIsInput(input, "Sref"))
+    {
+        solver->Sref = atoi(inputGetValue(input, "Sref"));     
+    }
+    else
+    {
+        solver->Sref = 1.0;
+    }
+
     // Selection of several variables
     solver->flux = fluxChoice(inputGetValue(input, "flux"));
     solver->stages = atoi(inputGetValue(input, "stages"));
@@ -50,13 +59,13 @@ void mainSetData(SOLVER* solver, INPUT* input)
         solver->pout = strtod(inputGetValue(input, "pout"), NULL);     
     }
 
-
 }
 
 int main(int argc, char **argv)
 {
 
     char s[50];
+    double Cx, Cy;
     SOLVER* solver = malloc(sizeof(SOLVER));
 
     // Load input   
@@ -114,6 +123,8 @@ int main(int argc, char **argv)
             {
                 printf("%i, ", ii);
                 solverCalcRes(solver);
+                solverCalcCoeff(solver, &Cx, &Cy);
+                printf("%f, %f\n", Cx, Cy);
             }            
         } 
     }

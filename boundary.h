@@ -19,3 +19,5 @@ void boundaryGetBC(MESH* mesh, INPUT* input);
 int boundaryChoice(char* s);
 
 void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc);
+
+void boundaryCalcFrictionWall(SOLVER* solver, ELEMENT* E, double* fx, double* fy);

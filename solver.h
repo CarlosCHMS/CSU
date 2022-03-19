@@ -35,6 +35,7 @@ typedef struct {
     double CFL;
     double Cp;
     double Pr;
+    double Sref;
             
     double **U;
     double **R;
@@ -108,3 +109,5 @@ void solverCalcUfromP(SOLVER* solver, double r, double u, double v, double p, do
 double sutherland(double T);
 
 void solverPrintP(SOLVER* solver);
+
+void solverCalcCoeff(SOLVER* solver, double *Fx, double *Fy);

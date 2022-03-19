@@ -159,17 +159,6 @@ void boundaryCalc(SOLVER* solver, MESHBC* bc)
         }
         else if(bc->flagBC == 3)
         {
-
-            /*
-            boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
-
-            // Rotation of the velocity vectors
-            rotation(PL, dSx, dSy, dS);
-	        rotation(Pb, dSx, dSy, dS);
-        
-            //flux(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
-            fluxFree(solver, Pb[0], Pb[1], Pb[2], Pb[3], f);
-            */
             
             if(solver->laminar==1)
             {
@@ -181,6 +170,19 @@ void boundaryCalc(SOLVER* solver, MESHBC* bc)
             }
             else
             {            
+
+                
+                boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
+
+                // Rotation of the velocity vectors
+                rotation(PL, dSx, dSy, dS);
+	            rotation(Pb, dSx, dSy, dS);
+            
+                //flux(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
+                fluxFree(solver, Pb[0], Pb[1], Pb[2], Pb[3], f);
+                
+
+                /*
 		        double p2 = PL[3];
 	    
                 // Outlet
@@ -189,6 +191,7 @@ void boundaryCalc(SOLVER* solver, MESHBC* bc)
                 f[3] = .0;
 
                 f[1] =  p2;
+                */
             }
         }       
 
@@ -491,19 +494,25 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
             {                        
                 if(dS > 0)
                 {
-                    rotation(PL, dSx, dSy, dS);
-                    PL[1] = 0.0;
-                    rotation(PL, dSx, -dSy, dS);
+                    //rotation(PL, dSx, dSy, dS);
+                    //PL[1] = 0.0;
+                    //rotation(PL, dSx, -dSy, dS);
+                    
+                    boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
+                    for(kk=0; kk<4; kk++)
+                    {
+                        bc->elemL[ii]->P[kk] = Pb[kk];
+                    }                    
                 }
                 else
                 {
                     PL[2] = 0.0;                
+                    for(kk=0; kk<4; kk++)
+                    {
+                        bc->elemL[ii]->P[kk] = PL[kk];
+                    }                    
                 }
                 
-                for(kk=0; kk<4; kk++)
-                {
-                    bc->elemL[ii]->P[kk] = PL[kk];
-                }
                 
                 bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);
             }
@@ -511,3 +520,51 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
     }
 }
 
+void boundaryCalcFrictionWall(SOLVER* solver, ELEMENT* E, double* fx, double* fy)
+{
+
+        double x0, y0, x1, y1, dSx, dSy;
+
+        int e0 = E->neiL[0]->ii;
+        int p0 = E->p[0];
+        int p1 = E->p[1];
+
+        ELEMENT* E0 = E->neiL[0];
+         
+        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+
+        elementCenter(E0, solver->mesh, &x0, &y0);
+        elementCenter(E, solver->mesh, &x1, &y1);
+
+        double dx = x1 - x0;		    
+        double dy = y1 - y0;
+        double L = sqrt(dx*dx + dy*dy);
+        
+        double dul = (0 - E0->P[1])/L;
+        double dvl = (0 - E0->P[2])/L;            
+
+        double duxm = solver->dPx[1][e0];
+        double dvxm = solver->dPx[2][e0];
+        
+        double duym = solver->dPy[1][e0];
+        double dvym = solver->dPy[2][e0];
+
+        double dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
+        double duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
+
+        double dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
+        double dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
+                        
+        double T = E0->P[4];
+        double mi = sutherland(T);
+        
+        //printf("%f\n", E0->P[1]);
+            
+        double txx = 2*mi*(dux - (dux + dvy)/3);
+        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+        double txy = mi*(duy + dvx); 
+        
+        *fx = txx*dSx + txy*dSy;
+		*fy = txy*dSx + tyy*dSy;
+ 
+}
