@@ -430,12 +430,16 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
         
         if(bc->flagBC == 0)
         {
-
-            rotation(PL, dSx, dSy, dS);
-        
-            PL[1] = 0.0;
-        
-            rotation(PL, dSx, -dSy, dS);
+            if(dS > 0)
+            {
+                rotation(PL, dSx, dSy, dS);
+                PL[1] = 0.0;
+                rotation(PL, dSx, -dSy, dS);
+            }
+            else
+            {
+                PL[2] = 0.0;                
+            }
             
             for(kk=0; kk<4; kk++)
             {
@@ -484,12 +488,17 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
                 bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);
             }
             else
-            {            
-                rotation(PL, dSx, dSy, dS);
-            
-                PL[1] = 0.0;
-            
-                rotation(PL, dSx, -dSy, dS);
+            {                        
+                if(dS > 0)
+                {
+                    rotation(PL, dSx, dSy, dS);
+                    PL[1] = 0.0;
+                    rotation(PL, dSx, -dSy, dS);
+                }
+                else
+                {
+                    PL[2] = 0.0;                
+                }
                 
                 for(kk=0; kk<4; kk++)
                 {

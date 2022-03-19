@@ -79,7 +79,7 @@ int main(int argc, char **argv)
     mainSetData(solver, input);
         
     //meshCheckNei(solver->mesh);
-    solverCheckGrad(solver);
+    //solverCheckGrad(solver);
     //meshPrint(solver->mesh);
     //meshPrintDStotal(solver->mesh);
 

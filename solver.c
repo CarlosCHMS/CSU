@@ -481,7 +481,7 @@ void solverCalcR(SOLVER* solver, double** U)
     solverResetR(solver);
 
     solverCalcPrimitive(solver, U);
-
+    
     inter(solver);
         
     boundary(solver); 
@@ -854,3 +854,28 @@ double sutherland(double T)
     return 1.45e-6*T*sqrt(T)/(T + 110.0);
 }
 
+void solverPrintP(SOLVER* solver)
+{
+
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        for(int kk=0; kk<5; kk++)
+        {
+            printf("%f,", solver->mesh->elemL[ii]->P[kk]);
+        }
+        printf("\n");
+    }
+
+    for(int jj=0; jj<solver->mesh->Nmark; jj++)
+    {
+        for(int ii=0; ii<solver->mesh->bc[jj]->Nelem; ii++)
+        {
+            for(int kk=0; kk<5; kk++)
+            {
+                printf("%f,", solver->mesh->bc[jj]->elemL[ii]->P[kk]);
+            }
+            printf("\n");
+        }
+    }
+
+}

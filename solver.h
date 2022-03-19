@@ -106,3 +106,5 @@ void solverCalcPrimitive(SOLVER* solver, double** U);
 void solverCalcUfromP(SOLVER* solver, double r, double u, double v, double p, double* U0, double* U1, double* U2, double* U3);
 
 double sutherland(double T);
+
+void solverPrintP(SOLVER* solver);
