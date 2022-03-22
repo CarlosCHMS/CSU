@@ -10,6 +10,9 @@ void fluxRoe(SOLVER* solver, double rL, double uL, double vL, double pL,
 void fluxAUSMD(SOLVER* solver, double rL, double uL, double vL, double pL,
                                double rR, double uR, double vR, double pR, double* f);
 
+void fluxAUSMDV(SOLVER* solver, double rL, double uL, double vL, double pL, 
+                                double rR, double uR, double vR, double pR, double* f);
+
 void flux(SOLVER* solver, double rL, double uL, double vL, double pL,
                           double rR, double uR, double vR, double pR, double* f);
                            
