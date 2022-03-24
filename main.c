@@ -39,6 +39,15 @@ void mainSetData(SOLVER* solver, INPUT* input)
         solver->laminar = 0;
     }
 
+    if(inputNameIsInput(input, "reestart"))
+    {
+        solver->reestart = atoi(inputGetValue(input, "reestart"));     
+    }
+    else
+    {
+        solver->reestart = 0;
+    }
+
     if(inputNameIsInput(input, "Sref"))
     {
         solver->Sref = atoi(inputGetValue(input, "Sref"));     
@@ -105,10 +114,22 @@ int main(int argc, char **argv)
                                       strtod(inputGetValue(input, "mach"), NULL), 
                                       strtod(inputGetValue(input, "nx"), NULL),
                                       strtod(inputGetValue(input, "ny"), NULL));
-        
-        // Initialization of U
-        solverInitU(solver, solver->inlet);
-        
+
+        conditionState(solver->inlet, solver);
+
+        if(solver->reestart)                                              
+        {
+            s[0] = '\0';
+            strcat(s, argv[1]);
+            strcat(s, "reestart.csv");        
+            solverLoadReestart(solver, s);
+        }
+        else
+        {
+            // Initialization of U
+            solverInitU(solver, solver->inlet);
+        } 
+                
         // Calculate time step        
         int Nmax = atoi(inputGetValue(input, "Nmax"));
 
@@ -131,21 +152,31 @@ int main(int argc, char **argv)
     else
     {
         printf("main: initialize U.\n");
-        CONDITION* inside1 = conditionInit(strtod(inputGetValue(input, "pressure1"), NULL), 
-                                           strtod(inputGetValue(input, "temperature1"), NULL), 
-                                           strtod(inputGetValue(input, "mach1"), NULL), 
-                                           strtod(inputGetValue(input, "nx1"), NULL),
-                                           strtod(inputGetValue(input, "ny1"), NULL));
+        if(solver->reestart)                                              
+        {
+            s[0] = '\0';
+            strcat(s, argv[1]);
+            strcat(s, "reestart.csv");        
+            solverLoadReestart(solver, s);
+        }
+        else
+        {        
+            CONDITION* inside1 = conditionInit(strtod(inputGetValue(input, "pressure1"), NULL), 
+                                               strtod(inputGetValue(input, "temperature1"), NULL), 
+                                               strtod(inputGetValue(input, "mach1"), NULL), 
+                                               strtod(inputGetValue(input, "nx1"), NULL),
+                                               strtod(inputGetValue(input, "ny1"), NULL));
 
-        CONDITION* inside2 = conditionInit(strtod(inputGetValue(input, "pressure2"), NULL), 
-                                           strtod(inputGetValue(input, "temperature2"), NULL), 
-                                           strtod(inputGetValue(input, "mach2"), NULL), 
-                                           strtod(inputGetValue(input, "nx2"), NULL),
-                                           strtod(inputGetValue(input, "ny2"), NULL));      
-    
-        solverInitUTube(solver, inside1, inside2, strtod(inputGetValue(input, "xm"), NULL));
-        free(inside1);
-        free(inside2);
+            CONDITION* inside2 = conditionInit(strtod(inputGetValue(input, "pressure2"), NULL), 
+                                               strtod(inputGetValue(input, "temperature2"), NULL), 
+                                               strtod(inputGetValue(input, "mach2"), NULL), 
+                                               strtod(inputGetValue(input, "nx2"), NULL),
+                                               strtod(inputGetValue(input, "ny2"), NULL));      
+        
+            solverInitUTube(solver, inside1, inside2, strtod(inputGetValue(input, "xm"), NULL));
+            free(inside1);
+            free(inside2);
+        }
         
         double tmax = strtod(inputGetValue(input, "tmax"), NULL);                
 
@@ -183,6 +214,13 @@ int main(int argc, char **argv)
     strcat(s, argv[1]);
     strcat(s, "solution.csv");
     solverWrite(solver, s);
+
+    // Save reestart
+    printf("main: saving the reestart file.\n");    
+    s[0] = '\0';
+    strcat(s, argv[1]);
+    strcat(s, "reestart.csv");
+    solverWriteReestart(solver, s);
       
     solverFree(solver);
     inputFree(input);    

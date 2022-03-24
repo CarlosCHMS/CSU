@@ -10,6 +10,7 @@
 #include"solver.h"
 #include"flux.h"
 #include"boundary.h"
+#include"readTables.h"
 
 CONDITION* conditionInit(double p, double T, double mach, double nx, double ny)
 {
@@ -159,6 +160,47 @@ void solverWrite(SOLVER* solver, char* fileName)
     free(den);
 
 }
+
+void solverWriteReestart(SOLVER* solver, char* fileName)
+{
+
+    FILE* ff = fopen(fileName, "w");
+
+    fprintf(ff, "1,\n");
+
+    fprintf(ff, "0, %i, 4,\n", solver->mesh->Nelem);
+
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {        
+        for(int jj=0; jj<4; jj++)
+        {
+            fprintf(ff, "%.10e, ", solver->U[jj][ii]);
+        }
+        fprintf(ff, "\n");        
+    }
+
+    fclose(ff);
+
+}
+
+
+void solverLoadReestart(SOLVER* solver, char* fileName)
+{
+
+    TABLELIST* tl = fReadTables(fileName);
+    
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {        
+        for(int jj=0; jj<4; jj++)
+        {
+            solver->U[jj][ii] = tl->tables[0]->values[ii][jj];
+        }        
+    }    
+    
+    readTablesFree(tl);
+
+}
+
 
 void solverInitU(SOLVER* solver, CONDITION* inside)
 {

@@ -21,6 +21,7 @@ typedef struct {
     int flux;
     int stages;
     int laminar;
+    int reestart;
 
     double Rgas;
     double gamma;
@@ -61,6 +62,10 @@ void solverMalloc(SOLVER* solver);
 void solverFree(SOLVER* solver);
 
 void solverWrite(SOLVER* solver, char* fileName);
+
+void solverWriteReestart(SOLVER* solver, char* fileName);
+
+void solverLoadReestart(SOLVER* solver, char* fileName);
 
 void solverInitU(SOLVER* solver, CONDITION* inside);
 
