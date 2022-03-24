@@ -312,13 +312,13 @@ void meshBCFree(MESHBC* bc)
         meshElementFree(bc->elemL[ii]);
     }
     free(bc->elemL);
-    free(bc->name);
 }
 
 void meshFree(MESH* mesh)
 {
 
     tableFreeDouble(mesh->p, mesh->Np);
+
     tableFreeInit(mesh->con, mesh->Ncon);
         
     for(int ii=0; ii<mesh->Nelem; ii++)    
@@ -327,15 +327,14 @@ void meshFree(MESH* mesh)
     }
     
     free(mesh->elemL);
+    
         
-    for(int ii; ii<mesh->Nmark; ii++)
+    for(int ii=0; ii<mesh->Nmark; ii++)
     {
-
         meshBCFree(mesh->bc[ii]);
-        free(mesh->bc);
-
     }
-
+    
+    free(mesh->bc);
     free(mesh);
 
 }
