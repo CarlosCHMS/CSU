@@ -1,20 +1,20 @@
 // Gmsh project created on Tue Feb 22 15:29:44 2022
 //+
-Point(1) = {-2, -2, 0, 0.1};
+Point(1) = {-1, -0.5, 0, 0.05};
 //+
-Point(2) = {2, -2, 0, 0.1};
+Point(2) = {2, -2.5, 0, 0.05};
 //+
-Point(3) = {2, 2, 0, 0.1};
+Point(3) = {2, 2.5, 0, 0.05};
 //+
-Point(4) = {-2, 2, 0, 0.1};
+Point(4) = {-1, 0.5, 0, 0.05};
 //+
-Point(5) = {-0.5, 0, 0, 0.05};
+Point(5) = {-0.5, 0, 0, 0.025};
 //+
-Point(6) = {0, 0.05, 0, 0.05};
+Point(6) = {0, 0.05, 0, 0.025};
 //+
-Point(7) = {0.5, 0, 0, 0.05};
+Point(7) = {0.5, 0, 0, 0.025};
 //+
-Point(8) = {0, -0.05, 0, 0.05};
+Point(8) = {0, -0.05, 0, 0.025};
 //+
 Line(1) = {1, 2};
 //+
@@ -42,6 +42,8 @@ Physical Curve("inlet") = {4};
 //+
 Physical Curve("outlet") = {2};
 //+
-Physical Curve("wallFar") = {3, 1};
-//+
 Physical Curve("wall") = {8, 5, 6, 7};
+//+
+Physical Curve("up") = {3};
+//+
+Physical Curve("down") = {1};

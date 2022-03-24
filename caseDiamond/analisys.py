@@ -110,12 +110,12 @@ class solution():
 
 def levels(v, n):    
 
-    max1 = v[0][0]
-    min1 = v[0][0]
+    max1 = v[0]
+    min1 = v[0]
     for ii in range(0, v.shape[0]):
-        for jj in range(0, v.shape[1]):
-            max1 = max(v[ii][jj], max1)
-            min1 = min(v[ii][jj], min1)
+
+        max1 = max(v[ii], max1)
+        min1 = min(v[ii], min1)
                             
     d = (max1-min1)/(n-1)
     levels = []
@@ -138,17 +138,17 @@ if __name__=="__main__":
 
     plt.figure()
     plt.title("Static pressure")
-    plt.tricontourf(triang, s.p)
+    plt.tricontourf(triang, s.p, levels=levels(s.p, 20))
     #plt.triplot(triang, 'ko-') 
     plt.axis('equal') 
     plt.colorbar()  
-    plt.show()
+    plt.savefig(path+'diamond_p.png', dpi=300)
 
     plt.figure()
     plt.title("Mach")
-    plt.tricontourf(triang, s.mach)
+    plt.tricontourf(triang, s.mach, levels=levels(s.mach, 20))
     #plt.triplot(triang, 'ko-') 
     plt.axis('equal') 
     plt.colorbar()  
-    plt.show()
+    plt.savefig(path+'diamond_m.png', dpi=300)
         
