@@ -22,7 +22,7 @@ interpE, 0.01
 order, 2
 stages, 5
 threads, 4
-flux, ROE 
+flux, AUSMDV 
 tube, 1
 axisymmetric, 0
 CFL, 1.0
