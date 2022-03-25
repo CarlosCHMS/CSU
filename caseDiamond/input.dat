@@ -20,4 +20,4 @@ flux, AUSMDV
 tube, 0
 axisymmetric, 0
 CFL, 1.0
-reestart, 0
+restart, 0
