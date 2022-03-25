@@ -224,124 +224,119 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
 
         ELEMENT* E0 = bc->elemL[ii]->neiL[0];
 
-        if(solver->mesh->elemL[e0]->neiN > 1)
-		{		    
-            meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
 
-            if(bc->flagBC == 1)
-            {
-                elementCenter(E0, solver->mesh, &x0, &y0);
+        if(bc->flagBC == 1)
+        {
+            elementCenter(E0, solver->mesh, &x0, &y0);
 
-               	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
-                y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
+           	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
+            y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
 
-                double dx = x1 - x0;		    
-                double dy = y1 - y0;
-                double L = sqrt(dx*dx + dy*dy);
-                
-                double dul = (solver->inlet->Pin[1] - E0->P[1])/L;
-                double dvl = (solver->inlet->Pin[2] - E0->P[2])/L;            
-                double dTl = (solver->inlet->Pin[4] - E0->P[4])/L; 
+            double dx = x1 - x0;		    
+            double dy = y1 - y0;
+            double L = sqrt(dx*dx + dy*dy);
+            
+            double dul = (solver->inlet->Pin[1] - E0->P[1])/L;
+            double dvl = (solver->inlet->Pin[2] - E0->P[2])/L;            
+            double dTl = (solver->inlet->Pin[4] - E0->P[4])/L; 
 
-                double duxm = solver->dPx[1][e0];
-                double dvxm = solver->dPx[2][e0];
-                double dTxm = solver->dPx[3][e0];
-                
-                double duym = solver->dPy[1][e0];
-                double dvym = solver->dPy[2][e0];
-                double dTym = solver->dPy[3][e0];
+            double duxm = solver->dPx[1][e0];
+            double dvxm = solver->dPx[2][e0];
+            double dTxm = solver->dPx[3][e0];
+            
+            double duym = solver->dPy[1][e0];
+            double dvym = solver->dPy[2][e0];
+            double dTym = solver->dPy[3][e0];
 
-                dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
-                duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
+            dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
+            duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
 
-                dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
-                dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;  
-                
-                dTx = dTxm + (dTl - (dTxm*dx + dTym*dy)/L)*dx/L;
-                dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;
-                
-                double T = E0->P[4];
-                double mi = sutherland(T);
-                double k = solver->Cp*mi/solver->Pr;            
-		            
-		        double txx = 2*mi*(dux - (dux + dvy)/3);
-		        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
-		        double txy = mi*(duy + dvx);  
-		        
-		        double u = E0->P[1];
-		        double v = E0->P[2];		        
-		        
-		        solver->R[1][e0] -= txx*dSx + txy*dSy;
-		        solver->R[2][e0] -= txy*dSx + tyy*dSy;
-		        solver->R[3][e0] -= u*(txx*dSx + txy*dSy) + v*(txy*dSx + tyy*dSy) + k*(dTx*dSx + dTy*dSy);
-                
-            }
-            else if(bc->flagBC == 3)
-            {
-                elementCenter(E0, solver->mesh, &x0, &y0);
+            dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
+            dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;  
+            
+            dTx = dTxm + (dTl - (dTxm*dx + dTym*dy)/L)*dx/L;
+            dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;
+            
+            double T = E0->P[4];
+            double mi = sutherland(T);
+            double k = solver->Cp*mi/solver->Pr;            
+	            
+	        double txx = 2*mi*(dux - (dux + dvy)/3);
+	        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+	        double txy = mi*(duy + dvx);  
+	        
+	        double u = E0->P[1];
+	        double v = E0->P[2];		        
+	        
+	        solver->R[1][e0] -= txx*dSx + txy*dSy;
+	        solver->R[2][e0] -= txy*dSx + tyy*dSy;
+	        solver->R[3][e0] -= u*(txx*dSx + txy*dSy) + v*(txy*dSx + tyy*dSy) + k*(dTx*dSx + dTy*dSy);
+            
+        }
+        else if(bc->flagBC == 3)
+        {
+            elementCenter(E0, solver->mesh, &x0, &y0);
 
-               	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
-                y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
+           	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
+            y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
 
-                double dx = x1 - x0;		    
-                double dy = y1 - y0;
-                double L = sqrt(dx*dx + dy*dy);
-                
-                double dul = (0 - E0->P[1])/L;
-                double dvl = (0 - E0->P[2])/L;            
+            double dx = x1 - x0;		    
+            double dy = y1 - y0;
+            double L = sqrt(dx*dx + dy*dy);
+            
+            double dul = (0 - E0->P[1])/L;
+            double dvl = (0 - E0->P[2])/L;            
 
-                double duxm = solver->dPx[1][e0];
-                double dvxm = solver->dPx[2][e0];
-                
-                double duym = solver->dPy[1][e0];
-                double dvym = solver->dPy[2][e0];
+            double duxm = solver->dPx[1][e0];
+            double dvxm = solver->dPx[2][e0];
+            
+            double duym = solver->dPy[1][e0];
+            double dvym = solver->dPy[2][e0];
 
-                dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
-                duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
+            dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
+            duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
 
-                dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
-                dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
-                                
-                double T = E0->P[4];
-                double mi = sutherland(T);
-		            
-		        double txx = 2*mi*(dux - (dux + dvy)/3);
-		        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
-		        double txy = mi*(duy + dvx);  
-		        
-		        solver->R[1][e0] -= txx*dSx + txy*dSy;
-		        solver->R[2][e0] -= txy*dSx + tyy*dSy;
-                
-            }
-            else
-            {
-                dux = solver->dPx[1][e0];
-                dvx = solver->dPx[2][e0];
-                dTx = solver->dPx[3][e0];
-                
-                duy = solver->dPy[1][e0];
-                dvy = solver->dPy[2][e0];
-                dTy = solver->dPy[3][e0];                
+            dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
+            dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
+                            
+            double T = E0->P[4];
+            double mi = sutherland(T);
+	            
+	        double txx = 2*mi*(dux - (dux + dvy)/3);
+	        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+	        double txy = mi*(duy + dvx);  
+	        
+	        solver->R[1][e0] -= txx*dSx + txy*dSy;
+	        solver->R[2][e0] -= txy*dSx + tyy*dSy;
+            
+        }
+        else
+        {
+            dux = solver->dPx[1][e0];
+            dvx = solver->dPx[2][e0];
+            dTx = solver->dPx[3][e0];
+            
+            duy = solver->dPy[1][e0];
+            dvy = solver->dPy[2][e0];
+            dTy = solver->dPy[3][e0];                
 
-                double T = E0->P[4];
-                double mi = sutherland(T);
-                double k = solver->Cp*mi/solver->Pr;            
-		            
-		        double txx = 2*mi*(dux - (dux + dvy)/3);
-		        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
-		        double txy = mi*(duy + dvx);  
-		        
-		        double u = E0->P[1];
-		        double v = E0->P[2];		        
-		        
-		        solver->R[1][e0] -= txx*dSx + txy*dSy;
-		        solver->R[2][e0] -= txy*dSx + tyy*dSy;
-		        solver->R[3][e0] -= u*(txx*dSx + txy*dSy) + v*(txy*dSx + tyy*dSy) + k*(dTx*dSx + dTy*dSy);
-                
-            }
-
-		}        
-    }
+            double T = E0->P[4];
+            double mi = sutherland(T);
+            double k = solver->Cp*mi/solver->Pr;            
+	            
+	        double txx = 2*mi*(dux - (dux + dvy)/3);
+	        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+	        double txy = mi*(duy + dvx);  
+	        
+	        double u = E0->P[1];
+	        double v = E0->P[2];		        
+	        
+	        solver->R[1][e0] -= txx*dSx + txy*dSy;
+	        solver->R[2][e0] -= txy*dSx + tyy*dSy;
+	        solver->R[3][e0] -= u*(txx*dSx + txy*dSy) + v*(txy*dSx + tyy*dSy) + k*(dTx*dSx + dTy*dSy);            
+        }
+	}        
 }
 
 
