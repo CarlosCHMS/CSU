@@ -184,7 +184,7 @@ void solverWriteReestart(SOLVER* solver, char* fileName)
 }
 
 
-void solverLoadReestart(SOLVER* solver, char* fileName)
+void solverLoadRestart(SOLVER* solver, char* fileName)
 {
 
     TABLELIST* tl = fReadTables(fileName);

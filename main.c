@@ -39,13 +39,13 @@ void mainSetData(SOLVER* solver, INPUT* input)
         solver->laminar = 0;
     }
 
-    if(inputNameIsInput(input, "reestart"))
+    if(inputNameIsInput(input, "restart"))
     {
-        solver->reestart = atoi(inputGetValue(input, "reestart"));     
+        solver->restart = atoi(inputGetValue(input, "restart"));     
     }
     else
     {
-        solver->reestart = 0;
+        solver->restart = 0;
     }
 
     if(inputNameIsInput(input, "Sref"))
@@ -117,12 +117,12 @@ int main(int argc, char **argv)
 
         conditionState(solver->inlet, solver);
 
-        if(solver->reestart)                                              
+        if(solver->restart)                                              
         {
             s[0] = '\0';
             strcat(s, argv[1]);
-            strcat(s, "reestart.csv");        
-            solverLoadReestart(solver, s);
+            strcat(s, "restart.csv");        
+            solverLoadRestart(solver, s);
         }
         else
         {
@@ -152,12 +152,12 @@ int main(int argc, char **argv)
     else
     {
         printf("main: initialize U.\n");
-        if(solver->reestart)                                              
+        if(solver->restart)                                              
         {
             s[0] = '\0';
             strcat(s, argv[1]);
-            strcat(s, "reestart.csv");        
-            solverLoadReestart(solver, s);
+            strcat(s, "restart.csv");        
+            solverLoadRestart(solver, s);
         }
         else
         {        
@@ -216,10 +216,10 @@ int main(int argc, char **argv)
     solverWrite(solver, s);
 
     // Save reestart
-    printf("main: saving the reestart file.\n");    
+    printf("main: saving the restart file.\n");    
     s[0] = '\0';
     strcat(s, argv[1]);
-    strcat(s, "reestart.csv");
+    strcat(s, "restart.csv");
     solverWriteReestart(solver, s);
       
     solverFree(solver);
