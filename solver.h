@@ -116,3 +116,5 @@ double sutherland(double T);
 void solverPrintP(SOLVER* solver);
 
 void solverCalcCoeff(SOLVER* solver, double *Fx, double *Fy);
+
+void solverCalcCoeff2(SOLVER* solver, char* path);

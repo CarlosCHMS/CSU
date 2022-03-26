@@ -147,7 +147,8 @@ int main(int argc, char **argv)
                 solverCalcCoeff(solver, &Cx, &Cy);
                 printf("%f, %f\n", Cx, Cy);
             }            
-        } 
+        }
+        solverCalcCoeff2(solver, argv[1]); 
     }
     else
     {

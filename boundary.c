@@ -561,5 +561,58 @@ void boundaryCalcFrictionWall(SOLVER* solver, ELEMENT* E, double* fx, double* fy
         
         *fx = txx*dSx + txy*dSy;
 		*fy = txy*dSx + tyy*dSy;
- 
+
 }
+
+void boundaryCalcTensorWall(SOLVER* solver, ELEMENT* E, double* Txx, double* Txy, double* Tyy, double* x, double* yp)
+{
+
+        double x0, y0, x1, y1, dSx, dSy;
+
+        int e0 = E->neiL[0]->ii;
+        int p0 = E->p[0];
+        int p1 = E->p[1];
+
+        ELEMENT* E0 = E->neiL[0];
+         
+        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+
+        elementCenter(E0, solver->mesh, &x0, &y0);
+        elementCenter(E, solver->mesh, &x1, &y1);
+
+        double dx = x1 - x0;		    
+        double dy = y1 - y0;
+        double L = sqrt(dx*dx + dy*dy);
+        
+        double dul = (0 - E0->P[1])/L;
+        double dvl = (0 - E0->P[2])/L;            
+
+        double duxm = solver->dPx[1][e0];
+        double dvxm = solver->dPx[2][e0];
+        
+        double duym = solver->dPy[1][e0];
+        double dvym = solver->dPy[2][e0];
+
+        double dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
+        double duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
+
+        double dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
+        double dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
+                        
+        double T = E0->P[4];
+        double mi = sutherland(T);
+        
+        //printf("%f\n", E0->P[1]);
+            
+        double txx = 2*mi*(dux - (dux + dvy)/3);
+        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+        double txy = mi*(duy + dvx); 
+        
+        *Txx = txx;
+		*Txy = txy;
+		*Tyy = tyy;		
+		*x = x1;
+		double aux = 5.29*x1/sqrt(E0->P[0]*E0->P[1]*x1/mi);
+		*yp = L/aux;
+}
+

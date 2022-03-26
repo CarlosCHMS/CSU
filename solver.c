@@ -926,7 +926,7 @@ void solverCalcCoeff(SOLVER* solver, double *Cx, double *Cy)
 {
     int p0, p1;
     MESHBC* bc;
-    double cp, dSx, dSy, fx, fy, x, y;
+    double cp, dSx, dSy, fx, fy;
 
     *Cx = 0.0;
     *Cy = 0.0;
@@ -935,7 +935,8 @@ void solverCalcCoeff(SOLVER* solver, double *Cx, double *Cy)
     double u = solver->inlet->Pin[1];
     double v = solver->inlet->Pin[2];
     double P = solver->inlet->Pin[3];
-    double q = 0.5*r*(u*u + v*v);    
+    double q = 0.5*r*(u*u + v*v);
+    double x;    
         
     for(int jj=0; jj<solver->mesh->Nmark; jj++)
     {
@@ -965,4 +966,42 @@ void solverCalcCoeff(SOLVER* solver, double *Cx, double *Cy)
         
     *Cx /= solver->Sref;
     *Cy /= solver->Sref;
+}
+
+void solverCalcCoeff2(SOLVER* solver, char* path)
+{
+    int p0, p1;
+    MESHBC* bc;
+    double cp, dSx, dSy, txx, txy, tyy, yp;
+    char s[50];
+    
+    double r = solver->inlet->Pin[0];
+    double u = solver->inlet->Pin[1];
+    double v = solver->inlet->Pin[2];
+    double P = solver->inlet->Pin[3];
+    double q = 0.5*r*(u*u + v*v);
+    double x;    
+        
+    s[0] = '\0';
+    strcat(s, path);
+    strcat(s, "friction.csv");        
+    FILE* ff = fopen(s, "w");   
+        
+    for(int jj=0; jj<solver->mesh->Nmark; jj++)
+    {
+        bc = solver->mesh->bc[jj];
+        if(bc->flagBC == 3)
+        {
+            for(int ii=0; ii<bc->Nelem; ii++)
+            {                
+                if(solver->laminar==1)
+                {
+                    boundaryCalcTensorWall(solver, bc->elemL[ii], &txx, &txy, &tyy, &x, &yp);
+                    fprintf(ff, "%e, %e, %e, %e, %e,\n", x, txx, txy, tyy, yp);
+                }                               
+            }
+        }
+    }
+        
+    fclose(ff);
 }

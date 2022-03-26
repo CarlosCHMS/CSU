@@ -21,3 +21,5 @@ int boundaryChoice(char* s);
 void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc);
 
 void boundaryCalcFrictionWall(SOLVER* solver, ELEMENT* E, double* fx, double* fy);
+
+void boundaryCalcTensorWall(SOLVER* solver, ELEMENT* E, double* Txx, double* Txy, double* Tyy, double* x, double* yp);

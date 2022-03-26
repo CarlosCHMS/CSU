@@ -5,6 +5,7 @@ import matplotlib.tri as mtri
 from su2MeshReader import reader
 import sys
 import numpy
+import readFluent as rf 
  
 class solution():
 
@@ -214,14 +215,19 @@ if __name__=="__main__":
     inter = mtri.LinearTriInterpolator(triang, s.r)
     r = inter(mar.x, mar.y)
 
-    bl = BL(1e5, 300, 0.1, 1)
+    bl = BL(1e5, 300, 0.1, 0.5)
 
     mar.y = numpy.array(mar.y)
+
+    u[0] = 0;
+
+    fm = rf.read(path+"velocityBLfluent")
 
     plt.figure()
     plt.title("u")
     plt.plot(mar.y, u, 'b')
-    plt.plot(bl.y, bl.u, 'r--')    
+    plt.plot(bl.y, bl.u, 'r--')
+    plt.plot(fm.x, fm.y, 'g.')        
     plt.show()
     
     plt.figure()
