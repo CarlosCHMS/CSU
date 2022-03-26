@@ -167,12 +167,13 @@ if __name__=="__main__":
     charVar = char1.calcVar(0.02, mar.x)
 
     plt.figure()
-    plt.title("Mach")
     plt.plot(mar.x, mach1, 'b')
     plt.plot(mar.x, mach2, 'g')
     plt.plot(charVar['x'], charVar['u']/numpy.sqrt(1.4*charVar['p']/charVar['rho']),'--r')
     plt.legend(['1 order', '2 order', 'charac.'])
     plt.grid(True)
+    plt.xlabel("x [m]")
+    plt.ylabel("mach [-]")
     plt.savefig('sod_u.png', dpi=300)
     
     plt.figure()
@@ -184,12 +185,13 @@ if __name__=="__main__":
     plt.grid(True)
     plt.savefig('sod_pressure.png', dpi=300)
     
-    plt.figure()
-    plt.title("Density")        
+    plt.figure()      
     plt.plot(mar.x, r1, 'b')
     plt.plot(mar.x, r2, 'g')
     plt.plot(charVar['x'], charVar['rho'],'--r')
     plt.legend(['1 order', '2 order', 'charac.'])
     plt.grid(True)
+    plt.xlabel("x [m]")
+    plt.ylabel(r"$\rho$ [kg/m³]")    
     plt.savefig('sod_rho.png', dpi=300)
 

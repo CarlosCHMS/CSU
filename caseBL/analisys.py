@@ -117,12 +117,11 @@ class solution():
 
 def levels(v, n):    
 
-    max1 = v[0][0]
-    min1 = v[0][0]
+    max1 = v[0]
+    min1 = v[0]
     for ii in range(0, v.shape[0]):
-        for jj in range(0, v.shape[1]):
-            max1 = max(v[ii][jj], max1)
-            min1 = min(v[ii][jj], min1)
+        max1 = max(v[ii], max1)
+        min1 = min(v[ii], min1)
                             
     d = (max1-min1)/(n-1)
     levels = []
@@ -198,12 +197,24 @@ if __name__=="__main__":
     plt.show()
 
     plt.figure()
-    plt.title("Mach")
-    plt.tricontourf(triang, s.mach)
+    #plt.title("Mach")
+    plt.tricontourf(triang, s.mach, levels=levels(s.mach, 30))
     #plt.triplot(triang, 'ko-') 
-    plt.axis('equal') 
+    #plt.axis('equal') 
     plt.colorbar()  
     plt.show()
+
+    plt.figure()
+    #plt.title("Mach")
+    plt.tricontourf(triang, s.u, levels=levels(s.u, 30))
+    #plt.triplot(triang, 'ko-') 
+    #plt.axis('equal') 
+    cbar = plt.colorbar()
+    cbar.set_label('u [m/s]')
+    plt.xlabel("x [m]")  
+    plt.ylabel("y [m]")    
+    plt.savefig("u.png", dpi=300)
+
         
     mar = s.mesh.markers[1]
     mar.getXY(s.mesh)
@@ -224,11 +235,14 @@ if __name__=="__main__":
     fm = rf.read(path+"velocityBLfluent")
 
     plt.figure()
-    plt.title("u")
     plt.plot(mar.y, u, 'b')
     plt.plot(bl.y, bl.u, 'r--')
-    plt.plot(fm.x, fm.y, 'g.')        
-    plt.show()
+    #plt.plot(fm.x, fm.y, 'g.')   
+    plt.legend(['Code', 'Blasius'])
+    plt.grid(True)    
+    plt.xlabel("y [m]")  
+    plt.ylabel("u [m/s]")        
+    plt.savefig(path+"uProfile.png", dpi=300)
     
     plt.figure()
     plt.title("T")

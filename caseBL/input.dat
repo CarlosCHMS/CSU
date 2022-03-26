@@ -11,7 +11,7 @@ BC:outlet, outlet
 BC:sym, outlet
 BC:inlet, inlet
 
-Nmax, 1
+Nmax, 10000
 interpE, 1e-10
 order, 2
 stages, 5
