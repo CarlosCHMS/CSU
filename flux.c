@@ -274,5 +274,5 @@ void fluxFree(SOLVER* solver, double rL, double uL, double vL, double pL, double
     f[0] = rL*uL;   
     f[1] = rL*uL*uL + pL;
     f[2] = rL*uL*vL;
-    f[3] = uL*(pL/(solver->gamma-1) + 0.5*(uL*uL + vL*vL)*rL);    
+    f[3] = uL*(solver->gamma*pL/(solver->gamma-1) + 0.5*(uL*uL + vL*vL)*rL);    
 }
