@@ -1,11 +1,10 @@
 
 
-import matplotlib.pyplot as plt
-import matplotlib.tri as mtri
-from su2MeshReader import reader
-import sys
 import numpy
-import readFluent as rf 
+import matplotlib.pyplot as plt
+from readTables import readTables
+import sys
+import readFluent as rf
  
 class solution():
 
@@ -14,100 +13,51 @@ class solution():
         self.gamma = 1.4
         self.Rgas = 287.5
 
-        self.mesh = reader(meshFile)
+
+        rt = readTables(meshFile)
         
-        self.x = self.mesh.x
-        self.y = self.mesh.y
-        self.elemToTri()
-                
-        self.pConnect()        
-                
-        ff = open(solFile)
-
-        self.r = []
-        self.ru = []
-        self.rv = []
-        self.rE = []
-
-        first = True
-        for row in ff:
-            if first:
-                first = False
-            else:
-                aux = row.split(',')
-                self.r.append(float(aux[0]))
-                self.ru.append(float(aux[1]))
-                self.rv.append(float(aux[2]))
-                self.rE.append(float(aux[3]))
-
-        ff.close()
-
-        self._toArray()
-        self.calcPMT()
-    
-    def _toArray(self):
-
-        self.r = numpy.array(self.r)
-        self.ru = numpy.array(self.ru)
-        self.rv = numpy.array(self.rv)
-        self.rE = numpy.array(self.rE)
-
-        return None
+        x0 = rt.tabList[0]
+        y0 = rt.tabList[1]
         
-    def elemToTri(self):
-    
-        self.elem = []
-        for e in self.mesh.elem:
-            if(len(e) == 3):
-                self.elem.append(e)
-            elif(len(e) == 4):
-                self.elem.append([e[0], e[1], e[2]])
-                self.elem.append([e[2], e[3], e[0]])
+        self.x = numpy.zeros((x0.shape[0]-1, x0.shape[1]-1))
+        self.y = numpy.zeros((y0.shape[0]-1, y0.shape[1]-1))
+        
+        for ii in range(0, x0.shape[0]-1):
+            for jj in range(0, x0.shape[1]-1):
             
-        return None                
+                self.x[ii, jj] = (x0[ii, jj] + x0[ii+1, jj] + x0[ii, jj+1] + x0[ii+1, jj+1])/4
+                self.y[ii, jj] = (y0[ii, jj] + y0[ii+1, jj] + y0[ii, jj+1] + y0[ii+1, jj+1])/4
+                
+        rt = readTables(solFile)
         
+        self.r = rt.tabList[0]
+        self.ru = rt.tabList[1]
+        self.rv = rt.tabList[2]
+        self.rE = rt.tabList[3]
+            
     def calcPMT(self):
        
-        Np = len(self.mesh.p)
-       
-        self.p = numpy.zeros(Np)
-        self.mach = numpy.zeros(Np)
-        self.entro = numpy.zeros(Np)               
-        self.H = numpy.zeros(Np)                
-       
-        for ii in range(0, Np):
-       
-            if(self.con[ii] > 0):
-       
-                u = self.ru[ii]/self.r[ii]
-                v = self.rv[ii]/self.r[ii]
-                E = self.rE[ii]/self.r[ii]
-                
-                RT = (E - (u**2 + v**2)/2)*(self.gamma - 1)
-                
-                self.p[ii] = RT*self.r[ii]
-                
-                c = numpy.sqrt(self.gamma*RT)
-                V = numpy.sqrt(u**2 + v**2)
-                
-                self.mach[ii] = V/c
+        u = self.ru/self.r
+        v = self.rv/self.r
+        E = self.rE/self.r
+        
+        RT = (E - (u**2 + v**2)/2)*(self.gamma - 1)
+        self.T = RT/self.Rgas
+        
+        self.p = RT*self.r
+        
+        c = numpy.sqrt(self.gamma*RT)
+        V = numpy.sqrt(u**2 + v**2)
+        
+        self.mach = V/c
+        self.u = u        
+        self.v = v
 
-                self.entro[ii] = self.p[ii]/(self.r[ii]**self.gamma)
+        self.entro = self.p/(self.r**self.gamma)
 
-                self.H[ii] = E + self.p[ii]/self.r[ii]
+        self.H = E + self.p/self.r
         
         return None        
-
-    def pConnect(self):
-    
-        self.con = numpy.zeros(len(self.mesh.p))
-        
-        for ii in range(0, len(self.elem)):
-            self.con[self.elem[ii][0]] += 1
-            self.con[self.elem[ii][1]] += 1
-            self.con[self.elem[ii][2]] += 1
-            
-        return None
 
 def levels(v, n):    
 
@@ -132,54 +82,89 @@ if __name__=="__main__":
         exit(0)
     
     path = sys.argv[1]
-
-    s = solution(path+"mesh.su2", path+"solution.csv")
-
-    triang = mtri.Triangulation(s.x, s.y, s.elem)
-
-    plt.figure()
-    plt.title("Static pressure")
-    plt.tricontourf(triang, s.p)
-    #plt.triplot(triang, 'ko-') 
-    plt.axis('equal') 
-    plt.colorbar()  
-    plt.show()
-
-    plt.figure()
-    plt.title("Mach")
-    plt.tricontourf(triang, s.mach)
-    #plt.triplot(triang, 'ko-') 
-    plt.axis('equal') 
-    plt.colorbar()  
-    plt.show()
         
-    mar = s.mesh.markers[0]
-    mar.getXY(s.mesh)
-    
-    inter = mtri.LinearTriInterpolator(triang, s.mach)
-    mach = inter(mar.x, mar.y)
-    inter = mtri.LinearTriInterpolator(triang, s.p)
-    p = inter(mar.x, mar.y)
-
-    fm = rf.read(path+"machxX")
-
-    mar.x = numpy.array(mar.x)
+    s = solution(path+"mesh.csv", path+"./solution.csv")        
+        
+    s.calcPMT()
+        
+    """
+        
+    plt.figure()
+    plt.title("pressure")    
+    plt.contourf(s.x, s.y, s.p)
+    plt.axis("equal")
+    plt.colorbar()
+    plt.show()    
+       
+    """
+        
+    plt.figure()
+    plt.title("mach")
+    plt.contourf(s.x, s.y, s.mach)
+    plt.axis("equal")
+    plt.colorbar()    
+    plt.show()    
 
     plt.figure()
-    plt.title("Mach")
-    plt.plot(mar.x, mach)
-    plt.plot(mar.x, mar.x*0 + 2.0)    
-    plt.plot(mar.x, mar.x*0 + 1.21021838)    
-    plt.plot(fm.x, fm.y)
-    plt.show()
-    
-    fp = rf.read(path+"pressurexX")    
+    plt.title("r")
+    plt.contourf(s.x, s.y, s.r)
+    plt.axis("equal")
+    plt.colorbar()    
+    plt.show()    
+            
+    plt.figure()
+    plt.title("ru")
+    plt.contourf(s.x, s.y, s.ru)
+    plt.axis("equal")
+    plt.colorbar()    
+    plt.show()            
     
     plt.figure()
-    plt.title("Static pressure")        
-    plt.plot(mar.x, p)
-    plt.plot(mar.x, mar.x*0 + 1e5)    
-    plt.plot(mar.x, mar.x*0 + 2.84286270*1e5)    
-    plt.plot(fp.x, fp.y)    
+    plt.title("rv")
+    plt.contourf(s.x, s.y, s.rv, levels=levels(s.rv, 10))
+    plt.axis("equal")
+    plt.colorbar()    
+    plt.show()    
+
+    plt.figure()
+    plt.title("rE")
+    plt.contourf(s.x, s.y, s.rE)
+    plt.axis("equal")
+    plt.colorbar()    
+    plt.show() 
+
+    plt.figure()
+    plt.title("entropia")
+    plt.contourf(s.x, s.y, s.entro)
+    plt.axis("equal")
+    plt.colorbar()    
     plt.show()
-    
+
+    plt.figure()
+    plt.title("entalpia")
+    plt.contourf(s.x, s.y, s.H)
+    plt.axis("equal")
+    plt.colorbar()    
+    plt.show()
+
+    m = rf.read(path+"machxX")
+
+    plt.figure()
+    plt.title("mach versus x")
+    plt.plot(s.x[:, 0], s.mach[:, 0], '.-')
+    plt.plot(s.x[:, 0], s.x[:, 0]*0 + 2.0)    
+    plt.plot(s.x[:, 0], s.x[:, 0]*0 + 1.21021838)
+    plt.plot(m.x, m.y)
+    plt.show()   
+
+    p = rf.read(path+"pressurexX")
+
+    plt.figure()
+    plt.title("pressure versus x")
+    plt.plot(s.x[:, 0], s.p[:, 0], '.-')
+    plt.plot(s.x[:, 0], s.x[:, 0]*0 + 1e5)    
+    plt.plot(s.x[:, 0], s.x[:, 0]*0 + 2.84286270*1e5)
+    plt.plot(p.x, p.y)
+    plt.show()
+
+

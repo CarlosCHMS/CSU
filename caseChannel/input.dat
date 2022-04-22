@@ -6,17 +6,17 @@ nx, 1.
 ny, 0.
 pout, 1e5
 
-BC:wallDown, wall
-BC:wallUp, wall
-BC:inlet, inlet
-BC:outlet, outlet
+BCdown, wall
+BCup, wall
+BCleft, inlet
+BCright, outlet
 
-Nmax, 15000
+Nmax, 10000
 interpE, 1e-5
-order, 2
+order, 1
 stages, 5
 threads, 4
 flux, AUSMD 
 tube, 0
 axisymmetric, 0
-CFL, 1.0
+CFL, 0.1
