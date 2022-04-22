@@ -98,20 +98,24 @@ void tableDisplay(TABLE* t)
 
 TABLELIST* fReadTables(char* fileName)
 {
+
+    int ii;
     FILE* ff = fopen(fileName, "r");
+
     TABLELIST* tl = malloc(sizeof(TABLELIST));
-    TABLE* t;    
-    char s[100];    
+    TABLE* t;
+    char c;
+    char s[100];
     
     //Read number of tables
-    getWord(ff, s);
+    c = getWord(ff, s);
     tl->N = atoi(s);
-    getWord(ff, s);
+    c = getWord(ff, s);
     
     //Allocate the tables vector
     tl->tables = malloc(tl->N*sizeof(TABLE**));
 
-    for(int ii=0; ii<tl->N; ii++)
+    for(ii=0; ii<tl->N; ii++)
     {
         t = tableRead(ff);   
         tl->tables[ii] = t;
@@ -122,23 +126,4 @@ TABLELIST* fReadTables(char* fileName)
     return tl;
 
 }
-
-void tableFree(TABLE* t)
-{
-    for(int ii=0; ii<t->Nrow; ii++)
-    {    
-        free(t->values[ii]);
-    }
-    free(t->values);
-}
-
-void readTablesFree(TABLELIST* tl)
-{
-    for(int ii=0; ii<tl->N; ii++)
-    { 
-        tableFree(tl->tables[ii]);
-    }
-    free(tl);
-}
-
 

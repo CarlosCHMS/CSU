@@ -8,20 +8,32 @@ typedef struct{
     double ny;  
     
     double Uin[4];  
-    double Pin[5];     
 
 } CONDITION;
+
+typedef struct{
+
+    char* down;
+    char* up;
+    char* left;
+    char* right;
+
+    int Ndown;
+    int Nup;
+    int Nleft;
+    int Nright;
+
+} BOUNDARY;
+
 
 typedef struct {
 
     int Nrow;
     int Ncol;
     int pOutFlag;
-    int order;
+    int MUSCL;
     int flux;
     int stages;
-    int laminar;
-    int restart;
 
     double Rgas;
     double gamma;
@@ -34,22 +46,19 @@ typedef struct {
     double res0[4];
     double res[4];
     double CFL;
-    double Cp;
-    double Pr;
-    double Sref;
             
-    double **U;
-    double **R;
-    double **Uaux;     
-    double **faceFlux;       
-    double **dPx;
-    double **dPy;  
+    double ***U;
+    double ***R;
+    double ***Uaux;        
     
     CONDITION* inlet;
         
     MESH* mesh;
+    
+    BOUNDARY* bc;
 
 } SOLVER;
+
 
 CONDITION* conditionInit(double p, double T, double mach, double nx, double ny);
 
@@ -57,33 +66,37 @@ void conditionState(CONDITION* cond, SOLVER* solver);
 
 double conditionVref(CONDITION* cond, SOLVER* solver);
 
-void solverMalloc(SOLVER* solver);
-
-void solverFree(SOLVER* solver);
-
-void solverWrite(SOLVER* solver, char* fileName);
-
-void solverWriteReestart(SOLVER* solver, char* fileName);
-
-void solverLoadRestart(SOLVER* solver, char* fileName);
+void solverAllocate(SOLVER* solver);
 
 void solverInitU(SOLVER* solver, CONDITION* inside);
 
+void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, double xm);
+
 void solverResetR(SOLVER* solver);
 
-double solverCalcP(SOLVER* solver, double** U, int ii);
+void solverMatFree(SOLVER* solver, double** M, int Nrow);
 
-void solverCalcVel(SOLVER* solver, double** U, int ii, double* u, double* v, double* c);
+void solverFree(SOLVER* solver);
+
+double solverCalcP(SOLVER* solver, double*** U, int ii, int jj);
+
+void solverCalcVel(SOLVER* solver, double*** U, int ii, int jj, double* u, double* v, double* c);
 
 void rotation(double* U, double dSx, double dSy, double dS);
 
-void inter(SOLVER* solver);
+double interpMUSCL_ii(double **U, int ii, int jj, double e);
 
-void interVisc(SOLVER* solver);
+double interpMUSCL_jj(double **U, int ii, int jj, double e);
 
-void interAxisPressure(SOLVER* solver);
+void inter(SOLVER* solver, double ***U);
 
-void solverCalcR(SOLVER* solver, double** U);
+void interAxisPressure(SOLVER* solver, double ***U);
+
+void calcSpectralRad(SOLVER* solver, double*** U, int ii, int jj, double* LcI, double* LcJ);
+
+double solverCalcDt(SOLVER* solver);
+
+void solverCalcR(SOLVER* solver, double*** U);
 
 void solverRK(SOLVER* solver, double a);
 
@@ -91,30 +104,10 @@ void solverUpdateU(SOLVER* solver);
 
 void solverStepRK(SOLVER* solver);
 
+void solverWriteU(SOLVER* solver, char* fileName);
+
 void solverCalcRes(SOLVER* solver);
 
-double solverLocalTimeStep(SOLVER* solver, int ii);
+double duration(struct timeval start, struct timeval stop);
 
-double solverCalcDt(SOLVER* solver);
 
-void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, double xm);
-
-void solverCalcGrad2(SOLVER* solver, ELEMENT* E, int kk, double* dUx, double* dUy, double* Umin, double* Umax);
-
-void solverCheckGrad(SOLVER* solver);
-
-double limiterBJ(double Ui, double Umin, double Umax, double d2);
-
-double limiterV(double Ui, double Umin, double Umax, double d2, double e);
-
-void solverCalcPrimitive(SOLVER* solver, double** U);
-
-void solverCalcUfromP(SOLVER* solver, double r, double u, double v, double p, double* U0, double* U1, double* U2, double* U3);
-
-double sutherland(double T);
-
-void solverPrintP(SOLVER* solver);
-
-void solverCalcCoeff(SOLVER* solver, double *Fx, double *Fy);
-
-void solverCalcCoeff2(SOLVER* solver, char* path);

@@ -12,6 +12,7 @@ INPUT* inputInit(char* fileName, int N)
     char c;
     int name, value;
     int ii, jj;
+    char s[N];
     
     input->Nmax = N;
     
@@ -28,14 +29,16 @@ INPUT* inputInit(char* fileName, int N)
         input->value[ii] = (char*)malloc(N*sizeof(char));
         input->value[ii][0] = '\0';
     }
-        
+    
+    
     name = 1;
     value = 0;
     ii = 0;
     jj = 0;
-    c = fgetc(ff);
     while(c != EOF)
-    {   
+    {
+    
+        c = fgetc(ff);
         if(c != ' ')
         {
         
@@ -79,14 +82,12 @@ INPUT* inputInit(char* fileName, int N)
             {
                 input->value[ii][jj] = c;
                 jj += 1;
-            }           
+            }
+                    
         }
-         
-        c = fgetc(ff);
+    
     }
     
-    fclose(ff);
-       
     input->N = ii;
     
     return input;
@@ -95,10 +96,14 @@ INPUT* inputInit(char* fileName, int N)
 
 void inputPrint(INPUT* input)
 {
+
     for(int ii=0; ii<input->N; ii++)
     {
+    
         printf(" %s, %s\n", input->name[ii], input->value[ii]);
+    
     }
+
 }
 
 int inputNameIsInput(INPUT* input, char* name)
@@ -120,6 +125,8 @@ int inputNameIsInput(INPUT* input, char* name)
 
 char* inputGetValue(INPUT* input, char* name)
 {
+    
+    
     char* s;
     int found = 0;
     
@@ -134,7 +141,7 @@ char* inputGetValue(INPUT* input, char* name)
     
     if(found == 0)
     {
-        printf("Error: Value not found in the input file: %s.\n", name);
+        printf("Error: Value not found in the input file.\n");
         exit(0);
     }
 

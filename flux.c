@@ -21,15 +21,6 @@ int fluxChoice(char* s)
     {
         ans = 1;
     }
-    else if(strcmp(s, "AUSMDV") == 0)
-    {
-        ans = 2;
-    }
-    else
-    {
-        printf("Error in flux choice: %s.\n", s);
-        exit(0);
-    }
     
     return ans;
 
@@ -39,7 +30,7 @@ void entropyFix(SOLVER* solver, double *l)
 {
 
     // Harten Hyman entropy fix
-    if((*l < solver->eFix) & (*l > -solver->eFix))
+    if(*l < solver->eFix & *l > -solver->eFix )
     {
         *l = 0.5*(*l * *l/solver->eFix + solver->eFix);
     }
@@ -47,8 +38,8 @@ void entropyFix(SOLVER* solver, double *l)
 }
 
 void fluxRoe(SOLVER* solver, 
-               double rL, double uL, double vL, double pL, 
-               double rR, double uR, double vR, double pR,
+               double U0L, double U1L, double U2L, double U3L, 
+               double U0R, double U1R, double U2R, double U3R,
 	           double* f)
 {
 
@@ -56,21 +47,19 @@ void fluxRoe(SOLVER* solver,
     Based on: P. L. ROE, Riemann Solvers, Parameter Vectors, and Difference Schemes, (1981)
     */
       
-	double U0L = rL;
-	double U1L = rL*uL;	
-	double U2L = rL*vL;	
-	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
-    double HL = (U3L + pL)/rL;
+	double uL = U1L/U0L;
+	double vL = U2L/U0L;
+    double pL = (solver->gamma - 1)*(U3L - (uL*uL + vL*vL)*U0L/2);
+    double HL = (U3L + pL)/U0L;
 
-	double U0R = rR;
-	double U1R = rR*uR;	
-	double U2R = rR*vR;	
-	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
-    double HR = (U3R + pR)/rR;
+	double uR = U1R/U0R;
+	double vR = U2R/U0R;
+    double pR = (solver->gamma - 1)*(U3R - (uR*uR + vR*vR)*U0R/2);
+    double HR = (U3R + pR)/U0R;
 
     // Mean values calculation
-	double rqL = sqrt(rL);
-    double rqR = sqrt(rR);
+	double rqL = sqrt(U0L);
+    double rqR = sqrt(U0R);
 
 	double ub = (rqL*uL + rqR*uR)/(rqL + rqR);
 	double vb = (rqL*vL + rqR*vR)/(rqL + rqR);
@@ -117,26 +106,27 @@ void fluxRoe(SOLVER* solver,
 		f[ii] = 0.5 * (fR[ii] + fL[ii] - a1*fabs(l1)*e1[ii] - a2v*fabs(l2)*e2v[ii] - a4*fabs(l4)*e4[ii] - a5*fabs(l5)*e5[ii]);
 	}
 }
-	
-	      
+
 void fluxAUSMD(SOLVER* solver, 
-               double rL, double uL, double vL, double pL, 
-               double rR, double uR, double vR, double pR,
+               double U0L, double U1L, double U2L, double U3L, 
+               double U0R, double U1R, double U2R, double U3R,
 	           double* f)
 {
 
     /*
-    Based on: YASUHIRO WADA † AND MENG-SING LIOU, A Flux Splitting Scheme 
-    With High-Resolution and Robustness for Discontinuities, (1994)
+    Based on: YASUHIRO WADA † AND MENG-SING LIOU, AN ACCURATE AND ROBUST FLUX 
+    SPLITTING SCHEME FOR SHOCK AND CONTACT DISCONTINUITIES, (1997)
     */
     
-	double U0L = rL;
-	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
-    double HL = (U3L + pL)/rL;
+	double uL = U1L/U0L;
+	double vL = U2L/U0L;
+    double pL = (solver->gamma - 1)*(U3L - (uL*uL + vL*vL)*U0L/2);
+    double HL = (U3L + pL)/U0L;
 
-	double U0R = rR;
-	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
-    double HR = (U3R + pR)/rR;
+	double uR = U1R/U0R;
+	double vR = U2R/U0R;
+    double pR = (solver->gamma - 1)*(U3R - (uR*uR + vR*vR)*U0R/2);
+    double HR = (U3R + pR)/U0R;
 
 	double cm = fmax(sqrt(solver->gamma*pL/U0L), sqrt(solver->gamma*pR/U0R));
 
@@ -169,110 +159,35 @@ void fluxAUSMD(SOLVER* solver,
 	f[3] = 0.5*(rU * (HR + HL) - fabs(rU) * (HR - HL));
 }
 
-void fluxAUSMDV(SOLVER* solver, 
-               double rL, double uL, double vL, double pL, 
-               double rR, double uR, double vR, double pR,
+
+void fluxFree(SOLVER* solver, 
+               double U0L, double U1L, double U2L, double U3L,
 	           double* f)
 {
 
-    /*
-    Based on: YASUHIRO WADA † AND MENG-SING LIOU, A Flux Splitting Scheme 
-    With High-Resolution and Robustness for Discontinuities, (1994)
-    */
-    
-    double aux;
-	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
-    double HL = (U3L + pL)/rL;
+	double uL = U1L/U0L;
+	double vL = U2L/U0L;
+    double pL = (solver->gamma - 1)*(U3L - (uL*uL + vL*vL)*U0L/2);
 
-	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
-    double HR = (U3R + pR)/rR;
+    // Fluxes
+	f[0] = U1L;
+	f[1] = U1L*uL + pL;
+	f[2] = U1L*vL;
+	f[3] = uL*(U3L + pL);
 
-    double cL = sqrt(solver->gamma*pL/rL);
-    double cR = sqrt(solver->gamma*pR/rR);
-	double cm = fmax(cL, cR);
-
-	double alphaL = (2.0*pL/rL)/(pL/rL + pR/rR);
-	double alphaR = (2.0*pR/rR)/(pL/rL + pR/rR);
-
-	double uLPlus, pLPlus;
-	aux = 0.5*(uL + fabs(uL));
-	if (fabs(uL) < cm) 
-	{
-		uLPlus = alphaL*(0.25*(uL + cm)*(uL + cm)/cm - aux) + aux;
-		pLPlus = 0.25*pL*(uL + cm)*(uL + cm)*(2.0 - uL/cm)/(cm*cm);
-	} else {
-		uLPlus = aux;
-		pLPlus = pL*aux/uL;
-	}
-
-	double uRMinus, pRMinus;
-	aux = 0.5*(uR - fabs(uR));
-	if (fabs(uR) < cm) {
-		uRMinus = alphaR*(-0.25*(uR - cm)*(uR - cm)/cm - aux) + aux;
-		pRMinus = 0.25*pR*(uR - cm)*(uR - cm)*(2.0 + uR/cm)/(cm*cm);
-	} else {
-		uRMinus = aux;
-		pRMinus = pR*aux/uR;
-	}
-
-	double rU = uLPlus*rL + uRMinus*rR;
-	f[0] = rU;
-	f[1] = (pLPlus + pRMinus);
-	f[2] = 0.5*(rU * (vR + vL) - fabs(rU) * (vR - vL));
-	f[3] = 0.5*(rU * (HR + HL) - fabs(rU) * (HR - HL));
-
-	double f1AUSMD = 0.5*(rU * (uR + uL) - fabs(rU) * (uR - uL));	
-	double f1AUSMV = uLPlus*rL*uL + uRMinus*rR*uR;
-	
-	double s = 0.5*fmin(1, 10*fabs(pR - pL)/fmin(pL, pR));
-	
-	f[1] += (0.5 + s)*f1AUSMV + (0.5 - s)*f1AUSMD;
-	
-	// entropy fix 
-	int caseA = (uL - cL < 0.0) & (uR - cR > 0.0);
-	int caseB = (uL + cL < 0.0) & (uR + cR > 0.0);
-	double psiL[4] = {1.0, uL, vL, HL};
-	double psiR[4] = {1.0, uR, vR, HR};
-	if (caseA & !caseB) {
-	    aux = 0.125*((uR - cR) - (uL - cL));
-	    for(int kk = 0; kk < 4; kk++)
-	    {
-		    f[kk] -= aux*(rR*psiR[kk] - rL*psiL[kk]);
-		}		
-	}
-	else if (!caseA & caseB) {
-	    aux = 0.125*((uR + cR) - (uL + cL));
-    	for(int kk = 0; kk < 4; kk++)
-	    {
-		    f[kk] -= aux*(rR*psiR[kk] - rL*psiL[kk]);
-		}		
-	}	
-	
 }
 
-void flux(SOLVER* solver, double rL, double uL, double vL, double pL,
-                              double rR, double uR, double vR, double pR, double* f)
-{
+void flux(SOLVER* solver, 
+               double U0L, double U1L, double U2L, double U3L, 
+               double U0R, double U1R, double U2R, double U3R,
+	           double* f)
+{	           
 	if(solver->flux == 0)
 	{
-        fluxRoe(solver, rL, uL, vL, pL, rR, uR, vR, pR, f);
+        fluxRoe(solver, U0L, U1L, U2L, U3L, U0R, U1R, U2R, U3R, f);
     }
     else if(solver->flux == 1)     
     {
-        fluxAUSMD(solver, rL, uL, vL, pL, rR, uR, vR, pR, f);
+        fluxAUSMD(solver, U0L, U1L, U2L, U3L, U0R, U1R, U2R, U3R, f);
     }
-    else if(solver->flux == 2)     
-    {
-        fluxAUSMDV(solver, rL, uL, vL, pL, rR, uR, vR, pR, f);
-    }
-    
-}	
-
-
-void fluxFree(SOLVER* solver, double rL, double uL, double vL, double pL, double* f)
-{
-    f[0] = rL*uL;   
-    f[1] = rL*uL*uL + pL;
-    f[2] = rL*uL*vL;
-    f[3] = uL*(solver->gamma*pL/(solver->gamma-1) + 0.5*(uL*uL + vL*vL)*rL);    
 }

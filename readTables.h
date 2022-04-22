@@ -26,8 +26,6 @@ void tableDisplay(TABLE* t);
 
 TABLELIST* fReadTables(char* fileName);
 
-void readTablesFree(TABLELIST* tl);
-
 /*
 
 int main()

@@ -1,105 +1,34 @@
 
-typedef struct ELEM
-{
+typedef struct {
 
-    int ii;
-    int Np;
-    
-    int neiN;
-    
-    int* p;
-
-    struct ELEM** neiL;
-
-    int* f;
-    
-    double* P;    
-    
-} ELEMENT;
-
-typedef struct
-{
-
-    int Nelem;
-    
-    char name[50];
-
-    int flagBC;
-
-    ELEMENT** elemL;
-
-} MESHBC;
-
-
-typedef struct
-{
-
-    int Ndim;
-    int Nelem;
-    int Np;
-    int Nmark;
-    int Ncon;
+    int Nrow;
+    int Ncol;
     int axi;
-    int order;
     
-    int** con;    
-
-    double** p;
-
-    ELEMENT** elemL;
-    
-    MESHBC** bc;
+    double **x;
+    double **y;
 
 } MESH;
 
-char meshGetWord(FILE* ff, char* s);
- 
-MESHBC* meshBCread(FILE* ff);
-
 MESH* meshInit(char* fileName);
 
-void meshPrintBC(MESHBC* bc);
+double meshDeltaMin(MESH* mesh);
 
-void meshPrint(MESH* mesh);
+void meshCalcDSup(MESH* mesh, int ii, int jj, double* dSx, double* dSy);
 
-void meshElementFree(ELEMENT* e);
+void meshCalcDSright(MESH* mesh, int ii, int jj, double* dSx, double* dSy);
 
-void meshBCFree(MESHBC* bc);
+void meshCalcDSdown(MESH* mesh, int ii, int jj, double* dSx, double* dSy);
 
-void meshFree(MESH* mesh);
+void meshCalcDSleft(MESH* mesh, int ii, int jj, double* dSx, double* dSy);
 
-void elementCenter(ELEMENT* E, MESH* mesh, double* x, double* y);
+double meshCalcDSlateral(MESH* mesh, int ii, int jj);
 
-double meshCalcOmegaTri(MESH* mesh, int p0, int p1, int p2);
+double meshCalcOmega(MESH* mesh, int ii, int jj);
 
-double meshCalcDSlateral(MESH* mesh, int ii);
+void meshPrintOmega(MESH* mesh);
 
-double meshCalcOmega(MESH* mesh, int ii);
+void meshCalcDSI(MESH* mesh, int ii, int jj, double* dSx, double* dSy);
 
-double elementIsConnected(ELEMENT* e0, ELEMENT* e1, int* p0, int* p1);
+void meshCalcDSJ(MESH* mesh, int ii, int jj, double* dSx, double* dSy);
 
-void meshCalcConnection(MESH* mesh);
-
-void meshCalcDS(MESH* mesh, int p0, int p1, double* dSx, double* dSy);
-
-int meshBCIsConnect(ELEMENT* BCe, ELEMENT* e);
-
-void meshCalcNeighbors(MESH* mesh);
-
-void meshBCneighbors(MESHBC* bc, MESH* mesh);
-
-double meshEdgeLength(MESH* mesh, int p0, int p1);
-
-double meshMinEdge(MESH* mesh);
-
-void meshPrintDStotal(MESH* mesh);
-
-void meshCheckUse(MESH* mesh);
-
-int meshPOri(MESH* mesh, ELEMENT* e, int p0, int p1);
-
-void meshCheckBorderOrientation(MESH* mesh);
-
-void meshFixBorderOrientation(MESH* mesh);
-
-void meshCalcFaces(MESH* mesh);
