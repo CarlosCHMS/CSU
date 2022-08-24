@@ -40,7 +40,7 @@ char meshGetWord(FILE* ff, char* s)
 
 } 
 
-ELEMENT* meshElementMalloc(int type)
+ELEMENT* meshElementMalloc(int type, int Nvar)
 {
 
     ELEMENT* e = malloc(sizeof(ELEMENT));
@@ -69,13 +69,13 @@ ELEMENT* meshElementMalloc(int type)
         e->neiN = 0;        
     }
   
-    e->P = malloc(5*sizeof(double));
+    e->P = malloc((Nvar+1)*sizeof(double));
   
     return e;
 
 }
 
-MESHBC* meshBCread(FILE* ff) 
+MESHBC* meshBCread(FILE* ff, int Nvar) 
 {
     int jj;
     char s[100];
@@ -95,7 +95,7 @@ MESHBC* meshBCread(FILE* ff)
     jj = 0;
     while(jj<bc->Nelem)
     {
-        bc->elemL[jj] = meshElementMalloc(0);   
+        bc->elemL[jj] = meshElementMalloc(0, Nvar);   
         bc->elemL[jj]->ii = jj;
     
         meshGetWord(ff, s);
@@ -111,7 +111,7 @@ MESHBC* meshBCread(FILE* ff)
 
 }
 
-MESH* meshInit(char* fileName)
+MESH* meshInit(char* fileName, int Nvar)
 {
 
     MESH* mesh = malloc(sizeof(MESH));
@@ -146,7 +146,7 @@ MESH* meshInit(char* fileName)
         
         if(type==5)
         {       
-            mesh->elemL[ii] = meshElementMalloc(5);
+            mesh->elemL[ii] = meshElementMalloc(5, Nvar);
          
             meshGetWord(ff, s);
             mesh->elemL[ii]->p[0] = atoi(s);
@@ -157,7 +157,7 @@ MESH* meshInit(char* fileName)
         }
         else if(type==9)
         {       
-            mesh->elemL[ii] = meshElementMalloc(9);
+            mesh->elemL[ii] = meshElementMalloc(9, Nvar);
          
             meshGetWord(ff, s);
             mesh->elemL[ii]->p[0] = atoi(s);
@@ -211,7 +211,7 @@ MESH* meshInit(char* fileName)
     ii = 0;
     while(ii<mesh->Nmark)
     {
-        mesh->bc[ii] = meshBCread(ff);
+        mesh->bc[ii] = meshBCread(ff, Nvar);
         ii++;
     }
     
@@ -230,7 +230,8 @@ MESH* meshInit(char* fileName)
     printf("mesh: fix border orientation.\n");
     meshFixBorderOrientation(mesh);
 
-    meshCalcFaces(mesh);        
+    meshCalcFaces(mesh);    
+        
 
     return mesh;
 

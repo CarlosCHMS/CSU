@@ -13,6 +13,11 @@ void fluxAUSMD(SOLVER* solver, double rL, double uL, double vL, double pL,
 void fluxAUSMDV(SOLVER* solver, double rL, double uL, double vL, double pL, 
                                 double rR, double uR, double vR, double pR, double* f);
 
+void fluxAUSMDV_sa(SOLVER* solver, 
+               double rL, double uL, double vL, double pL, double nL,
+               double rR, double uR, double vR, double pR, double nR,
+	           double* f);
+
 void flux(SOLVER* solver, double rL, double uL, double vL, double pL,
                           double rR, double uR, double vR, double pR, double* f);
                            

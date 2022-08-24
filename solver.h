@@ -7,13 +7,14 @@ typedef struct{
     double nx;
     double ny;  
     
-    double Uin[4];  
-    double Pin[5];     
+    double Uin[5];  
+    double Pin[6];     
 
 } CONDITION;
 
 typedef struct {
 
+    int Nvar;
     int Nrow;
     int Ncol;
     int pOutFlag;
@@ -22,6 +23,7 @@ typedef struct {
     int stages;
     int laminar;
     int restart;
+    int sa;
 
     double Rgas;
     double gamma;
@@ -31,11 +33,11 @@ typedef struct {
     double eFix;       
     double e; 
     double k; 
-    double res0[4];
-    double res[4];
+    double res[5];
     double CFL;
     double Cp;
     double Pr;
+    double Pr_t;
     double Sref;
             
     double **U;

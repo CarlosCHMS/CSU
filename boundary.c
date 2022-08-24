@@ -339,8 +339,6 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
 	}        
 }
 
-
-
 void boundary(SOLVER* solver)
 {
     for(int ii=0; ii<solver->mesh->Nmark; ii++)
@@ -476,7 +474,7 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
         else if(bc->flagBC == 3)
         {
             
-            if(solver->laminar==1)
+            if(solver->laminar==1 || solver->sa==1)
             {
                 bc->elemL[ii]->P[0] = PL[0];
                 bc->elemL[ii]->P[1] = 0.0;
@@ -511,7 +509,32 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
                 
                 bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);
             }
-        }       
+        } 
+
+        if(solver->sa == 1)
+        {
+            if(bc->flagBC == 0)
+            {
+                //sym
+                bc->elemL[ii]->P[5] = E0->P[5];
+            }
+            else if(bc->flagBC == 1)
+            {        
+                //inlet    
+                bc->elemL[ii]->P[5] = solver->inlet->Pin[5];
+            }
+            else if(bc->flagBC == 2)
+            {
+                //out
+                bc->elemL[ii]->P[5] = E0->P[5];
+            }
+            else if(bc->flagBC == 3)
+            {
+                //wall
+                bc->elemL[ii]->P[5] = 0.0;
+            }
+
+        }      
     }
 }
 

@@ -10,6 +10,7 @@
 #include"solver.h"
 #include"flux.h"
 #include"boundary.h"
+#include"sa.h"
 
 void mainSetData(SOLVER* solver, INPUT* input)
 {
@@ -26,6 +27,7 @@ void mainSetData(SOLVER* solver, INPUT* input)
     solver->Rgas = 287.5;
     solver->gamma = 1.4;  
     solver->Pr = 0.72;
+    solver->Pr_t = 0.9;
     solver->Cp = solver->gamma*solver->Rgas/(solver->gamma-1);
     solver->eFix = 0.1;
     solver->e = strtod(inputGetValue(input, "interpE"), NULL);
@@ -88,14 +90,40 @@ int main(int argc, char **argv)
     // Set number of threads
     omp_set_num_threads(atoi(inputGetValue(input, "threads")));
 
+    // Set turbulence model
+    if(inputNameIsInput(input, "sa"))
+    {
+        solver->sa = atoi(inputGetValue(input, "sa"));
+    }
+    else
+    {
+        solver->sa = 0;
+    }
+
+    // Set number of flow variables
+    solver->Nvar = 4;
+    if(solver->sa == 1)
+    {
+        solver->Nvar = 5;
+    }    
+
     // Load mesh    
     s[0] = '\0';
     strcat(s, argv[1]);
     strcat(s, "mesh.su2");
-    solver->mesh = meshInit(s); 
-       
+    solver->mesh = meshInit(s, solver->Nvar);
+    
+
+    // Setting the solver   
     mainSetData(solver, input);
-        
+      
+    if(solver->sa == 1)
+    {
+        printf("main: calculating distance.\n");
+        saCalcD(solver->mesh);
+
+    }    
+  
     //meshCheckNei(solver->mesh);
     //solverCheckGrad(solver);
     //meshPrint(solver->mesh);
@@ -128,6 +156,11 @@ int main(int argc, char **argv)
         {
             // Initialization of U
             solverInitU(solver, solver->inlet);
+            if(solver->sa == 1)
+            {
+                saInitU(solver, solver->inlet);
+            }
+
         } 
                 
         // Calculate time step        

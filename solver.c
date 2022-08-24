@@ -30,14 +30,17 @@ CONDITION* conditionInit(double p, double T, double mach, double nx, double ny)
 void conditionState(CONDITION* cond, SOLVER* solver)
 {
 
-    double r, u, v, E, c;
+    double r, u, v, E, c, n;
     
     r = cond->p/(solver->Rgas*cond->T);
     c = sqrt(solver->gamma*solver->Rgas*cond->T);
     u = cond->nx*cond->mach*c;
     v = cond->ny*cond->mach*c;
     E = (solver->Rgas*cond->T)/(solver->gamma-1) + (u*u + v*v)/2;
-    
+    n = 10*sutherland(cond->T)/r;
+
+    printf("\nn: %e\n", n);
+
     cond->Uin[0] = r;
     cond->Uin[1] = r*u;
     cond->Uin[2] = r*v;
@@ -49,6 +52,11 @@ void conditionState(CONDITION* cond, SOLVER* solver)
     cond->Pin[3] = solver->Rgas*cond->T*r;
     cond->Pin[4] = cond->T;
 
+    if(solver->sa == 1)
+    {
+        cond->Uin[4] = r*n;
+        cond->Pin[5] = n;         
+    }
 
 }
 
@@ -64,23 +72,23 @@ double conditionVref(CONDITION* cond, SOLVER* solver)
 
 void solverMalloc(SOLVER* solver)
 {
-    solver->U = tableMallocDouble(4, solver->mesh->Nelem);
-    solver->Uaux = tableMallocDouble(4, solver->mesh->Nelem);    
-    solver->R = tableMallocDouble(4, solver->mesh->Nelem);
-    solver->faceFlux = tableMallocDouble(4, solver->mesh->Ncon);
-    solver->dPx = tableMallocDouble(4, solver->mesh->Nelem);
-    solver->dPy = tableMallocDouble(4, solver->mesh->Nelem);    
+    solver->U = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
+    solver->Uaux = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);    
+    solver->R = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
+    solver->faceFlux = tableMallocDouble(solver->Nvar, solver->mesh->Ncon);
+    solver->dPx = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
+    solver->dPy = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);    
 }
 
 void solverFree(SOLVER* solver)
 {
 
-    tableFreeDouble(solver->U, 4);
-    tableFreeDouble(solver->Uaux, 4);
-    tableFreeDouble(solver->R, 4);        
-    tableFreeDouble(solver->faceFlux, 4);
-    tableFreeDouble(solver->dPx, 4);
-    tableFreeDouble(solver->dPy, 4);
+    tableFreeDouble(solver->U, solver->Nvar);
+    tableFreeDouble(solver->Uaux, solver->Nvar);
+    tableFreeDouble(solver->R, solver->Nvar);        
+    tableFreeDouble(solver->faceFlux, solver->Nvar);
+    tableFreeDouble(solver->dPx, solver->Nvar);
+    tableFreeDouble(solver->dPy, solver->Nvar);
     meshFree(solver->mesh);
     
 }
@@ -94,7 +102,7 @@ void solverWrite(SOLVER* solver, char* fileName)
     */
 
     FILE* ff = fopen(fileName, "w");
-    double** Up = tableMallocDouble(4, solver->mesh->Np);
+    double** Up = tableMallocDouble(solver->Nvar, solver->mesh->Np);
     double* den = malloc(solver->mesh->Np*sizeof(double));
     int ii, jj, kk, p;
     double xc, yc, xp, yp, L;
@@ -102,7 +110,7 @@ void solverWrite(SOLVER* solver, char* fileName)
 
     for(ii=0; ii<solver->mesh->Np; ii++)
     {       
-        for(kk=0; kk<4; kk++)
+        for(kk=0; kk<solver->Nvar; kk++)
         {
             Up[kk][ii] = 0.;
         }   
@@ -121,7 +129,7 @@ void solverWrite(SOLVER* solver, char* fileName)
             yp = solver->mesh->p[p][1];
             L = sqrt((xp-xc)*(xp-xc) + (yp-yc)*(yp-yc));
            
-            for(kk=0; kk<4; kk++)
+            for(kk=0; kk<solver->Nvar; kk++)
             {        
                 Up[kk][p] += solver->U[kk][ii]/L;
             }
@@ -136,18 +144,18 @@ void solverWrite(SOLVER* solver, char* fileName)
     {
         if(den[ii] != 0)
         {
-            for(kk=0; kk<4; kk++)
+            for(kk=0; kk<solver->Nvar; kk++)
             {
                 Up[kk][ii] /= den[ii];    
             }
         }
     }
 
-    fprintf(ff, "0, %i, 4,\n", solver->mesh->Np);
+    fprintf(ff, "0, %i, %i,\n", solver->mesh->Np, solver->Nvar);
 
     for(ii=0; ii<solver->mesh->Np; ii++)
     {        
-        for(jj=0; jj<4; jj++)
+        for(jj=0; jj<solver->Nvar; jj++)
         {
             fprintf(ff, "%.10e, ", Up[jj][ii]);
         }
@@ -156,7 +164,7 @@ void solverWrite(SOLVER* solver, char* fileName)
 
     fclose(ff);
 
-    tableFreeDouble(Up, 4);
+    tableFreeDouble(Up, solver->Nvar);
     free(den);
 
 }
@@ -168,11 +176,11 @@ void solverWriteReestart(SOLVER* solver, char* fileName)
 
     fprintf(ff, "1,\n");
 
-    fprintf(ff, "0, %i, 4,\n", solver->mesh->Nelem);
+    fprintf(ff, "0, %i, %i,\n", solver->mesh->Nelem, solver->Nvar);
 
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {        
-        for(int jj=0; jj<4; jj++)
+        for(int jj=0; jj<solver->Nvar; jj++)
         {
             fprintf(ff, "%.10e, ", solver->U[jj][ii]);
         }
@@ -191,7 +199,7 @@ void solverLoadRestart(SOLVER* solver, char* fileName)
     
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {        
-        for(int jj=0; jj<4; jj++)
+        for(int jj=0; jj<solver->Nvar; jj++)
         {
             solver->U[jj][ii] = tl->tables[0]->values[ii][jj];
         }        
@@ -200,7 +208,6 @@ void solverLoadRestart(SOLVER* solver, char* fileName)
     readTablesFree(tl);
 
 }
-
 
 void solverInitU(SOLVER* solver, CONDITION* inside)
 {
@@ -221,7 +228,7 @@ void solverResetR(SOLVER* solver)
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
-        for(int kk=0; kk<4; kk++)
+        for(int kk=0; kk<solver->Nvar; kk++)
         {
             solver->R[kk][ii] = 0.0; 
         }
@@ -308,6 +315,8 @@ void inter(SOLVER* solver)
             }   
         }
     }
+
+
     
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Ncon; ii++)
@@ -315,9 +324,9 @@ void inter(SOLVER* solver)
 	    int kk;
         double dSx, dSy, dS;
         double x0, y0, x1, y1, xm, ym;
-        double PL[4];
-	    double PR[4];
-        double f[4];
+        double PL[5];
+	    double PR[5];
+        double f[5];
  
         int e0 = solver->mesh->con[ii][0];
         int e1 = solver->mesh->con[ii][1];
@@ -352,7 +361,13 @@ void inter(SOLVER* solver)
 			    PR[kk] = E1->P[kk];
 		    }
 		}
-		
+
+        if(solver->sa==1)
+        {
+	        PL[4] = E0->P[5];
+	        PR[4] = E1->P[5];
+        }
+
         // Rotation of the velocity vectors
 		rotation(PL, dSx, dSy, dS);
                     
@@ -360,12 +375,18 @@ void inter(SOLVER* solver)
 		rotation(PR, dSx, dSy, dS);
         
         // Flux calculation
-        flux(solver, PL[0], PL[1], PL[2], PL[3], PR[0], PR[1], PR[2], PR[3], f);
-
+        if(solver->sa==1)
+        {
+            fluxAUSMDV_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4], PR[0], PR[1], PR[2], PR[3], PR[4], f);
+        }
+        else
+        {
+            flux(solver, PL[0], PL[1], PL[2], PL[3], PR[0], PR[1], PR[2], PR[3], f);
+        }
         // Rotation of the flux
 		rotation(f, dSx, -dSy, dS);
         
-        for(kk=0; kk<4; kk++)
+        for(kk=0; kk<solver->Nvar; kk++)
         {
             solver->faceFlux[kk][ii] = f[kk]*dS;
         }
@@ -379,14 +400,14 @@ void inter(SOLVER* solver)
             int face = solver->mesh->elemL[ii]->f[jj];
             if(face > 0)
             {
-                for(int kk=0; kk<4; kk++)
+                for(int kk=0; kk<solver->Nvar; kk++)
                 {
                     solver->R[kk][ii] += solver->faceFlux[kk][face-1];
                 }
             }
             else if(face < 0)
             {
-                for(int kk=0; kk<4; kk++)
+                for(int kk=0; kk<solver->Nvar; kk++)
                 {
                     solver->R[kk][ii] -= solver->faceFlux[kk][-face-1];
                 }            
@@ -521,11 +542,8 @@ void solverCalcR(SOLVER* solver, double** U)
 {
 
     solverResetR(solver);
-
-    solverCalcPrimitive(solver, U);
-    
+    solverCalcPrimitive(solver, U);    
     inter(solver);
-        
     boundary(solver); 
     
     if(solver->mesh->axi==1)
@@ -538,6 +556,13 @@ void solverCalcR(SOLVER* solver, double** U)
         interVisc(solver);
         boundaryVisc(solver);
     }
+    
+    if(solver->sa==1)
+    {
+        saInter(solver);
+        saBoundary(solver);
+    }
+    
 }
 
 void solverRK(SOLVER* solver, double a)
@@ -546,7 +571,7 @@ void solverRK(SOLVER* solver, double a)
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
         double omega = meshCalcOmega(solver->mesh, ii);
-        for(int kk=0; kk<4; kk++)
+        for(int kk=0; kk<solver->Nvar; kk++)
         {            
             solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dt*a*solver->R[kk][ii]/omega;
         }
@@ -558,7 +583,7 @@ void solverUpdateU(SOLVER* solver)
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
-        for(int kk=0; kk<4; kk++)
+        for(int kk=0; kk<solver->Nvar; kk++)
         {
             solver->U[kk][ii] = solver->Uaux[kk][ii];
         }
@@ -617,14 +642,14 @@ void solverStepRK(SOLVER* solver)
 
 void solverCalcRes(SOLVER* solver)
 {
-    for(int kk=0; kk<4; kk++)
+    for(int kk=0; kk<solver->Nvar; kk++)
     {
         solver->res[kk] = fabs(solver->R[kk][0]);
     }
     
     for(int ii=1; ii<solver->mesh->Nelem; ii++)
     {
-        for(int kk=0; kk<4; kk++)
+        for(int kk=0; kk<solver->Nvar; kk++)
         {
             if(solver->res[kk] < fabs(solver->R[kk][ii]))
             {
@@ -633,7 +658,7 @@ void solverCalcRes(SOLVER* solver)
         }
     }
     
-    for(int kk=0; kk<4; kk++)
+    for(int kk=0; kk<solver->Nvar; kk++)
     {
         printf(" %+.4e,", solver->res[kk]);        
     }
@@ -872,7 +897,12 @@ void solverCalcPrimitive(SOLVER* solver, double** U)
         E->P[1] = U[1][ii]/U[0][ii];
         E->P[2] = U[2][ii]/U[0][ii];
         E->P[3] = solverCalcP(solver, U, ii);
-        E->P[4] = E->P[3]/(E->P[0]*solver->Rgas);                
+        E->P[4] = E->P[3]/(E->P[0]*solver->Rgas);
+
+        if(solver->sa == 1)
+        {
+            E->P[5] = U[4][ii]/U[0][ii];
+        }                
     }
     
     for(int ii=0; ii<solver->mesh->Nmark; ii++)
@@ -901,9 +931,9 @@ void solverPrintP(SOLVER* solver)
 
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
-        for(int kk=0; kk<5; kk++)
+        for(int kk=0; kk<solver->Nvar+1; kk++)
         {
-            printf("%f,", solver->mesh->elemL[ii]->P[kk]);
+            printf("%e,", solver->mesh->elemL[ii]->P[kk]);
         }
         printf("\n");
     }
@@ -912,9 +942,9 @@ void solverPrintP(SOLVER* solver)
     {
         for(int ii=0; ii<solver->mesh->bc[jj]->Nelem; ii++)
         {
-            for(int kk=0; kk<5; kk++)
+            for(int kk=0; kk<solver->Nvar+1; kk++)
             {
-                printf("%f,", solver->mesh->bc[jj]->elemL[ii]->P[kk]);
+                printf("%e,", solver->mesh->bc[jj]->elemL[ii]->P[kk]);
             }
             printf("\n");
         }
@@ -954,7 +984,7 @@ void solverCalcCoeff(SOLVER* solver, double *Cx, double *Cy)
                 *Cx += cp*dSx;   
                 *Cy += cp*dSy;                
                 
-                if(solver->laminar==1)
+                if(solver->laminar==1 || solver->sa==1)
                 {
                     boundaryCalcFrictionWall(solver, bc->elemL[ii], &fx, &fy);
                     *Cx += fx/q;
@@ -994,9 +1024,18 @@ void solverCalcCoeff2(SOLVER* solver, char* path)
         {
             for(int ii=0; ii<bc->Nelem; ii++)
             {                
-                if(solver->laminar==1)
+                if(solver->laminar==1 || solver->sa==1)
                 {
-                    boundaryCalcTensorWall(solver, bc->elemL[ii], &txx, &txy, &tyy, &x, &yp);
+                    
+                    if(solver->sa==1)
+                    {
+                        saCalcTensorWall(solver, bc->elemL[ii], &txx, &txy, &tyy, &x, &yp);
+                    }
+                    else
+                    {
+                        boundaryCalcTensorWall(solver, bc->elemL[ii], &txx, &txy, &tyy, &x, &yp);
+                    }
+                    
                     fprintf(ff, "%e, %e, %e, %e, %e,\n", x, txx, txy, tyy, yp);
                 }                               
             }

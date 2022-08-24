@@ -13,7 +13,9 @@ typedef struct ELEM
 
     int* f;
     
-    double* P;    
+    double* P; 
+
+    double d;   
     
 } ELEMENT;
 
@@ -54,9 +56,9 @@ typedef struct
 
 char meshGetWord(FILE* ff, char* s);
  
-MESHBC* meshBCread(FILE* ff);
+MESHBC* meshBCread(FILE* ff, int Nvar);
 
-MESH* meshInit(char* fileName);
+MESH* meshInit(char* fileName, int Nvar);
 
 void meshPrintBC(MESHBC* bc);
 

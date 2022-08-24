@@ -250,6 +250,89 @@ void fluxAUSMDV(SOLVER* solver,
 	
 }
 
+void fluxAUSMDV_sa(SOLVER* solver, 
+               double rL, double uL, double vL, double pL, double nL,
+               double rR, double uR, double vR, double pR, double nR,
+	           double* f)
+{
+
+    /*
+    Based on: YASUHIRO WADA † AND MENG-SING LIOU, A Flux Splitting Scheme 
+    With High-Resolution and Robustness for Discontinuities, (1994)
+    */
+    
+    double aux;
+	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+    double HL = (U3L + pL)/rL;
+
+	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double HR = (U3R + pR)/rR;
+
+    double cL = sqrt(solver->gamma*pL/rL);
+    double cR = sqrt(solver->gamma*pR/rR);
+	double cm = fmax(cL, cR);
+
+	double alphaL = (2.0*pL/rL)/(pL/rL + pR/rR);
+	double alphaR = (2.0*pR/rR)/(pL/rL + pR/rR);
+
+	double uLPlus, pLPlus;
+	aux = 0.5*(uL + fabs(uL));
+	if (fabs(uL) < cm) 
+	{
+		uLPlus = alphaL*(0.25*(uL + cm)*(uL + cm)/cm - aux) + aux;
+		pLPlus = 0.25*pL*(uL + cm)*(uL + cm)*(2.0 - uL/cm)/(cm*cm);
+	} else {
+		uLPlus = aux;
+		pLPlus = pL*aux/uL;
+	}
+
+	double uRMinus, pRMinus;
+	aux = 0.5*(uR - fabs(uR));
+	if (fabs(uR) < cm) {
+		uRMinus = alphaR*(-0.25*(uR - cm)*(uR - cm)/cm - aux) + aux;
+		pRMinus = 0.25*pR*(uR - cm)*(uR - cm)*(2.0 + uR/cm)/(cm*cm);
+	} else {
+		uRMinus = aux;
+		pRMinus = pR*aux/uR;
+	}
+
+	double rU = uLPlus*rL + uRMinus*rR;
+	f[0] = rU;
+	f[1] = (pLPlus + pRMinus);
+	f[2] = 0.5*(rU * (vR + vL) - fabs(rU) * (vR - vL));
+	f[3] = 0.5*(rU * (HR + HL) - fabs(rU) * (HR - HL));
+	f[4] = 0.5*(rU * (nR + nL) - fabs(rU) * (nR - nL));
+
+	double f1AUSMD = 0.5*(rU * (uR + uL) - fabs(rU) * (uR - uL));	
+	double f1AUSMV = uLPlus*rL*uL + uRMinus*rR*uR;
+	
+	double s = 0.5*fmin(1, 10*fabs(pR - pL)/fmin(pL, pR));
+	
+	f[1] += (0.5 + s)*f1AUSMV + (0.5 - s)*f1AUSMD;
+	
+	// entropy fix 
+	int caseA = (uL - cL < 0.0) & (uR - cR > 0.0);
+	int caseB = (uL + cL < 0.0) & (uR + cR > 0.0);
+	double psiL[4] = {1.0, uL, vL, HL};
+	double psiR[4] = {1.0, uR, vR, HR};
+	if (caseA & !caseB) {
+	    aux = 0.125*((uR - cR) - (uL - cL));
+	    for(int kk = 0; kk < 4; kk++)
+	    {
+		    f[kk] -= aux*(rR*psiR[kk] - rL*psiL[kk]);
+		}		
+	}
+	else if (!caseA & caseB) {
+	    aux = 0.125*((uR + cR) - (uL + cL));
+    	for(int kk = 0; kk < 4; kk++)
+	    {
+		    f[kk] -= aux*(rR*psiR[kk] - rL*psiL[kk]);
+		}		
+	}	
+	
+}
+
+
 void flux(SOLVER* solver, double rL, double uL, double vL, double pL,
                               double rR, double uR, double vR, double pR, double* f)
 {
