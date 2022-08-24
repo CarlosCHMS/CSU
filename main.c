@@ -59,6 +59,15 @@ void mainSetData(SOLVER* solver, INPUT* input)
         solver->Sref = 1.0;
     }
 
+    if(inputNameIsInput(input, "turbRatio"))
+    {
+        solver->turbRatio = strtod(inputGetValue(input, "turbRatio"), NULL);     
+    }
+    else
+    {
+        solver->turbRatio = 10.0;
+    }
+
     // Selection of several variables
     solver->flux = fluxChoice(inputGetValue(input, "flux"));
     solver->stages = atoi(inputGetValue(input, "stages"));

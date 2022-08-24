@@ -29,7 +29,8 @@ typedef struct {
     double gamma;
     double k4;
     double dt;
-    double pout; 
+    double pout;
+    double turbRatio; 
     double eFix;       
     double e; 
     double k; 

@@ -37,9 +37,7 @@ void conditionState(CONDITION* cond, SOLVER* solver)
     u = cond->nx*cond->mach*c;
     v = cond->ny*cond->mach*c;
     E = (solver->Rgas*cond->T)/(solver->gamma-1) + (u*u + v*v)/2;
-    n = 10*sutherland(cond->T)/r;
-
-    printf("\nn: %e\n", n);
+    n = solver->turbRatio*sutherland(cond->T)/r;
 
     cond->Uin[0] = r;
     cond->Uin[1] = r*u;
