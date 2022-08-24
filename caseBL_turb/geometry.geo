@@ -36,7 +36,7 @@ Transfinite Curve{3} = 100;
 //Transfinite Curve{2} = 40; 
 //Transfinite Curve{4} = 40;
 
-Transfinite Curve{2} = 30 Using Progression 1.1;
-Transfinite Curve{4} = 30 Using Progression 0.909090;
+Transfinite Curve{2} = 30 Using Progression 1.15;
+Transfinite Curve{4} = 30 Using Progression 0.869565;
 
 Transfinite Surface{1};
