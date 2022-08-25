@@ -11,6 +11,7 @@
 #include"flux.h"
 #include"boundary.h"
 #include"readTables.h"
+#include"sa.h"
 
 CONDITION* conditionInit(double p, double T, double mach, double nx, double ny)
 {

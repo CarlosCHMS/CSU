@@ -54,6 +54,14 @@ typedef struct
 
 } MESH;
 
+typedef struct CON
+{
+
+    int data[4];
+    struct CON* next; 
+
+} CONNECTION;
+
 char meshGetWord(FILE* ff, char* s);
  
 MESHBC* meshBCread(FILE* ff, int Nvar);

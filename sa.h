@@ -18,3 +18,5 @@ void saBoundaryFace(SOLVER* solver, MESHBC* bc);
 void saBoundary(SOLVER* solver);
 
 void saCalcD(MESH* mesh);
+
+void saCalcTensorWall(SOLVER* solver, ELEMENT* E, double* Txx, double* Txy, double* Tyy, double* x, double* yp);

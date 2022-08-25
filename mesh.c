@@ -468,9 +468,12 @@ double elementIsConnected(ELEMENT* e0, ELEMENT* e1, int* p0, int* p1)
 void meshCalcConnection(MESH* mesh)
 {
 
-    int p0, p1, kk;
+    int p0, p1;
 
     mesh->Ncon = 0;
+    
+    CONNECTION* initCon = malloc(sizeof(CONNECTION));
+    CONNECTION* con = initCon;
 
     for(int ii=0; ii<mesh->Nelem-1; ii++)
     {
@@ -479,28 +482,31 @@ void meshCalcConnection(MESH* mesh)
             if(elementIsConnected(mesh->elemL[ii], mesh->elemL[jj], &p0, &p1))
             {
                 mesh->Ncon += 1;
+                con->data[0] = ii;
+                con->data[1] = jj;
+                con->data[2] = p0;
+                con->data[3] = p1;
+                con->next = malloc(sizeof(CONNECTION));
+                con = con->next;
             }
         }
     }
 
     mesh->con = tableMallocInt(mesh->Ncon, 4);
-
-    kk = 0;
-    for(int ii=0; ii<mesh->Nelem-1; ii++)
+    
+    CONNECTION* next;
+    
+    con = initCon;
+    for(int ii=0; ii<mesh->Ncon; ii++)
     {
-        for(int jj=ii+1; jj<mesh->Nelem; jj++)
-        {
-            if(elementIsConnected(mesh->elemL[ii], mesh->elemL[jj], &p0, &p1))
-            {
-                mesh->con[kk][0] = ii;
-                mesh->con[kk][1] = jj;
-                mesh->con[kk][2] = p0;
-                mesh->con[kk][3] = p1;
-                kk++;
-     
-            }
-        }
-    }
+        mesh->con[ii][0] = con->data[0];
+        mesh->con[ii][1] = con->data[1];
+        mesh->con[ii][2] = con->data[2];
+        mesh->con[ii][3] = con->data[3];
+        next = con->next;
+        free(con);
+        con = next;        
+    } 
 }
 
 void meshCalcDS(MESH* mesh, int p0, int p1, double* dSx, double* dSy)
