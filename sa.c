@@ -13,7 +13,7 @@
 #include"sa.h"
 
 void saInitU(SOLVER* solver, CONDITION* inside)
-{    
+{
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
         solver->U[4][ii] = inside->Uin[4];
@@ -39,18 +39,18 @@ void saGrad(SOLVER* solver)
         solverCalcGrad2(solver, E, 1, &dPx, &dPy, &Pmin, &Pmax);
         solver->dPx[kk][ii] = dPx;
         solver->dPy[kk][ii] = dPy;
-        
+
         kk = 2;
         solverCalcGrad2(solver, E, 2, &dPx, &dPy, &Pmin, &Pmax);
         solver->dPx[kk][ii] = dPx;
         solver->dPy[kk][ii] = dPy;
-        
+
         // grad p storage is being reused for T grad
         kk = 3;
         solverCalcGrad2(solver, E, 4, &dPx, &dPy, &Pmin, &Pmax);
         solver->dPx[kk][ii] = dPx;
-        solver->dPy[kk][ii] = dPy;            
-        
+        solver->dPy[kk][ii] = dPy;
+
   	    kk = 4;
         solverCalcGrad2(solver, E, 5, &dPx, &dPy, &Pmin, &Pmax);
         solver->dPx[kk][ii] = dPx;
@@ -63,7 +63,7 @@ void saGrad(SOLVER* solver)
 
 void saInterFace(SOLVER* solver)
 {
-    
+
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Ncon; ii++)
     {
@@ -74,50 +74,50 @@ void saInterFace(SOLVER* solver)
         int e1 = solver->mesh->con[ii][1];
         int p0 = solver->mesh->con[ii][2];
         int p1 = solver->mesh->con[ii][3];
-        
+
         ELEMENT* E0 = solver->mesh->elemL[e0];
         ELEMENT* E1 = solver->mesh->elemL[e1];
-		    
+
         meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-                    
+
         double duxm = (solver->dPx[1][e0] + solver->dPx[1][e1])*0.5;
-        double dvxm = (solver->dPx[2][e0] + solver->dPx[2][e1])*0.5;        
+        double dvxm = (solver->dPx[2][e0] + solver->dPx[2][e1])*0.5;
         double dTxm = (solver->dPx[3][e0] + solver->dPx[3][e1])*0.5;
         double dnxm = (solver->dPx[4][e0] + solver->dPx[4][e1])*0.5;
-        
+
         double duym = (solver->dPy[1][e0] + solver->dPy[1][e1])*0.5;
         double dvym = (solver->dPy[2][e0] + solver->dPy[2][e1])*0.5;
         double dTym = (solver->dPy[3][e0] + solver->dPy[3][e1])*0.5;
         double dnym = (solver->dPy[4][e0] + solver->dPy[4][e1])*0.5;
-                
+
 	    elementCenter(E0, solver->mesh, &x0, &y0);
 	    elementCenter(E1, solver->mesh, &x1, &y1);
-	        
-        double dx = x1 - x0;		    
+
+        double dx = x1 - x0;
         double dy = y1 - y0;
         double L = sqrt(dx*dx + dy*dy);
-        
+
         double dul = (E1->P[1] - E0->P[1])/L;
         double dvl = (E1->P[2] - E0->P[2])/L;
         double dTl = (E1->P[4] - E0->P[4])/L;
         double dnl = (E1->P[5] - E0->P[5])/L;
-        
+
         double dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
-        double duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
+        double duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;
 
         double dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
-        double dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;        
+        double dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
 
         double dTx = dTxm + (dTl - (dTxm*dx + dTym*dy)/L)*dx/L;
-        double dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;        
+        double dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;
 
         double dnx = dnxm + (dnl - (dnxm*dx + dnym*dy)/L)*dx/L;
         double dny = dnym + (dnl - (dnxm*dx + dnym*dy)/L)*dy/L;
-	    
+
         // Flow variables in the face
         double r = (E1->P[0] + E0->P[0])*0.5;
         double u = (E1->P[1] + E0->P[1])*0.5;
-        double v = (E1->P[2] + E0->P[2])*0.5;           		
+        double v = (E1->P[2] + E0->P[2])*0.5;
         double T = (E1->P[4] + E0->P[4])*0.5;
         double n = (E1->P[5] + E0->P[5])*0.5;
 
@@ -133,18 +133,18 @@ void saInterFace(SOLVER* solver)
         double mi_t = fv1*r*n;
         double mi = mi_L + mi_t;
         double k = solver->Cp*(mi_L/solver->Pr + mi_t/solver->Pr_t);
-        
+
 	    double txx = 2*mi*(dux - (dux + dvy)/3);
-	    double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
-	    double txy = mi*(duy + dvx);  
-    
+	    double tyy = 2*mi*(dvy - (dux + dvy)/3);
+	    double txy = mi*(duy + dvx);
+
 	    solver->faceFlux[1][ii] = txx*dSx + txy*dSy;
 	    solver->faceFlux[2][ii] = txy*dSx + tyy*dSy;
 	    solver->faceFlux[3][ii] = (txx*dSx + txy*dSy)*u + (txy*dSx + tyy*dSy)*v + k*(dTx*dSx + dTy*dSy);
 	    solver->faceFlux[4][ii] = tx*dSx + ty*dSy;
-        
+
     }
-    
+
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
@@ -163,30 +163,30 @@ void saInterFace(SOLVER* solver)
                 for(int kk=1; kk<5; kk++)
                 {
                     solver->R[kk][ii] += solver->faceFlux[kk][-face-1];
-                }            
+                }
             }
         }
-    } 
+    }
 }
 
 
 void saInterSource(SOLVER* solver)
 {
-    
+
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
-        
+
         ELEMENT* E0 = solver->mesh->elemL[ii];
 
-        double drx = solver->dPx[0][ii]; 
+        double drx = solver->dPx[0][ii];
         double dvx = solver->dPx[2][ii];
         double dnx = solver->dPx[4][ii];
-        
+
         double dry = solver->dPy[0][ii];
         double duy = solver->dPy[1][ii];
         double dny = solver->dPy[4][ii];
-        
+
         // Flow variables in the face
         double rho = E0->P[0];
         double T = E0->P[4];
@@ -201,7 +201,7 @@ void saInterSource(SOLVER* solver)
         saCalcSource(n, n_L, S, d, rho, drx, dry, dnx, dny, &Qt);
 
         solver->R[4][ii] -= Qt*meshCalcOmega(solver->mesh, ii);
-    } 
+    }
 }
 
 void saInter(SOLVER* solver)
@@ -281,7 +281,7 @@ of the Spalart-Allmaras Turbulence Model, 2012
     aux = aux*aux*aux;
     double g = r + Cw2*(aux - r);
 
-    double Cw3 = 2.;    
+    double Cw3 = 2.;
     aux = Cw3*Cw3;
     aux = aux*aux*aux;
     double fw = g*pow((1. + aux)/(g*g*g*g*g*g + aux), 1./6.);
@@ -318,37 +318,37 @@ void saBoundaryFace(SOLVER* solver, MESHBC* bc)
            	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
             y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
 
-            double dx = x1 - x0;		    
+            double dx = x1 - x0;
             double dy = y1 - y0;
             double L = sqrt(dx*dx + dy*dy);
-            
+
             double dul = (solver->inlet->Pin[1] - E0->P[1])/L;
-            double dvl = (solver->inlet->Pin[2] - E0->P[2])/L;            
-            double dTl = (solver->inlet->Pin[4] - E0->P[4])/L; 
-            double dnl = (solver->inlet->Pin[5] - E0->P[5])/L; 
+            double dvl = (solver->inlet->Pin[2] - E0->P[2])/L;
+            double dTl = (solver->inlet->Pin[4] - E0->P[4])/L;
+            double dnl = (solver->inlet->Pin[5] - E0->P[5])/L;
 
             double duxm = solver->dPx[1][e0];
             double dvxm = solver->dPx[2][e0];
             double dTxm = solver->dPx[3][e0];
             double dnxm = solver->dPx[4][e0];
-            
+
             double duym = solver->dPy[1][e0];
             double dvym = solver->dPy[2][e0];
             double dTym = solver->dPy[3][e0];
             double dnym = solver->dPy[4][e0];
 
             dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
-            duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
+            duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;
 
             dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
-            dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;  
-            
+            dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
+
             dTx = dTxm + (dTl - (dTxm*dx + dTym*dy)/L)*dx/L;
             dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;
 
             dnx = dnxm + (dnl - (dnxm*dx + dnym*dy)/L)*dx/L;
             dny = dnym + (dnl - (dnxm*dx + dnym*dy)/L)*dy/L;
-            
+
             // Flow variables in the face
             double rho = solver->inlet->Pin[0];
             double u = solver->inlet->Pin[1];
@@ -368,11 +368,11 @@ void saBoundaryFace(SOLVER* solver, MESHBC* bc)
             double mi_t = fv1*rho*n;
             double mi = mi_L + mi_t;
             double k = solver->Cp*(mi_L/solver->Pr + mi_t/solver->Pr_t);
-            
+
 	        double txx = 2*mi*(dux - (dux + dvy)/3);
-	        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
-	        double txy = mi*(duy + dvx);  		        
-	        
+	        double tyy = 2*mi*(dvy - (dux + dvy)/3);
+	        double txy = mi*(duy + dvx);
+
 	        solver->R[1][e0] -= txx*dSx + txy*dSy;
 	        solver->R[2][e0] -= txy*dSx + tyy*dSy;
 	        solver->R[3][e0] -= u*(txx*dSx + txy*dSy) + v*(txy*dSx + tyy*dSy) + k*(dTx*dSx + dTy*dSy);
@@ -389,31 +389,31 @@ void saBoundaryFace(SOLVER* solver, MESHBC* bc)
            	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
             y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
 
-            double dx = x1 - x0;		    
+            double dx = x1 - x0;
             double dy = y1 - y0;
             double L = sqrt(dx*dx + dy*dy);
-            
+
             double dul = (0 - E0->P[1])/L;
-            double dvl = (0 - E0->P[2])/L;            
+            double dvl = (0 - E0->P[2])/L;
             double dnl = (0 - E0->P[5])/L;
 
             double duxm = solver->dPx[1][e0];
             double dvxm = solver->dPx[2][e0];
-            double dnxm = solver->dPx[4][e0];            
+            double dnxm = solver->dPx[4][e0];
 
             double duym = solver->dPy[1][e0];
             double dvym = solver->dPy[2][e0];
-            double dnym = solver->dPy[4][e0];            
+            double dnym = solver->dPy[4][e0];
 
             dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
-            duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
+            duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;
 
             dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
             dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
 
             dnx = dnxm + (dnl - (dnxm*dx + dnym*dy)/L)*dx/L;
             dny = dnym + (dnl - (dnxm*dx + dnym*dy)/L)*dy/L;
-                            
+
             // Flow variables in the face
             double rho = E0->P[0];
             double T = E0->P[4];
@@ -421,7 +421,7 @@ void saBoundaryFace(SOLVER* solver, MESHBC* bc)
 
             double mi_L = sutherland(T);
             double n_L = mi_L/rho;
-    
+
             double fv1;
             double tx;
             double ty;
@@ -429,15 +429,15 @@ void saBoundaryFace(SOLVER* solver, MESHBC* bc)
             saCalcFace(n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
 
             double mi = mi_L;
-            
+
 	        double txx = 2*mi*(dux - (dux + dvy)/3);
-	        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
-	        double txy = mi*(duy + dvx);  	
-	        
+	        double tyy = 2*mi*(dvy - (dux + dvy)/3);
+	        double txy = mi*(duy + dvx);
+
 	        solver->R[1][e0] -= txx*dSx + txy*dSy;
 	        solver->R[2][e0] -= txy*dSx + tyy*dSy;
             solver->R[4][e0] -= tx*dSx + ty*dSy;
-            
+
         }
         else
         {
@@ -448,11 +448,11 @@ void saBoundaryFace(SOLVER* solver, MESHBC* bc)
             dvx = solver->dPx[2][e0];
             dTx = solver->dPx[3][e0];
             dnx = solver->dPx[4][e0];
-            
+
             duy = solver->dPy[1][e0];
             dvy = solver->dPy[2][e0];
             dTy = solver->dPy[3][e0];
-            dny = solver->dPy[4][e0];                
+            dny = solver->dPy[4][e0];
 
             // Flow variables in the face
             double rho = E0->P[0];
@@ -473,18 +473,18 @@ void saBoundaryFace(SOLVER* solver, MESHBC* bc)
             double mi_t = fv1*rho*n;
             double mi = mi_L + mi_t;
             double k = solver->Cp*(mi_L/solver->Pr + mi_t/solver->Pr_t);
-            
+
 	        double txx = 2*mi*(dux - (dux + dvy)/3);
-	        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
-	        double txy = mi*(duy + dvx);  		        
-	        
+	        double tyy = 2*mi*(dvy - (dux + dvy)/3);
+	        double txy = mi*(duy + dvx);
+
 	        solver->R[1][e0] -= txx*dSx + txy*dSy;
 	        solver->R[2][e0] -= txy*dSx + tyy*dSy;
 	        solver->R[3][e0] -= u*(txx*dSx + txy*dSy) + v*(txy*dSx + tyy*dSy) + k*(dTx*dSx + dTy*dSy);
             solver->R[4][e0] -= (tx - rho*n*u)*dSx + (ty - rho*n*v)*dSy;
-		        	        	      
+
         }
-	}        
+	}
 }
 
 void saBoundary(SOLVER* solver)
@@ -541,8 +541,8 @@ void saCalcD(MESH* mesh)
                     {
                         t = 0.;
                     }
-                
-                    double dx = (p1x - p0x)*t + p0x - xVol; 
+
+                    double dx = (p1x - p0x)*t + p0x - xVol;
                     double dy = (p1y - p0y)*t + p0y - yVol;
 
                     double d = sqrt(dx*dx + dy*dy);
@@ -568,7 +568,7 @@ void saCalcD(MESH* mesh)
         //printf("%i\n", mesh->bc[jj]->flagBC);
         if(mesh->bc[jj]->flagBC==3)
         {
-        
+
             for(int ii=0; ii<mesh->Nelem; ii++)
             {
 
@@ -599,46 +599,52 @@ void saCalcTensorWall(SOLVER* solver, ELEMENT* E, double* Txx, double* Txy, doub
     int p1 = E->p[1];
 
     ELEMENT* E0 = E->neiL[0];
-     
+
     meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+    double dS = sqrt(dSx*dSx + dSy*dSy);
+
 
     elementCenter(E0, solver->mesh, &x0, &y0);
     elementCenter(E, solver->mesh, &x1, &y1);
 
-    double dx = x1 - x0;		    
+    double dx = x1 - x0;
     double dy = y1 - y0;
     double L = sqrt(dx*dx + dy*dy);
-    
+
     double dul = (0 - E0->P[1])/L;
-    double dvl = (0 - E0->P[2])/L;            
+    double dvl = (0 - E0->P[2])/L;
 
     double duxm = solver->dPx[1][e0];
     double dvxm = solver->dPx[2][e0];
-    
+
     double duym = solver->dPy[1][e0];
     double dvym = solver->dPy[2][e0];
 
     double dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
-    double duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
+    double duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;
 
     double dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
     double dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
-                    
+
     double T = E0->P[4];
     double mi = sutherland(T);
-    
-    //printf("%f\n", E0->P[1]);
-        
-    double txx = 2*mi*(dux - (dux + dvy)/3);
-    double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
-    double txy = mi*(duy + dvx); 
-    
-    double ut = sqrt(txy/E0->P[0]);
 
-    *Txx = txx;
-	*Txy = txy;
-	*Tyy = tyy;		
-	*x = x1;		
+    //printf("%f\n", E0->P[1]);
+
+    double txx = 2*mi*(dux - (dux + dvy)/3);
+    double tyy = 2*mi*(dvy - (dux + dvy)/3);
+    double txy = mi*(duy + dvx);
+
+    double fx = (txx*dSx + txy*dSy)/dS;
+    double fy = (txy*dSx + tyy*dSy)/dS;
+    double ft = (fx*dSy - fy*dSx)/dS;
+
+    double ut = sqrt(fabs(ft)/E0->P[0]);
+
+    *Txx = 0.0;
+	*Txy = ft;
+	*Tyy = 0.0;
+	*x = x1;
 	*yp = E0->P[0]*E0->d*ut/mi;
 }
 
