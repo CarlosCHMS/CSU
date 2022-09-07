@@ -294,7 +294,7 @@ of the Spalart-Allmaras Turbulence Model, 2012
 
 void saBoundaryFace(SOLVER* solver, MESHBC* bc)
 {
-    double dSx, dSy;
+
     int e0, p0, p1;
     double x0, x1, y0, y1;
     double dux, duy, dvx, dvy, dTx, dTy, dnx, dny;
@@ -307,11 +307,63 @@ void saBoundaryFace(SOLVER* solver, MESHBC* bc)
 
         ELEMENT* E0 = bc->elemL[ii]->neiL[0];
 
-        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+        if(bc->flagBC == 0)
+        {
+            //symmetry
+           	double nx, ny, dS;
+            meshCalcDS2(solver->mesh, p0, p1, &nx, &ny, &dS);
+            
+            double duxm = solver->dPx[1][e0];
+            double dvxm = solver->dPx[2][e0];
+            double dTxm = solver->dPx[3][e0];
+            
+            double duym = solver->dPy[1][e0];
+            double dvym = solver->dPy[2][e0];
+            double dTym = solver->dPy[3][e0];
 
-        if(bc->flagBC == 1)
+            dux = duxm - (duxm*nx + duym*ny)*nx;
+            duy = duym - (duxm*nx + duym*ny)*ny;        
+
+            dvx = dvxm - (dvxm*nx + dvym*ny)*nx;
+            dvy = dvym - (dvxm*nx + dvym*ny)*ny;        
+            
+            dTx = dTxm - (dTxm*nx + dTym*ny)*nx;
+            dTy = dTym - (dTxm*nx + dTym*ny)*ny;        
+            
+            // Flow variables in the face
+            double rho = E0->P[0];
+            double u = E0->P[1];
+            double v = E0->P[2];
+            double T = E0->P[4];
+            double n = E0->P[5];
+
+            double mi_L = sutherland(T);
+            double n_L = mi_L/rho;
+
+            double fv1;
+            double tx;
+            double ty;
+
+            saCalcFace(n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
+
+            double mi_t = fv1*rho*n;
+            double mi = mi_L + mi_t;
+            double k = solver->Cp*(mi_L/solver->Pr + mi_t/solver->Pr_t);          
+	            
+	        double txx = 2*mi*(dux - (dux + dvy)/3);
+	        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+	        double txy = mi*(duy + dvx);  
+	        
+	        solver->R[1][e0] -= (txx*nx + txy*ny)*dS;
+	        solver->R[2][e0] -= (txy*nx + tyy*ny)*dS;
+	        solver->R[3][e0] -= (u*(txx*nx + txy*ny) + v*(txy*nx + tyy*ny) + k*(dTx*nx + dTy*ny))*dS;
+            
+        }
+        else if(bc->flagBC == 1)
         {
             //inlet
+            double dSx, dSy;
+            meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
 
             elementCenter(E0, solver->mesh, &x0, &y0);
 
@@ -383,6 +435,8 @@ void saBoundaryFace(SOLVER* solver, MESHBC* bc)
         {
 
             //wall
+            double dSx, dSy;
+            meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
 
             elementCenter(E0, solver->mesh, &x0, &y0);
 
@@ -442,7 +496,9 @@ void saBoundaryFace(SOLVER* solver, MESHBC* bc)
         else
         {
 
-            //symmetry and outlet
+            //outlet
+            double dSx, dSy;
+            meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
 
             dux = solver->dPx[1][e0];
             dvx = solver->dPx[2][e0];

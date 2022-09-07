@@ -211,7 +211,7 @@ void boundaryCalc(SOLVER* solver, MESHBC* bc)
 
 void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
 {
-    double dSx, dSy;
+
     int e0, p0, p1;
     double x0, x1, y0, y1;
     double dux, duy, dvx, dvy, dTx, dTy;
@@ -224,10 +224,50 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
 
         ELEMENT* E0 = bc->elemL[ii]->neiL[0];
 
-        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-
-        if(bc->flagBC == 1)
+        if(bc->flagBC == 0)
         {
+
+           	double nx, ny, dS;
+            meshCalcDS2(solver->mesh, p0, p1, &nx, &ny, &dS);
+            
+            double duxm = solver->dPx[1][e0];
+            double dvxm = solver->dPx[2][e0];
+            double dTxm = solver->dPx[3][e0];
+            
+            double duym = solver->dPy[1][e0];
+            double dvym = solver->dPy[2][e0];
+            double dTym = solver->dPy[3][e0];
+
+            dux = duxm - (duxm*nx + duym*ny)*nx;
+            duy = duym - (duxm*nx + duym*ny)*ny;        
+
+            dvx = dvxm - (dvxm*nx + dvym*ny)*nx;
+            dvy = dvym - (dvxm*nx + dvym*ny)*ny;        
+            
+            dTx = dTxm - (dTxm*nx + dTym*ny)*nx;
+            dTy = dTym - (dTxm*nx + dTym*ny)*ny;        
+            
+            double T = E0->P[4];
+            double mi = sutherland(T);
+            double k = solver->Cp*mi/solver->Pr;            
+	            
+	        double txx = 2*mi*(dux - (dux + dvy)/3);
+	        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+	        double txy = mi*(duy + dvx);  
+	        
+	        double u = E0->P[1];
+	        double v = E0->P[2];		        
+	        
+	        solver->R[1][e0] -= (txx*nx + txy*ny)*dS;
+	        solver->R[2][e0] -= (txy*nx + tyy*ny)*dS;
+	        solver->R[3][e0] -= (u*(txx*nx + txy*ny) + v*(txy*nx + tyy*ny) + k*(dTx*nx + dTy*ny))*dS;
+            
+        }
+        else if(bc->flagBC == 1)
+        {
+            double dSx, dSy;
+            meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+                        
             elementCenter(E0, solver->mesh, &x0, &y0);
 
            	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
@@ -276,6 +316,9 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
         }
         else if(bc->flagBC == 3)
         {
+            double dSx, dSy;
+            meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+        
             elementCenter(E0, solver->mesh, &x0, &y0);
 
            	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
@@ -313,6 +356,9 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
         }
         else
         {
+            double dSx, dSy;
+            meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);        
+        
             dux = solver->dPx[1][e0];
             dvx = solver->dPx[2][e0];
             dTx = solver->dPx[3][e0];

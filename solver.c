@@ -986,8 +986,8 @@ void solverCalcCoeff(SOLVER* solver, double *Cx, double *Cy)
                 if(solver->laminar==1 || solver->sa==1)
                 {
                     boundaryCalcFrictionWall(solver, bc->elemL[ii], &fx, &fy);
-                    *Cx += fx/q;
-                    *Cy += fy/q;
+                    *Cx -= fx/q;
+                    *Cy -= fy/q;
                 }                               
             }
         }

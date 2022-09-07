@@ -92,6 +92,8 @@ void meshCalcConnection(MESH* mesh);
 
 void meshCalcDS(MESH* mesh, int p0, int p1, double* dSx, double* dSy);
 
+void meshCalcDS2(MESH* mesh, int p0, int p1, double* nx, double* ny, double* dS);
+
 int meshBCIsConnect(ELEMENT* BCe, ELEMENT* e);
 
 void meshCalcNeighbors(MESH* mesh);
