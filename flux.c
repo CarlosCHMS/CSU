@@ -117,57 +117,6 @@ void fluxRoe(SOLVER* solver,
 		f[ii] = 0.5 * (fR[ii] + fL[ii] - a1*fabs(l1)*e1[ii] - a2v*fabs(l2)*e2v[ii] - a4*fabs(l4)*e4[ii] - a5*fabs(l5)*e5[ii]);
 	}
 }
-	
-	      
-void fluxAUSMD(SOLVER* solver, 
-               double rL, double uL, double vL, double pL, 
-               double rR, double uR, double vR, double pR,
-	           double* f)
-{
-
-    /*
-    Based on: YASUHIRO WADA † AND MENG-SING LIOU, A Flux Splitting Scheme 
-    With High-Resolution and Robustness for Discontinuities, (1994)
-    */
-    
-	double U0L = rL;
-	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
-    double HL = (U3L + pL)/rL;
-
-	double U0R = rR;
-	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
-    double HR = (U3R + pR)/rR;
-
-	double cm = fmax(sqrt(solver->gamma*pL/U0L), sqrt(solver->gamma*pR/U0R));
-
-	double alphaL = (2.0*pL/U0L)/(pL/U0L + pR/U0R);
-	double alphaR = (2.0*pR/U0R)/(pL/U0L + pR/U0R);
-
-	double uPlus, pPlus;
-	if (fabs(uL) < cm) {
-		uPlus = 0.25*alphaL*(uL + cm)*(uL + cm)/cm + 0.5*(1.0 - alphaL)*(uL + fabs(uL));
-		pPlus = 0.25*pL*(uL + cm)*(uL + cm)*(2.0 - uL/cm)/(cm*cm);
-	} else {
-		uPlus = 0.5*(uL + fabs(uL));
-		pPlus = 0.5*pL*(uL + fabs(uL))/uL;
-	}
-
-	double uMinus, pMinus;
-	if (fabs(uR) < cm) {
-		uMinus = - 0.25*alphaR*(uR - cm)*(uR - cm)/cm + 0.5*(1.0 - alphaR)*(uR - fabs(uR));
-		pMinus = 0.25*pR*(uR - cm)*(uR - cm)*(2.0 + uR / cm)/(cm * cm);
-	} else {
-		uMinus = 0.5*(uR - fabs(uR));
-		pMinus = 0.5*pR*(uR - fabs(uR))/uR;
-	}
-
-
-	double rU = uPlus*U0L + uMinus*U0R;
-	f[0] = rU;
-	f[1] = 0.5*(rU * (uR + uL) - fabs(rU) * (uR - uL)) + (pPlus + pMinus);
-	f[2] = 0.5*(rU * (vR + vL) - fabs(rU) * (vR - vL));
-	f[3] = 0.5*(rU * (HR + HL) - fabs(rU) * (HR - HL));
-}
 
 void fluxAUSMDV(SOLVER* solver, 
                double rL, double uL, double vL, double pL, 
