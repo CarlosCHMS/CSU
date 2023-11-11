@@ -289,10 +289,6 @@ void flux(SOLVER* solver, double rL, double uL, double vL, double pL,
 	{
         fluxRoe(solver, rL, uL, vL, pL, rR, uR, vR, pR, f);
     }
-    else if(solver->flux == 1)     
-    {
-        fluxAUSMD(solver, rL, uL, vL, pL, rR, uR, vR, pR, f);
-    }
     else if(solver->flux == 2)     
     {
         fluxAUSMDV(solver, rL, uL, vL, pL, rR, uR, vR, pR, f);
