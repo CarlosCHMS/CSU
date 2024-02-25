@@ -174,7 +174,41 @@ class BL():
 
         self.y = self.h*self.tab[:, 0]        
         self.u = self.U*self.tab[:, 1]                      
+
+class convergence():
+
+    def __init__(self, convFile):
     
+        ff = open(convFile, 'r')
+        self.Cx_p = []
+        self.Cx_v = []
+        for row in ff:
+            aux = row.split(',')
+            self.Cx_p.append(float(aux[1]))
+            self.Cx_v.append(float(aux[2]))
+            
+                
+class convergence():
+
+    def __init__(self, convFile):
+    
+        ff = open(convFile, 'r')
+        ii = 0
+        self.varList = []
+        for row in ff:
+            aux = row.split(',')
+            if ii == 0:
+                for jj in range(len(aux)-1):
+                    self.varList.append([])
+
+            for jj in range(len(aux)-1):
+                self.varList[jj].append(float(aux[jj]))
+                        
+            ii += 1
+    
+        for jj in range(len(aux)-1):
+            self.varList[jj] = numpy.array(self.varList[jj])
+        
     
 if __name__=="__main__":
 
@@ -213,7 +247,7 @@ if __name__=="__main__":
     cbar.set_label('u [m/s]')
     plt.xlabel("x [m]")  
     plt.ylabel("y [m]")    
-    plt.savefig("u.png", dpi=300)
+    plt.savefig(path+"u.png", dpi=300)
 
         
     mar = s.mesh.markers[1]
@@ -249,3 +283,21 @@ if __name__=="__main__":
     plt.plot(mar.y, T, 'b') 
     plt.show()
 
+    conv = convergence(path+"convergence.csv")
+    
+    plt.figure()
+    plt.semilogy(conv.varList[1]/conv.varList[1][0])
+    plt.semilogy(conv.varList[2]/conv.varList[2][0])    
+    plt.semilogy(conv.varList[3]/conv.varList[3][0])    
+    plt.semilogy(conv.varList[4]/conv.varList[4][0])       
+    plt.grid(True)
+    plt.xlabel("iterations [100]")  
+    plt.ylabel("Residuos")            
+    plt.show()
+    
+    plt.figure()
+    plt.plot(conv.varList[6])
+    plt.grid(True)
+    plt.xlabel("iterations [100]")  
+    plt.ylabel("Cx_v [-]")            
+    plt.show()
