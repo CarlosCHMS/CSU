@@ -181,7 +181,28 @@ class BL():
         self.y = self.h*self.tab[:, 0]        
         self.u = self.U*self.tab[:, 1]                      
     
+class convergence():
+
+    def __init__(self, convFile):
     
+        ff = open(convFile, 'r')
+        ii = 0
+        self.varList = []
+        for row in ff:
+            aux = row.split(',')
+            if ii == 0:
+                for jj in range(len(aux)-1):
+                    self.varList.append([])
+
+            for jj in range(len(aux)-1):
+                self.varList[jj].append(float(aux[jj]))
+                        
+            ii += 1
+    
+        for jj in range(len(aux)-1):
+            self.varList[jj] = numpy.array(self.varList[jj])  
+            
+            
 if __name__=="__main__":
 
     if len(sys.argv) < 1:
@@ -189,6 +210,8 @@ if __name__=="__main__":
         exit(0)
     
     path = sys.argv[1]
+
+
 
     s = solution(path+"mesh.su2", path+"solution.csv")
 
@@ -232,7 +255,8 @@ if __name__=="__main__":
 
     u[0] = 0;
 
-    fm = rf.read("./BL_turb/on_Ux")
+
+    fm = rf.read(path+"BL_turb/on_Ux")
 
     plt.figure()
     plt.plot(mar.y, u, 'b')
@@ -245,12 +269,13 @@ if __name__=="__main__":
 #    plt.savefig(path+"uProfile.png", dpi=300)
     plt.show()    
 
+
     plt.figure()
     plt.title("T")
     plt.plot(mar.y, T, 'b') 
     plt.show()
 
-    fm = rf.read("./BL_turb/on_ni")
+    fm = rf.read(path+"BL_turb/on_ni")
 
     plt.figure()
     plt.plot(mar.y, n, 'b')
@@ -261,5 +286,31 @@ if __name__=="__main__":
     plt.xlabel("y [m]")  
     plt.ylabel("ni")        
     plt.show()
-    
 
+    
+    conv = convergence(path+"convergence.csv")
+    
+    plt.figure()
+    plt.semilogy(conv.varList[1]/conv.varList[1][0])
+    plt.semilogy(conv.varList[2]/conv.varList[2][0])    
+    plt.semilogy(conv.varList[3]/conv.varList[3][0])    
+    plt.semilogy(conv.varList[4]/conv.varList[4][0])       
+    plt.semilogy(conv.varList[5]/conv.varList[5][0])           
+    plt.grid(True)
+    plt.xlabel("iterations [100]")  
+    plt.ylabel("Residuos")            
+    plt.show()
+    
+    plt.figure()
+    plt.plot(conv.varList[7])
+    plt.grid(True)
+    plt.xlabel("iterations [100]")  
+    plt.ylabel("Cx_v [-]")            
+    plt.show()
+    
+    plt.figure()
+    plt.plot(conv.varList[8])
+    plt.grid(True)
+    plt.xlabel("iterations [100]")  
+    plt.ylabel("Cy_p [-]")            
+    plt.show()    
