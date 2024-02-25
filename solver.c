@@ -1043,3 +1043,65 @@ void solverCalcCoeff2(SOLVER* solver, char* path)
         
     fclose(ff);
 }
+
+void solverCalcCoeff3(SOLVER* solver, FILE* convFile, int Nint)
+{
+    int p0, p1;
+    MESHBC* bc;
+    double cp, dSx, dSy, fx, fy;    
+    
+    double r = solver->inlet->Pin[0];
+    double u = solver->inlet->Pin[1];
+    double v = solver->inlet->Pin[2];
+    double P = solver->inlet->Pin[3];
+    double q = 0.5*r*(u*u + v*v);
+    double x;    
+ 
+    double Cx_p = 0;
+    double Cx_v = 0;       
+        
+    double Cy_p = 0;
+    double Cy_v = 0;               
+        
+    for(int jj=0; jj<solver->mesh->Nmark; jj++)
+    {
+        bc = solver->mesh->bc[jj];
+        if(bc->flagBC == 3)
+        {
+            for(int ii=0; ii<bc->Nelem; ii++)
+            {
+                cp = (bc->elemL[ii]->P[3] - P)/q;
+                p0 = bc->elemL[ii]->p[0];
+                p1 = bc->elemL[ii]->p[1];
+                
+                meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);                
+             
+                Cx_p += cp*dSx;
+                Cy_p += cp*dSy;                                
+                
+                if(solver->laminar==1 || solver->sa==1)
+                {
+                    boundaryCalcFrictionWall(solver, bc->elemL[ii], &fx, &fy);
+                    Cx_v -= fx/q;
+                    Cy_v -= fy/q;
+                } 
+                                              
+            }
+        }
+    }
+        
+    Cx_p /= solver->Sref;
+    Cx_v /= solver->Sref;    
+
+    Cy_p /= solver->Sref;
+    Cy_v /= solver->Sref;    
+
+    if(solver->mesh->axi)
+    {
+        Cx_p *= M_PI;
+        Cx_v *= M_PI;    
+    }
+
+    fprintf(convFile, " %e, %e, %e, %e,", Cx_p, Cx_v, Cy_p, Cy_v); 
+
+}

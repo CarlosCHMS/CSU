@@ -52,7 +52,7 @@ void mainSetData(SOLVER* solver, INPUT* input)
 
     if(inputNameIsInput(input, "Sref"))
     {
-        solver->Sref = atoi(inputGetValue(input, "Sref"));     
+        solver->Sref = strtod(inputGetValue(input, "Sref"), NULL);     
     }
     else
     {
@@ -175,6 +175,12 @@ int main(int argc, char **argv)
         // Calculate time step        
         int Nmax = atoi(inputGetValue(input, "Nmax"));
 
+        // Convergence history file
+        s[0] = '\0';
+        strcat(s, argv[1]);
+        strcat(s, "convergence.csv"); 
+        FILE* convFile = fopen(s, "a");
+
         // Run the solver
         printf("\nmain: running solution:\n");
         for(int ii=0; ii<Nmax; ii++)
@@ -188,9 +194,20 @@ int main(int argc, char **argv)
                 solverCalcRes(solver);
                 solverCalcCoeff(solver, &Cx, &Cy);
                 printf("%f, %f\n", Cx, Cy);
+                
+                // Write convergence file
+                fprintf(convFile, "%i,", ii);
+                for(int kk=0; kk<solver->Nvar; kk++)
+                {
+                    fprintf(convFile, " %+.4e,", solver->res[kk]);        
+                }                
+                solverCalcCoeff3(solver, convFile, ii);
+                fprintf(convFile, "\n");
             }            
         }
         solverCalcCoeff2(solver, argv[1]); 
+        
+        fclose(convFile);
     }
     else
     {
