@@ -24,6 +24,7 @@ typedef struct {
     int laminar;
     int restart;
     int sa;
+    int dtLocal;
 
     double Rgas;
     double gamma;
@@ -40,6 +41,9 @@ typedef struct {
     double Pr;
     double Pr_t;
     double Sref;
+    double dtLocalN;
+
+    double *dtL;
             
     double **U;
     double **R;
@@ -98,7 +102,7 @@ void solverCalcRes(SOLVER* solver);
 
 double solverLocalTimeStep(SOLVER* solver, int ii);
 
-double solverCalcDt(SOLVER* solver);
+void solverCalcDt(SOLVER* solver);
 
 void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, double xm);
 

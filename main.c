@@ -68,6 +68,24 @@ void mainSetData(SOLVER* solver, INPUT* input)
         solver->turbRatio = 10.0;
     }
 
+    if(inputNameIsInput(input, "dtLocal"))
+    {
+        solver->dtLocal = atoi(inputGetValue(input, "dtLocal"));
+    }
+    else
+    {
+        solver->dtLocal = 0;
+    }
+
+    if(inputNameIsInput(input, "dtLocalN"))
+    {
+        solver->dtLocalN = atoi(inputGetValue(input, "dtLocalN"));
+    }
+    else
+    {
+        solver->dtLocalN = -1;
+    }
+
     // Selection of several variables
     solver->flux = fluxChoice(inputGetValue(input, "flux"));
     solver->stages = atoi(inputGetValue(input, "stages"));
@@ -185,8 +203,13 @@ int main(int argc, char **argv)
         printf("\nmain: running solution:\n");
         for(int ii=0; ii<Nmax; ii++)
         {
-            solver->dt = solverCalcDt(solver);
+            solverCalcDt(solver);
             solverStepRK(solver);
+            
+            if(ii == solver->dtLocalN)
+            {
+                solver->dtLocal = 0;
+            }
             
             if(ii%100 == 0)
             {
@@ -247,7 +270,7 @@ int main(int argc, char **argv)
         int ii = 0;
         while(stopLoop == 0)
         {
-            solver->dt = solverCalcDt(solver);
+            solverCalcDt(solver);
             
             if(t + solver->dt>tmax)
             {

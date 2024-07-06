@@ -77,6 +77,12 @@ void solverMalloc(SOLVER* solver)
     solver->faceFlux = tableMallocDouble(solver->Nvar, solver->mesh->Ncon);
     solver->dPx = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
     solver->dPy = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);    
+    
+    if(solver->dtLocal == 1)
+    {
+        solver->dtL = malloc(solver->mesh->Nelem*sizeof(double));
+    }
+    
 }
 
 void solverFree(SOLVER* solver)
@@ -89,6 +95,11 @@ void solverFree(SOLVER* solver)
     tableFreeDouble(solver->dPx, solver->Nvar);
     tableFreeDouble(solver->dPy, solver->Nvar);
     meshFree(solver->mesh);
+    
+    if(solver->dtLocal == 1)
+    {
+        free(solver->dtL);
+    }    
     
 }
 
@@ -566,13 +577,28 @@ void solverCalcR(SOLVER* solver, double** U)
 
 void solverRK(SOLVER* solver, double a)
 {   
-    # pragma omp parallel for
-    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    if(solver->dtLocal == 1)
     {
-        double omega = meshCalcOmega(solver->mesh, ii);
-        for(int kk=0; kk<solver->Nvar; kk++)
-        {            
-            solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dt*a*solver->R[kk][ii]/omega;
+        # pragma omp parallel for
+        for(int ii=0; ii<solver->mesh->Nelem; ii++)
+        {
+            double omega = meshCalcOmega(solver->mesh, ii);
+            for(int kk=0; kk<solver->Nvar; kk++)
+            {            
+                solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dtL[ii]*a*solver->R[kk][ii]/omega;
+            }
+        }    
+    }
+    else
+    {
+        # pragma omp parallel for
+        for(int ii=0; ii<solver->mesh->Nelem; ii++)
+        {
+            double omega = meshCalcOmega(solver->mesh, ii);
+            for(int kk=0; kk<solver->Nvar; kk++)
+            {            
+                solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dt*a*solver->R[kk][ii]/omega;
+            }
         }
     }
 }
@@ -694,24 +720,31 @@ double solverLocalTimeStep(SOLVER* solver, int ii)
     
 }
 
-double solverCalcDt(SOLVER* solver)
+void solverCalcDt(SOLVER* solver)
 {
-
-    double dtLocal;
-    double dt = solverLocalTimeStep(solver, 0);
-
-    for(int ii=1; ii<solver->mesh->Nelem; ii++)
+    if(solver->dtLocal == 1)
     {
-        dtLocal = solverLocalTimeStep(solver, ii);
-        if(dtLocal < dt)
+        for(int ii=0; ii<solver->mesh->Nelem; ii++)
         {
-            dt = dtLocal;
+            solver->dtL[ii] = (solver->CFL*0.5*solver->stages)*solverLocalTimeStep(solver, ii);
         }
     }
+    else
+    {
+        double dtLocal;
+        double dt = solverLocalTimeStep(solver, 0);
+        for(int ii=1; ii<solver->mesh->Nelem; ii++)
+        {
+            dtLocal = solverLocalTimeStep(solver, ii);
+            if(dtLocal < dt)
+            {
+                dt = dtLocal;
+            }
+        }
 
-    dt *= solver->CFL*0.5*solver->stages;
-
-    return dt;
+        dt *= solver->CFL*0.5*solver->stages;
+        solver->dt = dt;
+    }
 }
 
 void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, double xm)

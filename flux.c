@@ -182,14 +182,14 @@ void fluxAUSMDV(SOLVER* solver,
 	int caseB = (uL + cL < 0.0) & (uR + cR > 0.0);
 	double psiL[4] = {1.0, uL, vL, HL};
 	double psiR[4] = {1.0, uR, vR, HR};
-	if (caseA & !caseB) {
+	if (caseA & ~caseB) {
 	    aux = 0.125*((uR - cR) - (uL - cL));
 	    for(int kk = 0; kk < 4; kk++)
 	    {
 		    f[kk] -= aux*(rR*psiR[kk] - rL*psiL[kk]);
 		}		
 	}
-	else if (!caseA & caseB) {
+	else if (~caseA & caseB) {
 	    aux = 0.125*((uR + cR) - (uL + cL));
     	for(int kk = 0; kk < 4; kk++)
 	    {
@@ -264,14 +264,14 @@ void fluxAUSMDV_sa(SOLVER* solver,
 	int caseB = (uL + cL < 0.0) & (uR + cR > 0.0);
 	double psiL[4] = {1.0, uL, vL, HL};
 	double psiR[4] = {1.0, uR, vR, HR};
-	if (caseA & !caseB) {
+	if (caseA & ~caseB) {
 	    aux = 0.125*((uR - cR) - (uL - cL));
 	    for(int kk = 0; kk < 4; kk++)
 	    {
 		    f[kk] -= aux*(rR*psiR[kk] - rL*psiL[kk]);
 		}		
 	}
-	else if (!caseA & caseB) {
+	else if (~caseA & caseB) {
 	    aux = 0.125*((uR + cR) - (uL + cL));
     	for(int kk = 0; kk < 4; kk++)
 	    {
