@@ -19,7 +19,7 @@ char meshGetWord(FILE* ff, char* s)
     {
         c = fgetc(ff);
                 
-        if(c == ' ')
+        if(c == ' ' || c == '\r')
         {
             stop = 1;
         }
@@ -217,8 +217,11 @@ MESH* meshInit(char* fileName, int Nvar)
     
     fclose(ff);
 
-    printf("mesh: calculating conections.\n");
-    meshCalcConnection(mesh);    
+    printf("mesh: calculating conections.\n");   
+    meshCalcConnection2(mesh); 
+    //printf("%i,\n", mesh->Ncon);
+    //meshPrintConnection(mesh, 10);
+    //exit(0); 
     
     printf("mesh: calculating neighbors.\n");
     meshCalcNeighbors(mesh);
@@ -465,7 +468,33 @@ double elementIsConnected(ELEMENT* e0, ELEMENT* e1, int* p0, int* p1)
 
 }
 
-void meshCalcConnection(MESH* mesh)
+int meshSameFace(FACETYPE* f0, FACETYPE* f1)
+{
+    int ans = 0;
+    if(!f0->full)
+    {    
+        if(f0->p0 == f1->p1)
+        {
+            if(f0->p1 == f1->p0)
+            {
+                ans = 1;
+            }    
+        }
+        else if(f0->p0 == f1->p0)
+        {
+            if(f0->p1 == f1->p1)
+            {
+                ans = 1;
+            }    
+        }
+    }
+
+    return ans;    
+}
+
+
+
+void meshCalcConnection1(MESH* mesh)
 {
 
     int p0, p1;
@@ -507,6 +536,100 @@ void meshCalcConnection(MESH* mesh)
         free(con);
         con = next;        
     } 
+}
+
+void meshCalcConnection2(MESH* mesh)
+{
+    mesh->Ncon = 0;
+    int Nface = 0;  
+    int flagCommon = 0;  
+    FACETYPE* initFace = malloc(sizeof(FACETYPE));
+    FACETYPE* face = initFace;
+    FACETYPE* face0;
+
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        for(int jj=0; jj<mesh->elemL[ii]->Np; jj++)
+        {
+            if(ii == 0 && jj == 0)
+            {
+                face->p0 = mesh->elemL[ii]->p[jj];
+                face->p1 = mesh->elemL[ii]->p[(jj+1)%mesh->elemL[ii]->Np];
+                face->e0 = ii;
+                face->full = 0;
+                
+                Nface += 1;                
+                face->next = malloc(sizeof(FACETYPE));
+                face = face->next;    
+            }
+            else
+            {
+                face->p0 = mesh->elemL[ii]->p[jj];
+                face->p1 = mesh->elemL[ii]->p[(jj+1)%mesh->elemL[ii]->Np];
+                face->e0 = ii;
+                face->full = 0;
+                
+                face0 = initFace;
+                flagCommon = 0;
+                for(int kk=0; kk<Nface; kk++)
+                {
+                    if(meshSameFace(face0, face))
+                    {
+                        face0->e1 = face->e0;
+                        face0->full = 1;
+                        flagCommon = 1;
+                        break;
+                    }
+                    face0 = face0->next;   
+                }
+            
+                if(!flagCommon)
+                {
+                    Nface += 1;
+                    face->next = malloc(sizeof(FACETYPE));
+                    face = face->next;                    
+                }                            
+            }
+        }
+    }
+
+    face = initFace;
+    for(int ii=0; ii<Nface; ii++)
+    {
+        if(face->full)
+        {
+            mesh->Ncon += 1;
+        }
+        face = face->next;
+    }
+
+    mesh->con = tableMallocInt(mesh->Ncon, 4);
+    
+    face = initFace;
+    int jj = 0;
+    for(int ii=0; ii<Nface; ii++)
+    {
+        if(face->full)
+        {
+            mesh->con[jj][0] = face->e0;
+            mesh->con[jj][1] = face->e1;
+            mesh->con[jj][2] = face->p0;
+            mesh->con[jj][3] = face->p1;
+            jj += 1;        
+        }
+        face0 = face->next;
+        free(face);
+        face = face0;
+    }
+    free(face);
+}
+
+void meshPrintConnection(MESH* mesh, int N)
+{
+    for(int ii=0; ii<N; ii++)
+    {
+        printf("%i, %i, %i, %i,\n", mesh->con[ii][0], mesh->con[ii][1], mesh->con[ii][2], mesh->con[ii][3]);
+    }
 }
 
 void meshCalcDS(MESH* mesh, int p0, int p1, double* dSx, double* dSy)

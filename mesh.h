@@ -62,6 +62,18 @@ typedef struct CON
 
 } CONNECTION;
 
+typedef struct FACE
+{
+    int full;
+    int p0;
+    int p1;
+    int e0;
+    int e1;
+    struct FACE* next; 
+
+} FACETYPE;
+
+
 char meshGetWord(FILE* ff, char* s);
  
 MESHBC* meshBCread(FILE* ff, int Nvar);
@@ -88,7 +100,13 @@ double meshCalcOmega(MESH* mesh, int ii);
 
 double elementIsConnected(ELEMENT* e0, ELEMENT* e1, int* p0, int* p1);
 
-void meshCalcConnection(MESH* mesh);
+int meshSameFace(FACETYPE* f0, FACETYPE* f1);
+
+void meshCalcConnection1(MESH* mesh);
+
+void meshCalcConnection2(MESH* mesh);
+
+void meshPrintConnection(MESH* mesh, int N);
 
 void meshCalcDS(MESH* mesh, int p0, int p1, double* dSx, double* dSy);
 

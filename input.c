@@ -36,7 +36,7 @@ INPUT* inputInit(char* fileName, int N)
     c = fgetc(ff);
     while(c != EOF)
     {   
-        if(c != ' ')
+        if(c != ' ' & c != '\r')
         {
         
             if(c == ',')
