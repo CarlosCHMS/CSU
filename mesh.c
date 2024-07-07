@@ -760,7 +760,7 @@ double meshEdgeLength(MESH* mesh, int p0, int p1)
 double meshMinEdge(MESH* mesh)
 {
     int p0, p1;
-    double ans;
+    double ans = 0.0;
 
     for(int ii=0; ii<mesh->Ncon; ii++)
     {
