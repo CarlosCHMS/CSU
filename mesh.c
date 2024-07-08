@@ -218,10 +218,7 @@ MESH* meshInit(char* fileName, int Nvar)
     fclose(ff);
 
     printf("mesh: calculating conections.\n");   
-    meshCalcConnection2(mesh); 
-    //printf("%i,\n", mesh->Ncon);
-    //meshPrintConnection(mesh, 10);
-    //exit(0); 
+    meshCalcConnection2(mesh);
     
     printf("mesh: calculating neighbors.\n");
     meshCalcNeighbors(mesh);
@@ -480,6 +477,7 @@ int meshSameFace(FACETYPE* f0, FACETYPE* f1)
                 ans = 1;
             }    
         }
+        /*
         else if(f0->p0 == f1->p0)
         {
             if(f0->p1 == f1->p1)
@@ -487,6 +485,7 @@ int meshSameFace(FACETYPE* f0, FACETYPE* f1)
                 ans = 1;
             }    
         }
+        */
     }
 
     return ans;    
@@ -578,6 +577,7 @@ void meshCalcConnection2(MESH* mesh)
                         face0->e1 = face->e0;
                         face0->full = 1;
                         flagCommon = 1;
+                        mesh->Ncon += 1;
                         break;
                     }
                     face0 = face0->next;   
@@ -591,16 +591,6 @@ void meshCalcConnection2(MESH* mesh)
                 }                            
             }
         }
-    }
-
-    face = initFace;
-    for(int ii=0; ii<Nface; ii++)
-    {
-        if(face->full)
-        {
-            mesh->Ncon += 1;
-        }
-        face = face->next;
     }
 
     mesh->con = tableMallocInt(mesh->Ncon, 4);
