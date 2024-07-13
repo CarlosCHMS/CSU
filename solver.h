@@ -26,6 +26,8 @@ typedef struct {
     int sa;
     int dtLocal;
 
+    char* wd;
+
     double Rgas;
     double gamma;
     double k4;
@@ -55,6 +57,8 @@ typedef struct {
     CONDITION* inlet;
         
     MESH* mesh;
+    
+    INPUT* input;
 
 } SOLVER;
 
@@ -68,9 +72,9 @@ void solverMalloc(SOLVER* solver);
 
 void solverFree(SOLVER* solver);
 
-void solverWrite(SOLVER* solver, char* fileName);
+void solverWriteSolution(SOLVER* solver);
 
-void solverWriteReestart(SOLVER* solver, char* fileName);
+void solverWriteReestart(SOLVER* solver);
 
 void solverLoadRestart(SOLVER* solver, char* fileName);
 
@@ -127,3 +131,11 @@ void solverCalcCoeff(SOLVER* solver, double *Fx, double *Fy);
 void solverCalcCoeff2(SOLVER* solver, char* path);
 
 void solverCalcCoeff3(SOLVER* solver, FILE* convFile, int Nint);
+
+void solverSetData(SOLVER* solver, INPUT* input);
+
+SOLVER* solverInit(char* wd);
+
+void solverInitDomain(SOLVER* solver);
+
+void solverSolve(SOLVER* solver);
