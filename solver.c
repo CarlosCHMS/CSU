@@ -314,9 +314,16 @@ void inter(SOLVER* solver)
 
       	    elementCenter(E, solver->mesh, &x0, &y0);
       	    
-            for(kk=0; kk<4; kk++)
+            for(kk=0; kk<solver->Nvar; kk++)
             {
-                solverCalcGrad2(solver, E, kk, &dPx, &dPy, &Pmin, &Pmax);
+                if(kk == 4)
+                {
+                    solverCalcGrad2(solver, E, 5, &dPx, &dPy, &Pmin, &Pmax);
+                }
+                else
+                {
+                    solverCalcGrad2(solver, E, kk, &dPx, &dPy, &Pmin, &Pmax);                
+                }
                 
                 for(jj=0; jj<E->Np; jj++)
                 {
@@ -379,7 +386,14 @@ void inter(SOLVER* solver)
 		    {                
 	            PL[kk] = E0->P[kk] + solver->dPx[kk][e0]*(xm - x0) + solver->dPy[kk][e0]*(ym - y0);
 	            PR[kk] = E1->P[kk] + solver->dPx[kk][e1]*(xm - x1) + solver->dPy[kk][e1]*(ym - y1);
-            }   
+            }
+            
+            if(solver->Nvar == 5)
+            {
+                kk = 4;
+                PL[kk] = E0->P[5] + solver->dPx[kk][e0]*(xm - x0) + solver->dPy[kk][e0]*(ym - y0);
+	            PR[kk] = E1->P[5] + solver->dPx[kk][e1]*(xm - x1) + solver->dPy[kk][e1]*(ym - y1);
+            }  
         }
         else
         {       
@@ -388,13 +402,13 @@ void inter(SOLVER* solver)
 			    PL[kk] = E0->P[kk];
 			    PR[kk] = E1->P[kk];
 		    }
+		    
+		    if(solver->Nvar == 5)
+            {
+	            PL[4] = E0->P[5];
+	            PR[4] = E1->P[5];
+            }
 		}
-
-        if(solver->sa==1)
-        {
-	        PL[4] = E0->P[5];
-	        PR[4] = E1->P[5];
-        }
 
         // Rotation of the velocity vectors
 		rotation(PL, dSx, dSy, dS);
