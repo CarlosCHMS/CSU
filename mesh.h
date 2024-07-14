@@ -4,18 +4,16 @@ typedef struct ELEM
 
     int ii;
     int Np;
-    
     int neiN;
     
     int* p;
-
-    struct ELEM** neiL;
-
     int* f;
     
     double* P; 
+    double d;       
+    double omega;
 
-    double d;   
+    struct ELEM** neiL;    
     
 } ELEMENT;
 
@@ -97,6 +95,8 @@ double meshCalcOmegaTri(MESH* mesh, int p0, int p1, int p2);
 double meshCalcDSlateral(MESH* mesh, int ii);
 
 double meshCalcOmega(MESH* mesh, int ii);
+
+void meshUpdateOmega(MESH* mesh);
 
 double elementIsConnected(ELEMENT* e0, ELEMENT* e1, int* p0, int* p1);
 

@@ -230,8 +230,9 @@ MESH* meshInit(char* fileName, int Nvar)
     printf("mesh: fix border orientation.\n");
     meshFixBorderOrientation(mesh);
 
-    meshCalcFaces(mesh);    
-        
+    meshCalcFaces(mesh);   
+    
+    meshUpdateOmega(mesh);
 
     return mesh;
 
@@ -410,6 +411,14 @@ double meshCalcOmega(MESH* mesh, int ii)
 
     return ans;
 
+}
+
+void meshUpdateOmega(MESH* mesh)
+{
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        mesh->elemL[ii]->omega = meshCalcOmega(mesh, ii);
+    }
 }
 
 double elementIsConnected(ELEMENT* e0, ELEMENT* e1, int* p0, int* p1)

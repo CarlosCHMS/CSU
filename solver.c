@@ -614,10 +614,9 @@ void solverRK(SOLVER* solver, double a)
         # pragma omp parallel for
         for(int ii=0; ii<solver->mesh->Nelem; ii++)
         {
-            double omega = meshCalcOmega(solver->mesh, ii);
             for(int kk=0; kk<solver->Nvar; kk++)
             {            
-                solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dtL[ii]*a*solver->R[kk][ii]/omega;
+                solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dtL[ii]*a*solver->R[kk][ii]/solver->mesh->elemL[ii]->omega;
             }
         }    
     }
@@ -626,10 +625,9 @@ void solverRK(SOLVER* solver, double a)
         # pragma omp parallel for
         for(int ii=0; ii<solver->mesh->Nelem; ii++)
         {
-            double omega = meshCalcOmega(solver->mesh, ii);
             for(int kk=0; kk<solver->Nvar; kk++)
             {            
-                solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dt*a*solver->R[kk][ii]/omega;
+                solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dt*a*solver->R[kk][ii]/solver->mesh->elemL[ii]->omega;
             }
         }
     }
@@ -637,6 +635,13 @@ void solverRK(SOLVER* solver, double a)
 
 void solverUpdateU(SOLVER* solver)
 {
+    double** aux;
+    
+    aux = solver->Uaux;
+    solver->Uaux = solver->U;
+    solver->U = aux;
+
+    /*
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
@@ -645,6 +650,7 @@ void solverUpdateU(SOLVER* solver)
             solver->U[kk][ii] = solver->Uaux[kk][ii];
         }
     }
+    */
 }
 
 void solverStepRK(SOLVER* solver)
@@ -748,7 +754,7 @@ double solverLocalTimeStep(SOLVER* solver, int ii)
     Lx = (fabs(u) + c)*dSxm;
     Ly = (fabs(v) + c)*dSym;
     
-    return meshCalcOmega(solver->mesh, ii)/(Lx + Ly);
+    return solver->mesh->elemL[ii]->omega/(Lx + Ly);
     
 }
 
