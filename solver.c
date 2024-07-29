@@ -1035,8 +1035,7 @@ void solverCalcCoeff(SOLVER* solver, double *Cx, double *Cy)
     double u = solver->inlet->Pin[1];
     double v = solver->inlet->Pin[2];
     double P = solver->inlet->Pin[3];
-    double q = 0.5*r*(u*u + v*v);
-    double x;    
+    double q = 0.5*r*(u*u + v*v);   
         
     for(int jj=0; jj<solver->mesh->Nmark; jj++)
     {
@@ -1066,21 +1065,18 @@ void solverCalcCoeff(SOLVER* solver, double *Cx, double *Cy)
         
     *Cx /= solver->Sref;
     *Cy /= solver->Sref;
+    
+    if(solver->mesh->axi)
+    {
+        *Cx *= 2*M_PI;
+    }    
 }
 
 void solverCalcCoeff2(SOLVER* solver, char* path)
 {
-    int p0, p1;
     MESHBC* bc;
-    double cp, dSx, dSy, txx, txy, tyy, yp;
+    double x, txx, txy, tyy, yp;
     char s[50];
-    
-    double r = solver->inlet->Pin[0];
-    double u = solver->inlet->Pin[1];
-    double v = solver->inlet->Pin[2];
-    double P = solver->inlet->Pin[3];
-    double q = 0.5*r*(u*u + v*v);
-    double x;    
         
     s[0] = '\0';
     strcat(s, path);
@@ -1126,7 +1122,6 @@ void solverCalcCoeff3(SOLVER* solver, FILE* convFile, int Nint)
     double v = solver->inlet->Pin[2];
     double P = solver->inlet->Pin[3];
     double q = 0.5*r*(u*u + v*v);
-    double x;    
  
     double Cx_p = 0;
     double Cx_v = 0;       
@@ -1169,8 +1164,8 @@ void solverCalcCoeff3(SOLVER* solver, FILE* convFile, int Nint)
 
     if(solver->mesh->axi)
     {
-        Cx_p *= M_PI;
-        Cx_v *= M_PI;    
+        Cx_p *= 2*M_PI;
+        Cx_v *= 2*M_PI;    
     }
 
     fprintf(convFile, " %e, %e, %e, %e,", Cx_p, Cx_v, Cy_p, Cy_v); 
