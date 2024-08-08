@@ -1177,7 +1177,6 @@ void solverSetData(SOLVER* solver, INPUT* input)
 
     solver->order = atoi(inputGetValue(input, "order"));
     solver->mesh->order = solver->order;
-    solver->mesh->axi = atoi(inputGetValue(input, "axisymmetric"));
 
     //Get boundary conditions
     printf("main: get boundary conditions.\n");
@@ -1365,7 +1364,7 @@ SOLVER* solverInit(char* wd)
     s[0] = '\0';
     strcat(s, solver->wd);
     strcat(s, "mesh.su2");
-    solver->mesh = meshInit(s, solver->Nvar);
+    solver->mesh = meshInit(s, solver->Nvar, atoi(inputGetValue(solver->input, "axisymmetric")));
     
 
     // Setting the solver   

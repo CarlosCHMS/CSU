@@ -76,7 +76,7 @@ char meshGetWord(FILE* ff, char* s);
  
 MESHBC* meshBCread(FILE* ff, int Nvar);
 
-MESH* meshInit(char* fileName, int Nvar);
+MESH* meshInit(char* fileName, int Nvar, int axi);
 
 void meshPrintBC(MESHBC* bc);
 

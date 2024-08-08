@@ -111,7 +111,7 @@ MESHBC* meshBCread(FILE* ff, int Nvar)
 
 }
 
-MESH* meshInit(char* fileName, int Nvar)
+MESH* meshInit(char* fileName, int Nvar, int axi)
 {
 
     MESH* mesh = malloc(sizeof(MESH));
@@ -119,6 +119,7 @@ MESH* meshInit(char* fileName, int Nvar)
     char s[100];
     int ii;
     int type;
+    mesh->axi = axi;
     
     printf("mesh: reading elements.\n");
     
