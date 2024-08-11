@@ -428,7 +428,7 @@ void saBoundaryFace(SOLVER* solver, MESHBC* bc)
 	        solver->R[1][e0] -= txx*dSx + txy*dSy;
 	        solver->R[2][e0] -= txy*dSx + tyy*dSy;
 	        solver->R[3][e0] -= u*(txx*dSx + txy*dSy) + v*(txy*dSx + tyy*dSy) + k*(dTx*dSx + dTy*dSy);
-            solver->R[4][e0] -= (tx - rho*n*u)*dSx + (ty - rho*n*v)*dSy;
+            solver->R[4][e0] -= tx*dSx + ty*dSy;
 
         }
         else if(bc->flagBC == 3)
@@ -537,7 +537,7 @@ void saBoundaryFace(SOLVER* solver, MESHBC* bc)
 	        solver->R[1][e0] -= txx*dSx + txy*dSy;
 	        solver->R[2][e0] -= txy*dSx + tyy*dSy;
 	        solver->R[3][e0] -= u*(txx*dSx + txy*dSy) + v*(txy*dSx + tyy*dSy) + k*(dTx*dSx + dTy*dSy);
-            solver->R[4][e0] -= (tx - rho*n*u)*dSx + (ty - rho*n*v)*dSy;
+            solver->R[4][e0] -= tx*dSx + ty*dSy;
 
         }
 	}
