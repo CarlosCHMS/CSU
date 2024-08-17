@@ -4,7 +4,6 @@
 #include<string.h>
 #include<sys/time.h>
 #include<omp.h>
-#include<stdbool.h>
 #include"utils.h"
 #include"input.h"
 #include"mesh.h"
@@ -20,15 +19,15 @@ int main(int argc, char **argv)
     
     gettimeofday(&start,NULL);
    
-    SOLVER* solver = solverInit(argv[1]); 
+    SOLVER* solver = solverInit(argv[1]);    
     
-    newSolverSolve(solver);
+    solverSolve(solver);
     
     solverWriteSolution(solver);
-    
-    //newSolverWriteRestart(solver);
+
+    solverWriteReestart(solver);
       
-    newSolverFree(solver); 
+    solverFree(solver); 
 
     gettimeofday(&stop,NULL);
     

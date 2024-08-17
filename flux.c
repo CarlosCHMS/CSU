@@ -4,7 +4,6 @@
 #include<string.h>
 #include<sys/time.h>
 #include<omp.h>
-#include<stdbool.h>
 #include"input.h"
 #include"mesh.h"
 #include"solver.h"
@@ -263,18 +262,18 @@ void fluxAUSMDV_sa(SOLVER* solver,
 	// entropy fix 
 	int caseA = (uL - cL < 0.0) & (uR - cR > 0.0);
 	int caseB = (uL + cL < 0.0) & (uR + cR > 0.0);
-	double psiL[5] = {1.0, uL, vL, HL, nL};
-	double psiR[5] = {1.0, uR, vR, HR, nR};
+	double psiL[4] = {1.0, uL, vL, HL};
+	double psiR[4] = {1.0, uR, vR, HR};
 	if (caseA & ~caseB) {
 	    aux = 0.125*((uR - cR) - (uL - cL));
-	    for(int kk = 0; kk < 5; kk++)
+	    for(int kk = 0; kk < 4; kk++)
 	    {
 		    f[kk] -= aux*(rR*psiR[kk] - rL*psiL[kk]);
 		}		
 	}
 	else if (~caseA & caseB) {
 	    aux = 0.125*((uR + cR) - (uL + cL));
-    	for(int kk = 0; kk < 5; kk++)
+    	for(int kk = 0; kk < 4; kk++)
 	    {
 		    f[kk] -= aux*(rR*psiR[kk] - rL*psiL[kk]);
 		}		
