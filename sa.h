@@ -13,10 +13,12 @@ void saCalcFace(double ni, double ni_L, double r, double dnix, double dniy, doub
 
 void saCalcSource(double ni, double ni_L, double S, double d, double rho, double drx, double dry, double dnix, double dniy, double* Qt);
 
-void saBoundaryFace(SOLVER* solver, MESHBC* bc);
+void saBoundaryFace(SOLVER* solver, SOLVERBC* bc);
 
 void saBoundary(SOLVER* solver);
 
 void saCalcD(MESH* mesh);
 
 void saCalcTensorWall(SOLVER* solver, ELEMENT* E, double* Txx, double* Txy, double* Tyy, double* x, double* yp);
+
+void saBoundaryCalc(SOLVER* solver, SOLVERBC* bc);
