@@ -125,6 +125,28 @@ def levels(v, n):
     
     return levels                
     
+class convergence():
+
+    def __init__(self, convFile):
+    
+        ff = open(convFile, 'r')
+        ii = 0
+        self.varList = []
+        for row in ff:
+            aux = row.split(',')
+            if ii == 0:
+                for jj in range(len(aux)-1):
+                    self.varList.append([])
+
+            for jj in range(len(aux)-1):
+                self.varList[jj].append(float(aux[jj]))
+                        
+            ii += 1
+    
+        for jj in range(len(aux)-1):
+            self.varList[jj] = numpy.array(self.varList[jj])
+    
+    
 if __name__=="__main__":
 
     if len(sys.argv) < 1:
@@ -182,4 +204,24 @@ if __name__=="__main__":
     plt.plot(mar.x, mar.x*0 + 2.84286270*1e5)    
     plt.plot(fp.x, fp.y)    
     plt.show()
+    
+    conv = convergence(path+"convergence.csv")
+    
+    plt.figure()
+    plt.semilogy(conv.varList[1]/conv.varList[1][0])
+    plt.semilogy(conv.varList[2]/conv.varList[2][0])    
+    plt.semilogy(conv.varList[3]/conv.varList[3][0])    
+    plt.semilogy(conv.varList[4]/conv.varList[4][0])       
+    plt.grid(True)
+    plt.xlabel("iterations [100]")  
+    plt.ylabel("Residuos")            
+    plt.show()
+    
+    plt.figure()
+    plt.plot(conv.varList[5])
+    plt.grid(True)
+    plt.xlabel("iterations [100]")  
+    plt.ylabel("Cx_p [-]")            
+    plt.show()
+    
     

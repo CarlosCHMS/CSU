@@ -10,12 +10,13 @@ BC:wall2, outlet
 BC:wall3, wall
 BC:wall4, inlet
 
-Nmax, 1500
+Nmax, 2000
 interpE, 1e-10
-order, 1
+K3, 0.01
+order, 2
 stages, 5
 threads, 4
-flux, ROE
+flux, AUSMDV
 tube, 0
 axisymmetric, 1
 CFL, 1.0
