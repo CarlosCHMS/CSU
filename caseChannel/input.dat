@@ -11,8 +11,9 @@ BC:wallUp, wall
 BC:inlet, inlet
 BC:outlet, outlet
 
-Nmax, 15000
-interpE, 1e-5
+Nmax, 30000
+K3, 0.0
+interpE, 1e-10
 order, 2
 stages, 5
 threads, 4
@@ -20,4 +21,4 @@ flux, AUSMDV
 tube, 0
 axisymmetric, 0
 CFL, 1.0
-restart, 1
+restart, 0
