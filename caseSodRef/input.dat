@@ -18,6 +18,7 @@ BC:wallLeft, wall
 
 xm, 25.
 tmax, 0.02
+K3, 0.0
 interpE, 0.01
 order, 2
 stages, 5
