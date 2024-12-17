@@ -44,6 +44,7 @@ typedef struct {
     double Pr_t;
     double Sref;
     double dtLocalN;
+    double K3;
 
     double *dtL;
             
@@ -117,6 +118,8 @@ void solverCheckGrad(SOLVER* solver);
 double limiterBJ(double Ui, double Umin, double Umax, double d2);
 
 double limiterV(double Ui, double Umin, double Umax, double d2, double e);
+
+double limiterV2(double Ui, double Umin, double Umax, double d2, double ee);
 
 void solverCalcPrimitive(SOLVER* solver, double** U);
 
