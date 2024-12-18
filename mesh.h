@@ -68,6 +68,7 @@ typedef struct FACE
     int e0;
     int e1;
     struct FACE* next; 
+    struct FACE* prev;
 
 } FACETYPE;
 
@@ -105,6 +106,8 @@ int meshSameFace(FACETYPE* f0, FACETYPE* f1);
 void meshCalcConnection1(MESH* mesh);
 
 void meshCalcConnection2(MESH* mesh);
+
+void meshCalcConnection3(MESH* mesh);
 
 void meshPrintConnection(MESH* mesh, int N);
 

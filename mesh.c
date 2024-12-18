@@ -218,8 +218,8 @@ MESH* meshInit(char* fileName, int Nvar, int axi)
     
     fclose(ff);
 
-    printf("mesh: calculating conections.\n");   
-    meshCalcConnection2(mesh);
+    printf("mesh: calculating connections.\n");   
+    meshCalcConnection3(mesh);
     
     printf("mesh: calculating neighbors.\n");
     meshCalcNeighbors(mesh);
@@ -622,6 +622,109 @@ void meshCalcConnection2(MESH* mesh)
         face = face0;
     }
     free(face);
+}
+
+void meshCalcConnection3(MESH* mesh)
+{
+    mesh->Ncon = 0;
+    int Nface = 0;  
+    int flagCommon = 0;  
+    FACETYPE* faceInit = malloc(sizeof(FACETYPE));
+    FACETYPE* face = faceInit;
+    FACETYPE* face0;
+    FACETYPE* next;
+
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        for(int jj=0; jj<mesh->elemL[ii]->Np; jj++)
+        {
+            if(ii == 0 && jj == 0)
+            {
+                face->p0 = mesh->elemL[ii]->p[jj];
+                face->p1 = mesh->elemL[ii]->p[(jj+1)%mesh->elemL[ii]->Np];
+                face->e0 = ii;
+                face->full = 0;
+                
+                Nface += 1;                
+                next = malloc(sizeof(FACETYPE));
+                next->prev = face;
+                face->next = next;
+                face = next;    
+            }
+            else
+            {
+                face->p0 = mesh->elemL[ii]->p[jj];
+                face->p1 = mesh->elemL[ii]->p[(jj+1)%mesh->elemL[ii]->Np];
+                face->e0 = ii;
+                face->full = 0;
+                
+                face0 = face->prev;
+                flagCommon = 0;
+                for(int kk=0; kk<Nface; kk++)
+                {
+                    if(meshSameFace(face0, face))
+                    {
+                        face0->e1 = face->e0;
+                        face0->full = 1;
+                        flagCommon = 1;
+                        mesh->Ncon += 1;
+                        break;
+                    }
+                    face0 = face0->prev;   
+                }
+            
+                if(!flagCommon)
+                {
+                    Nface += 1;
+                    next = malloc(sizeof(FACETYPE));
+                    next->prev = face;
+                    face->next = next;
+                    face = next;                    
+                }                            
+            }
+        }
+    }
+
+    mesh->con = tableMallocInt(mesh->Ncon, 4);
+    
+    face = faceInit;
+    int jj = 0;
+    for(int ii=0; ii<Nface; ii++)
+    {
+        if(face->full)
+        {
+            mesh->con[jj][0] = face->e0;
+            mesh->con[jj][1] = face->e1;
+            mesh->con[jj][2] = face->p0;
+            mesh->con[jj][3] = face->p1;
+            jj += 1;        
+        }
+        face0 = face->next;
+        free(face);
+        face = face0;
+    }
+    free(face);
+
+/*
+    
+    int jj = 0;
+    for(int ii=0; ii<Nface; ii++)
+    {
+        face0 = face->prev;
+        free(face);
+        face = face0;
+        if(face->full)
+        {
+            mesh->con[jj][0] = face->e0;
+            mesh->con[jj][1] = face->e1;
+            mesh->con[jj][2] = face->p0;
+            mesh->con[jj][3] = face->p1;
+            jj += 1;        
+        }
+    }
+    free(face);
+*/
+
 }
 
 void meshPrintConnection(MESH* mesh, int N)
