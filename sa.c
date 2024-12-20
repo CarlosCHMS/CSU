@@ -20,46 +20,6 @@ void saInitU(SOLVER* solver, CONDITION* inside)
     }
 }
 
-void saGrad(SOLVER* solver)
-{
-
-    # pragma omp parallel for
-    for(int ii=0; ii<solver->mesh->Nelem; ii++)
-    {
-        int kk;
-        double dPx, dPy, Pmin, Pmax;
-        ELEMENT* E = solver->mesh->elemL[ii];
-
-        kk = 0;
-        solverCalcGrad2(solver, E, 0, &dPx, &dPy, &Pmin, &Pmax);
-        solver->dPx[kk][ii] = dPx;
-        solver->dPy[kk][ii] = dPy;
-
-  	    kk = 1;
-        solverCalcGrad2(solver, E, 1, &dPx, &dPy, &Pmin, &Pmax);
-        solver->dPx[kk][ii] = dPx;
-        solver->dPy[kk][ii] = dPy;
-
-        kk = 2;
-        solverCalcGrad2(solver, E, 2, &dPx, &dPy, &Pmin, &Pmax);
-        solver->dPx[kk][ii] = dPx;
-        solver->dPy[kk][ii] = dPy;
-
-        // grad p storage is being reused for T grad
-        kk = 3;
-        solverCalcGrad2(solver, E, 4, &dPx, &dPy, &Pmin, &Pmax);
-        solver->dPx[kk][ii] = dPx;
-        solver->dPy[kk][ii] = dPy;
-
-  	    kk = 4;
-        solverCalcGrad2(solver, E, 5, &dPx, &dPy, &Pmin, &Pmax);
-        solver->dPx[kk][ii] = dPx;
-        solver->dPy[kk][ii] = dPy;
-
-
-    }
-
-}
 
 void saInterFace(SOLVER* solver)
 {
@@ -206,11 +166,8 @@ void saInterSource(SOLVER* solver)
 
 void saInter(SOLVER* solver)
 {
-
-    saGrad(solver);
     saInterFace(solver);
     saInterSource(solver);
-
 }
 
 

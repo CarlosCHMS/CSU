@@ -76,8 +76,9 @@ void solverMalloc(SOLVER* solver)
     solver->R = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
     solver->faceFlux = tableMallocDouble(solver->Nvar, solver->mesh->Ncon);
     solver->dPx = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
-    solver->dPy = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);    
-    
+    solver->dPy = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
+    solver->phi = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);    
+
     if(solver->dtLocal == 1)
     {
         solver->dtL = malloc(solver->mesh->Nelem*sizeof(double));
@@ -94,6 +95,7 @@ void solverFree(SOLVER* solver)
     tableFreeDouble(solver->faceFlux, solver->Nvar);
     tableFreeDouble(solver->dPx, solver->Nvar);
     tableFreeDouble(solver->dPy, solver->Nvar);
+    tableFreeDouble(solver->phi, solver->Nvar);
     meshFree(solver->mesh);
     
     if(solver->dtLocal == 1)
@@ -297,6 +299,49 @@ void rotation(double* U, double dSx, double dSy, double dS)
 	
 }
 
+
+void solverUpdateGrad(SOLVER* solver)
+{
+    # pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        double dPx, dPy;
+        ELEMENT* E = solver->mesh->elemL[ii];
+  	    
+        for(int kk=0; kk<solver->Nvar; kk++)
+        {
+            if(kk == 4)
+            {
+                solverCalcGrad3(solver, E, 5, &dPx, &dPy);
+            }
+            else
+            {
+                solverCalcGrad3(solver, E, kk, &dPx, &dPy);
+            }
+            
+            solver->dPx[kk][ii] = dPx;
+            solver->dPy[kk][ii] = dPy;
+        }   
+    }
+}
+
+
+void solverGrad_T(SOLVER* solver)
+{
+    # pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        double dPx, dPy;
+        ELEMENT* E = solver->mesh->elemL[ii];
+  	    
+        solverCalcGrad3(solver, E, 4, &dPx, &dPy);
+        solver->dPx[3][ii] = dPx;
+        solver->dPy[3][ii] = dPy;
+
+    }
+}
+
+
 void inter(SOLVER* solver)
 {
 
@@ -323,7 +368,7 @@ void inter(SOLVER* solver)
             double dPx, dPy;
             double x0, y0, d2, phi0, phi, xm, ym;
             double Pmin, Pmax; 
-            double blend = 1.0;        
+            double blend = 1.0;
             ELEMENT* E = solver->mesh->elemL[ii];
             double hRatio = sqrt(E->omega/volMax);
             double hRatio3 = hRatio*hRatio*hRatio;
@@ -334,11 +379,11 @@ void inter(SOLVER* solver)
             {
                 if(kk == 4)
                 {
-                    solverCalcGrad2(solver, E, 5, &dPx, &dPy, &Pmin, &Pmax);
+                    solverCalcMinMax(solver, E, 5, &Pmin, &Pmax);
                 }
                 else
                 {
-                    solverCalcGrad2(solver, E, kk, &dPx, &dPy, &Pmin, &Pmax);                
+                    solverCalcMinMax(solver, E, kk, &Pmin, &Pmax);
                 }
                 
                 for(jj=0; jj<E->Np; jj++)
@@ -347,12 +392,9 @@ void inter(SOLVER* solver)
                     p1 = E->p[(jj+1)%E->Np];
                     xm = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
                     ym = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;        
-                    d2 = (dPx*(xm - x0) + dPy*(ym - y0));
-                    //phi0 = limiterBJ(solver->mesh->elemL[ii]->P[kk], Pmin, Pmax, d2);
+                    d2 = (solver->dPx[kk][ii]*(xm - x0) + solver->dPy[kk][ii]*(ym - y0));
                     
-                    double ee = solver->K3*Pref2[kk]*hRatio3;
-                    
-                    phi0 = limiterV2(E->P[kk], Pmin, Pmax, d2, ee);
+                    phi0 = limiterV2(E->P[kk], Pmin, Pmax, d2, solver->K3*Pref2[kk]*hRatio3);
                     
                     if(jj==0)
                     {
@@ -364,8 +406,7 @@ void inter(SOLVER* solver)
                     }			            
                 }
 
-                solver->dPx[kk][ii] = phi*dPx*blend;
-                solver->dPy[kk][ii] = phi*dPy*blend;
+                solver->phi[kk][ii] = phi*blend;
             }   
         }
     }
@@ -403,15 +444,15 @@ void inter(SOLVER* solver)
 		    
             for(kk=0; kk<4; kk++)
 		    {                
-	            PL[kk] = E0->P[kk] + solver->dPx[kk][e0]*(xm - x0) + solver->dPy[kk][e0]*(ym - y0);
-	            PR[kk] = E1->P[kk] + solver->dPx[kk][e1]*(xm - x1) + solver->dPy[kk][e1]*(ym - y1);
+	            PL[kk] = E0->P[kk] + (solver->dPx[kk][e0]*(xm - x0) + solver->dPy[kk][e0]*(ym - y0))*solver->phi[kk][e0];
+	            PR[kk] = E1->P[kk] + (solver->dPx[kk][e1]*(xm - x1) + solver->dPy[kk][e1]*(ym - y1))*solver->phi[kk][e1];
             }
             
             if(solver->Nvar == 5)
             {
                 kk = 4;
-                PL[kk] = E0->P[5] + solver->dPx[kk][e0]*(xm - x0) + solver->dPy[kk][e0]*(ym - y0);
-	            PR[kk] = E1->P[5] + solver->dPx[kk][e1]*(xm - x1) + solver->dPy[kk][e1]*(ym - y1);
+                PL[kk] = E0->P[5] + (solver->dPx[kk][e0]*(xm - x0) + solver->dPy[kk][e0]*(ym - y0))*solver->phi[kk][e0];
+	            PR[kk] = E1->P[5] + (solver->dPx[kk][e1]*(xm - x1) + solver->dPy[kk][e1]*(ym - y1))*solver->phi[kk][e1];
             }  
         }
         else
@@ -479,31 +520,6 @@ void inter(SOLVER* solver)
 
 void interVisc(SOLVER* solver)
 {
-
-    # pragma omp parallel for
-    for(int ii=0; ii<solver->mesh->Nelem; ii++)
-    {
-        int kk;
-        double dPx, dPy, Pmin, Pmax;
-        ELEMENT* E = solver->mesh->elemL[ii];
-
-  	    kk = 1;
-        solverCalcGrad2(solver, E, kk, &dPx, &dPy, &Pmin, &Pmax);
-        solver->dPx[kk][ii] = dPx;
-        solver->dPy[kk][ii] = dPy;
-        
-        kk = 2;
-        solverCalcGrad2(solver, E, kk, &dPx, &dPy, &Pmin, &Pmax);
-        solver->dPx[kk][ii] = dPx;
-        solver->dPy[kk][ii] = dPy;
-        
-        // grad p storage is being reused for T grad
-        kk = 3;
-        solverCalcGrad2(solver, E, 4, &dPx, &dPy, &Pmin, &Pmax);
-        solver->dPx[kk][ii] = dPx;
-        solver->dPy[kk][ii] = dPy;            
-    }
-    
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Ncon; ii++)
     {
@@ -603,7 +619,9 @@ void solverCalcR(SOLVER* solver, double** U)
 {
 
     solverResetR(solver);
-    solverCalcPrimitive(solver, U);    
+    solverCalcPrimitive(solver, U);
+    solverUpdateGrad(solver);
+
     inter(solver);
     boundary(solver); 
     
@@ -614,12 +632,14 @@ void solverCalcR(SOLVER* solver, double** U)
     
     if(solver->laminar==1)
     {
+        solverGrad_T(solver);
         interVisc(solver);
         boundaryVisc(solver);
     }
     
     if(solver->sa==1)
     {
+        solverGrad_T(solver);
         saInter(solver);
         saBoundary(solver);
     }
@@ -882,6 +902,64 @@ void solverCalcGrad2(SOLVER* solver, ELEMENT* E, int kk, double* dUx, double* dU
         *Umin = fmin(*Umin, u[ii]);        
     }
 }
+
+void solverCalcGrad3(SOLVER* solver, ELEMENT* E, int kk, double* dUx, double* dUy)
+{
+    /*
+    Least squares calculation
+    */
+
+    double xx, yy;
+    double x[5];
+    double y[5];    
+    double u[5];    
+    double a, b, c, A, B;
+
+    int nN = E->Np;
+        
+    elementCenter(E, solver->mesh, &xx, &yy);
+    x[0] = xx;
+    y[0] = yy;
+    u[0] = E->P[kk];
+
+    for(int jj=0; jj<nN; jj++)
+    {
+        elementCenter(E->neiL[jj], solver->mesh, &xx, &yy);
+        x[jj+1] = xx;
+        y[jj+1] = yy;
+        u[jj+1] = E->neiL[jj]->P[kk];
+    }
+    
+    a = 0;    
+    b = 0;
+    c = 0;
+    A = 0;
+    B = 0;
+    for(int jj=1; jj<nN+1; jj++)
+    {
+        a += (x[jj] - x[0])*(x[jj] - x[0]);
+        b += (x[jj] - x[0])*(y[jj] - y[0]);
+        c += (y[jj] - y[0])*(y[jj] - y[0]);
+        A += (x[jj] - x[0])*(u[jj] - u[0]);
+        B += (y[jj] - y[0])*(u[jj] - u[0]);
+    }
+        
+    *dUx = (c*A - b*B)/(a*c - b*b);
+    *dUy = (-b*A + a*B)/(a*c - b*b);
+}
+
+void solverCalcMinMax(SOLVER* solver, ELEMENT* E, int kk, double* Umin, double* Umax)
+{    
+    *Umin = E->P[kk];
+    *Umax = E->P[kk];
+    
+    for(int ii=0; ii<E->Np; ii++)
+    {
+        *Umax = fmax(*Umax, E->neiL[ii]->P[kk]);
+        *Umin = fmin(*Umin, E->neiL[ii]->P[kk]);        
+    }
+}
+
 
 void solverCheckGrad(SOLVER* solver)
 {

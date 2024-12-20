@@ -54,7 +54,8 @@ typedef struct {
     double **faceFlux;       
     double **dPx;
     double **dPy;  
-    
+    double **phi;    
+
     CONDITION* inlet;
         
     MESH* mesh;
@@ -89,6 +90,10 @@ void solverCalcVel(SOLVER* solver, double** U, int ii, double* u, double* v, dou
 
 void rotation(double* U, double dSx, double dSy, double dS);
 
+void solverUpdateGrad(SOLVER* solver);
+
+void solverGrad_T(SOLVER* solver);
+
 void inter(SOLVER* solver);
 
 void interVisc(SOLVER* solver);
@@ -112,6 +117,10 @@ void solverCalcDt(SOLVER* solver);
 void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, double xm);
 
 void solverCalcGrad2(SOLVER* solver, ELEMENT* E, int kk, double* dUx, double* dUy, double* Umin, double* Umax);
+
+void solverCalcGrad3(SOLVER* solver, ELEMENT* E, int kk, double* dUx, double* dUy);
+
+void solverCalcMinMax(SOLVER* solver, ELEMENT* E, int kk, double* Umin, double* Umax);
 
 void solverCheckGrad(SOLVER* solver);
 

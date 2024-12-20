@@ -1,8 +1,6 @@
 
 void saInitU(SOLVER* solver, CONDITION* inside);
 
-void saGrad(SOLVER* solver);
-
 void saInterFace(SOLVER* solver);
 
 void saInterSource(SOLVER* solver);
