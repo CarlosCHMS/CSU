@@ -72,6 +72,14 @@ typedef struct FACE
 
 } FACETYPE;
 
+typedef struct
+{
+    double c;
+    int size;
+    int* Nf;
+    FACETYPE** fArray;
+
+} HASHTABLE;
 
 char meshGetWord(FILE* ff, char* s);
  
@@ -109,6 +117,8 @@ void meshCalcConnection2(MESH* mesh);
 
 void meshCalcConnection3(MESH* mesh);
 
+void meshCalcConnection4(MESH* mesh);
+
 void meshPrintConnection(MESH* mesh, int N);
 
 void meshCalcDS(MESH* mesh, int p0, int p1, double* dSx, double* dSy);
@@ -136,3 +146,11 @@ void meshCheckBorderOrientation(MESH* mesh);
 void meshFixBorderOrientation(MESH* mesh);
 
 void meshCalcFaces(MESH* mesh);
+
+HASHTABLE* meshInitHashTable(int size);
+
+void meshFreeHashTable(HASHTABLE* ht);
+
+void meshInsertHashTable(HASHTABLE* ht, MESH* mesh, int p0, int p1, int elemIndex);
+
+void meshCheckHashTable(HASHTABLE* ht);

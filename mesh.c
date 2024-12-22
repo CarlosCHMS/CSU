@@ -219,7 +219,7 @@ MESH* meshInit(char* fileName, int Nvar, int axi)
     fclose(ff);
 
     printf("mesh: calculating connections.\n");   
-    meshCalcConnection3(mesh);
+    meshCalcConnection4(mesh);
     
     printf("mesh: calculating neighbors.\n");
     meshCalcNeighbors(mesh);
@@ -727,6 +727,7 @@ void meshCalcConnection3(MESH* mesh)
 
 }
 
+
 void meshPrintConnection(MESH* mesh, int N)
 {
     for(int ii=0; ii<N; ii++)
@@ -1053,4 +1054,186 @@ void meshCalcFaces(MESH* mesh)
         
     }
 }
+
+HASHTABLE* meshInitHashTable(int size)
+{
+    
+    HASHTABLE* ht = malloc(sizeof(HASHTABLE));
+    ht->size = size;
+    ht->Nf = malloc(size*sizeof(int));
+    ht->fArray = malloc(size*sizeof(FACETYPE*));    
+    
+    for(int ii=0; ii<size; ii++)
+    {
+        ht->Nf[ii] = 0;
+    }
+    
+    ht->c = (sqrt(5)-1.0)/2.0;
+    
+    return ht;
+}
+
+void meshFreeHashTable(HASHTABLE* ht)
+{
+    FACETYPE* face;
+    FACETYPE* next;
+    for(int ii=0; ii<ht->size; ii++)
+    {
+        for(int kk=0; kk<ht->Nf[ii]; kk++)
+        {
+            if(kk==0)
+            {
+                face = ht->fArray[ii];
+            }
+            else
+            {
+                face = next;
+            }
+            next = face->next;
+            free(face);
+        }
+    }    
+
+    free(ht->fArray);
+    free(ht->Nf);
+    free(ht);
+}
+
+int meshHashFunc(HASHTABLE* ht, int p0, int p1)
+{
+    //return (p0 + p1)%ht->size;
+    
+    double aux = (p0 + p1)*ht->c;
+    aux = aux - floor(aux);
+    return floor(ht->size*aux);
+}
+
+void meshInsertHashTable(HASHTABLE* ht, MESH* mesh, int p0, int p1, int elemIndex)
+{
+    FACETYPE* face;
+    FACETYPE* face0;
+        
+    face = malloc(sizeof(FACETYPE));    
+    face->p0 = p0;
+    face->p1 = p1;
+    face->e0 = elemIndex;
+    face->full = 0;
+    
+    int flagCommon;
+    
+    int index = meshHashFunc(ht, p0, p1);
+    if(ht->Nf[index] == 0)
+    {        
+        ht->fArray[index] = face;
+        ht->Nf[index] += 1;
+    }
+    else
+    {
+        flagCommon = 0;
+        face0 = ht->fArray[index];
+        for(int kk=0; kk<ht->Nf[index]; kk++)
+        {
+            if(kk>0)
+            {
+                face0 = face0->next;
+            }
+        
+            if(meshSameFace(face0, face))
+            {
+                face0->e1 = face->e0;
+                face0->full = 1;
+                flagCommon = 1;
+                mesh->Ncon += 1;
+                break;
+            }
+        }
+        
+        if(flagCommon)
+        {
+            free(face);
+        }
+        else
+        {
+            face0->next = face;
+            ht->Nf[index] += 1;    
+        }
+    }
+}
+
+void meshCheckHashTable(HASHTABLE* ht)
+{
+    FACETYPE* face;
+    int n = 0;
+    for(int ii=0; ii<ht->size; ii++)
+    {
+        printf("%i, ", ii);
+        if(ht->Nf[ii]>0)
+        {
+            n += 1;
+        }
+        for(int kk=0; kk<ht->Nf[ii]; kk++)
+        {
+            if(kk==0)
+            {
+                face = ht->fArray[ii];
+            }
+            else
+            {
+                face = face->next;
+            }
+            printf("(%i, %i), ", face->p0, face->p1);
+        }
+        printf("\n");
+    }
+    printf("\nFrac: %f\n", n/(ht->size+0.0));
+}
+
+void meshCalcConnection4(MESH* mesh)
+{
+    HASHTABLE* ht = meshInitHashTable(mesh->Nelem + mesh->Np);
+    mesh->Ncon = 0;  
+    int p0, p1;
+
+    FACETYPE* face;
+
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        for(int jj=0; jj<mesh->elemL[ii]->Np; jj++)
+        {
+            p0 = mesh->elemL[ii]->p[jj];
+            p1 = mesh->elemL[ii]->p[(jj+1)%mesh->elemL[ii]->Np];
+            meshInsertHashTable(ht, mesh, p0, p1, ii);
+        }        
+    }
+        
+    //meshCheckHashTable(ht);
+
+    mesh->con = tableMallocInt(mesh->Ncon, 4);
+    int jj = 0;
+    for(int ii=0; ii<ht->size; ii++)
+    {
+        for(int kk=0; kk<ht->Nf[ii]; kk++)
+        {
+            if(kk==0)
+            {
+                face = ht->fArray[ii];
+            }
+            else
+            {
+                face = face->next;
+            }
+            
+            if(face->full)
+            {
+                mesh->con[jj][0] = face->e0;
+                mesh->con[jj][1] = face->e1;
+                mesh->con[jj][2] = face->p0;
+                mesh->con[jj][3] = face->p1;
+                jj += 1;        
+            }
+        }
+    }
+    meshFreeHashTable(ht);
+}
+
 
