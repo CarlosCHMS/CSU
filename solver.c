@@ -3,6 +3,7 @@
 #include<math.h>
 #include<string.h>
 #include<sys/time.h>
+#include <stdbool.h>
 #include<omp.h>
 #include"utils.h"
 #include"input.h"
@@ -12,6 +13,8 @@
 #include"boundary.h"
 #include"readTables.h"
 #include"sa.h"
+#include"implicit.h"
+
 
 CONDITION* conditionInit(double p, double T, double mach, double nx, double ny)
 {
@@ -84,6 +87,20 @@ void solverMalloc(SOLVER* solver)
         solver->dtL = malloc(solver->mesh->Nelem*sizeof(double));
     }
     
+    if(solver->implicitFlag)
+    {
+        solver->dW0 = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
+        solver->dW1 = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
+        solver->D = malloc(solver->mesh->Nelem*sizeof(double));
+        solver->dtL = malloc(solver->mesh->Nelem*sizeof(double));
+    }
+
+    if(solver->sa)
+    {
+        solver->miT = malloc(solver->mesh->Ncon*sizeof(double));
+    }
+
+    
 }
 
 void solverFree(SOLVER* solver)
@@ -103,8 +120,23 @@ void solverFree(SOLVER* solver)
         free(solver->dtL);
     }
     
-    inputFree(solver->input);
+    if(solver->implicitFlag)
+    {
+        tableFreeDouble(solver->dW0, solver->Nvar);
+        tableFreeDouble(solver->dW1, solver->Nvar);
+        free(solver->D);
+        free(solver->dtL);        
+    }
+
+    if(solver->sa)
+    {
+        free(solver->miT);
+    }
     
+    inputFree(solver->input);
+
+    free(solver);
+
 }
 
 void solverWriteSolution(SOLVER* solver)
@@ -451,8 +483,16 @@ void inter(SOLVER* solver)
             if(solver->Nvar == 5)
             {
                 kk = 4;
-                PL[kk] = E0->P[5] + (solver->dPx[kk][e0]*(xm - x0) + solver->dPy[kk][e0]*(ym - y0))*solver->phi[kk][e0];
-	            PR[kk] = E1->P[5] + (solver->dPx[kk][e1]*(xm - x1) + solver->dPy[kk][e1]*(ym - y1))*solver->phi[kk][e1];
+                if(solver->turb1order)
+                {
+                    PL[kk] = E0->P[5];
+	                PR[kk] = E1->P[5];
+	            }
+	            else
+	            {
+	                PL[kk] = E0->P[5] + (solver->dPx[kk][e0]*(xm - x0) + solver->dPy[kk][e0]*(ym - y0))*solver->phi[kk][e0];
+	                PR[kk] = E1->P[5] + (solver->dPx[kk][e1]*(xm - x1) + solver->dPy[kk][e1]*(ym - y1))*solver->phi[kk][e1];
+	            }
             }  
         }
         else
@@ -648,6 +688,7 @@ void solverCalcR(SOLVER* solver, double** U)
 
 void solverRK(SOLVER* solver, double a)
 {   
+    double sigma = 0.5*solver->stages;
     if(solver->dtLocal == 1)
     {
         # pragma omp parallel for
@@ -655,7 +696,7 @@ void solverRK(SOLVER* solver, double a)
         {
             for(int kk=0; kk<solver->Nvar; kk++)
             {            
-                solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dtL[ii]*a*solver->R[kk][ii]/solver->mesh->elemL[ii]->omega;
+                solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dtL[ii]*sigma*a*solver->R[kk][ii]/solver->mesh->elemL[ii]->omega;
             }
         }    
     }
@@ -666,7 +707,7 @@ void solverRK(SOLVER* solver, double a)
         {
             for(int kk=0; kk<solver->Nvar; kk++)
             {            
-                solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dt*a*solver->R[kk][ii]/solver->mesh->elemL[ii]->omega;
+                solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dt*sigma*a*solver->R[kk][ii]/solver->mesh->elemL[ii]->omega;
             }
         }
     }
@@ -694,8 +735,12 @@ void solverUpdateU(SOLVER* solver)
 
 void solverStepRK(SOLVER* solver)
 {   
-
-    if(solver->stages==3)
+    if(solver->stages==1)
+    {
+        solverCalcR(solver, solver->U);
+        solverRK(solver, 1.0);
+    }
+    else if(solver->stages==3)
     {
         solverCalcR(solver, solver->U);
         solverRK(solver, 0.1481);
@@ -803,7 +848,7 @@ void solverCalcDt(SOLVER* solver)
     {
         for(int ii=0; ii<solver->mesh->Nelem; ii++)
         {
-            solver->dtL[ii] = (solver->CFL*0.5*solver->stages)*solverLocalTimeStep(solver, ii);
+            solver->dtL[ii] = solver->CFL*solverLocalTimeStep(solver, ii);
         }
     }
     else
@@ -819,7 +864,7 @@ void solverCalcDt(SOLVER* solver)
             }
         }
 
-        dt *= solver->CFL*0.5*solver->stages;
+        dt *= solver->CFL;
         solver->dt = dt;
     }
 }
@@ -1379,6 +1424,33 @@ void solverSetData(SOLVER* solver, INPUT* input)
     {
         solver->dtLocalN = -1;
     }
+    
+    if(inputNameIsInput(input, "implicit"))
+    {
+        solver->implicitFlag = atoi(inputGetValue(input, "implicit"));
+    }
+    else
+    {
+        solver->implicitFlag = 0;
+    }
+    
+    if(inputNameIsInput(input, "wImp"))
+    {
+        solver->wImp = strtod(inputGetValue(input, "wImp"), NULL);
+    }
+    else
+    {
+        solver->wImp = 1.0;
+    }    
+
+    if(inputNameIsInput(input, "turb1order"))
+    {
+        solver->turb1order = atoi(inputGetValue(input, "turb1order"));
+    }
+    else
+    {
+        solver->turb1order = 0;
+    }
 
     // Selection of several variables
     solver->flux = fluxChoice(inputGetValue(input, "flux"));
@@ -1548,8 +1620,15 @@ void solverSolve(SOLVER* solver)
         printf("\nmain: running solution:\n");
         for(int ii=0; ii<Nmax; ii++)
         {
-            solverCalcDt(solver);
-            solverStepRK(solver);
+            if(solver->implicitFlag)
+            {
+                solverStepImplicit(solver);
+            }
+            else
+            {
+                solverCalcDt(solver);
+                solverStepRK(solver);
+            }
             
             if(ii == solver->dtLocalN)
             {
@@ -1610,3 +1689,28 @@ void solverSolve(SOLVER* solver)
     }
 }
 
+void solverUpdateUImplicit(SOLVER* solver)
+{
+    # pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        for(int kk=0; kk<solver->Nvar; kk++)
+        {            
+            solver->Uaux[kk][ii] = solver->U[kk][ii] + solver->dW1[kk][ii];
+        }
+    }
+}
+
+void solverStepImplicit(SOLVER* solver)
+{   
+    solverCalcR(solver, solver->U);
+    
+    implicitCalcD(solver);
+    //implicitTest(solver);
+    
+    implicitLUSGS_L(solver);
+    implicitLUSGS_U(solver);
+    
+    solverUpdateUImplicit(solver);
+    solverUpdateU(solver);
+}

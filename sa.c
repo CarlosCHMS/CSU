@@ -4,6 +4,7 @@
 #include<string.h>
 #include<sys/time.h>
 #include<omp.h>
+#include <stdbool.h>
 #include"utils.h"
 #include"input.h"
 #include"mesh.h"
@@ -93,6 +94,8 @@ void saInterFace(SOLVER* solver)
         double mi_t = fv1*r*n;
         double mi = mi_L + mi_t;
         double k = solver->Cp*(mi_L/solver->Pr + mi_t/solver->Pr_t);
+
+        solver->miT[ii] = mi_t;
 
 	    double txx = 2*mi*(dux - (dux + dvy)/3);
 	    double tyy = 2*mi*(dvy - (dux + dvy)/3);

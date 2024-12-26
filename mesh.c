@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include <stdbool.h>
 #include<math.h>
 #include"utils.h"
 #include"mesh.h"
@@ -59,14 +60,14 @@ ELEMENT* meshElementMalloc(int type, int Nvar)
         e->p = malloc(e->Np*sizeof(int));
         e->neiL = malloc(e->Np*sizeof(ELEMENT));        
         e->f = malloc(e->Np*sizeof(int));
-        e->neiN = 0;        
+        e->neiN = 0;               
     }
     else if(type==0)
     {
         e->Np = 2;
         e->p = malloc(e->Np*sizeof(int));
         e->neiL = malloc(sizeof(ELEMENT));                
-        e->neiN = 0;        
+        e->neiN = 0;                
     }
   
     e->P = malloc((Nvar+1)*sizeof(double));

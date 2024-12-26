@@ -25,6 +25,8 @@ typedef struct {
     int restart;
     int sa;
     int dtLocal;
+    int implicitFlag;
+    int turb1order;
 
     char* wd;
 
@@ -45,8 +47,11 @@ typedef struct {
     double Sref;
     double dtLocalN;
     double K3;
+    double wImp;
 
     double *dtL;
+    double *D;
+    double *miT;
             
     double **U;
     double **R;
@@ -54,8 +59,10 @@ typedef struct {
     double **faceFlux;       
     double **dPx;
     double **dPy;  
-    double **phi;    
-
+    double **phi;
+    double **dW0;
+    double **dW1;
+    
     CONDITION* inlet;
         
     MESH* mesh;
@@ -151,3 +158,7 @@ SOLVER* solverInit(char* wd);
 void solverInitDomain(SOLVER* solver);
 
 void solverSolve(SOLVER* solver);
+
+void solverUpdateUImplicit(SOLVER* solver);
+
+void solverStepImplicit(SOLVER* solver);

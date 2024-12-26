@@ -4,6 +4,7 @@
 #include<string.h>
 #include<sys/time.h>
 #include<omp.h>
+#include <stdbool.h>
 #include"input.h"
 #include"mesh.h"
 #include"solver.h"

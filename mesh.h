@@ -1,7 +1,6 @@
 
 typedef struct ELEM
 {
-
     int ii;
     int Np;
     int neiN;

@@ -4,11 +4,13 @@
 #include<string.h>
 #include<sys/time.h>
 #include<omp.h>
+#include <stdbool.h>
 #include"input.h"
 #include"mesh.h"
 #include"solver.h"
 #include"flux.h"
 #include"boundary.h"
+
 
 void boundaryInlet(SOLVER* solver, double* Pa, double* Pd, double* Pb, double nx, double ny)
 {
