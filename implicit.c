@@ -453,7 +453,7 @@ void implicitInitDPLUR(SOLVER* solver)
         }
     }
     
-    #pragma omp parellel for
+    #pragma omp parallel for
     for(int ii=0; ii<mesh->Nelem; ii++)
     {
         for(int kk=0; kk<solver->Nvar; kk++)
@@ -500,7 +500,7 @@ void implicitUpdateA(SOLVER* solver)
     MESH* mesh = solver->mesh;
     double h = 1.0e-6;
     
-    #pragma omp parellel for
+    #pragma omp parallel for
     for(int ii=0; ii<mesh->Nelem; ii++)
     {
         BLOCK* B;
@@ -616,7 +616,7 @@ void implicitUpdateA_sa(SOLVER* solver)
     MESH* mesh = solver->mesh;
     double h = 1.0e-6;
     
-    #pragma omp parellel for
+    #pragma omp parallel for
     for(int ii=0; ii<mesh->Nelem; ii++)
     {
         BLOCK* B;
