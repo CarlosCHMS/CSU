@@ -14,16 +14,17 @@ INPUT* inputInit(char* fileName, int N)
     int ii, jj;
     
     input->Nmax = N;
+    int Nenters = 100;
     
-    input->name = (char**)malloc(N*sizeof(char*));    
-    for(ii=0; ii<N; ii++)
+    input->name = (char**)malloc(Nenters*sizeof(char*));    
+    for(ii=0; ii<Nenters; ii++)
     {
         input->name[ii] = (char*)malloc(N*sizeof(char));
         input->name[ii][0] = '\0';
     }
     
-    input->value = (char**)malloc(N*sizeof(char*));    
-    for(ii=0; ii<N; ii++)
+    input->value = (char**)malloc(Nenters*sizeof(char*));    
+    for(ii=0; ii<Nenters; ii++)
     {
         input->value[ii] = (char*)malloc(N*sizeof(char));
         input->value[ii][0] = '\0';

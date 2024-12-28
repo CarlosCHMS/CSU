@@ -19,3 +19,15 @@ void implicitAuxCalcFlux_sa(SOLVER* solver, double rho, double u, double v, doub
 void implicitCalcDeltaFlux_sa(SOLVER* solver, double rho, double u, double v, double p, double n, double d0, double d1, double d2, double d3, double d4, double nx, double ny, double* dF);
 
 void implicitTest(SOLVER* solver);
+
+void implicitInitDPLUR(SOLVER* solver);
+
+void implicitFreeDPLUR(SOLVER* solver);
+
+void implicitUpdateA(SOLVER* solver);
+
+void implicitUpdateA_sa(SOLVER* solver);
+
+void implicitMultA(SOLVER* solver, double** x, double** y);
+
+void implicitCalcDPLUR(SOLVER* solver);

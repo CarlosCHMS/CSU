@@ -1,4 +1,12 @@
 
+typedef struct BAUX{
+
+    int ii;
+    double** A;
+    struct BAUX* next;
+
+} BLOCK;
+
 typedef struct{
 
     double p;
@@ -25,8 +33,9 @@ typedef struct {
     int restart;
     int sa;
     int dtLocal;
-    int implicitFlag;
     int turb1order;
+    int timeScheme;
+    int Nlinear;
 
     char* wd;
 
@@ -36,8 +45,7 @@ typedef struct {
     double dt;
     double pout;
     double turbRatio; 
-    double eFix;       
-    double e; 
+    double eFix; 
     double k; 
     double res[5];
     double CFL;
@@ -48,6 +56,7 @@ typedef struct {
     double dtLocalN;
     double K3;
     double wImp;
+    double tol;
 
     double *dtL;
     double *D;
@@ -62,6 +71,10 @@ typedef struct {
     double **phi;
     double **dW0;
     double **dW1;
+    double **uD;
+    double **rD;    
+    
+    BLOCK** BB;
     
     CONDITION* inlet;
         
@@ -143,6 +156,8 @@ void solverCalcUfromP(SOLVER* solver, double r, double u, double v, double p, do
 
 double sutherland(double T);
 
+int solverTimeSchemeChoice(char* s);
+
 void solverPrintP(SOLVER* solver);
 
 void solverCalcCoeff(SOLVER* solver, double *Fx, double *Fy);
@@ -161,4 +176,4 @@ void solverSolve(SOLVER* solver);
 
 void solverUpdateUImplicit(SOLVER* solver);
 
-void solverStepImplicit(SOLVER* solver);
+int solverTimeSchemeChoice(char* s);

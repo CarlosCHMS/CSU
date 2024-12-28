@@ -389,7 +389,7 @@ void implicitFunc_sa(SOLVER* solver, int e0, int e1, int p0, int p1, int face1, 
     elementCenter(E1, solver->mesh, &x1, &y1);
     
     double d = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
-    ra += fmax(4/(3*r), solver->gamma/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS/d;                    
+    ra += fmax(4/(3*r), solver->gamma/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS/d;
 
     for(int kk=0; kk<solver->Nvar; kk++)
     {
@@ -408,4 +408,418 @@ void implicitTest(SOLVER* solver)
     }
 }
 
+
+void implicitInitDPLUR(SOLVER* solver)
+{
+    MESH* mesh = solver->mesh;
+
+    #pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        ELEMENT* E = solver->mesh->elemL[ii];
+        BLOCK* B;
+                
+        for(int jj=0; jj<E->neiN; jj++)
+        {
+            int face = E->f[jj];
+            int e0, e1, face1;
+            if(face > 0)
+            {
+                face1 = face-1;
+                e0 = mesh->con[face1][0];
+                e1 = mesh->con[face1][1];
+            }
+            else if(face < 0)
+            {
+                face1 = -face-1;
+                e1 = mesh->con[face1][0];
+                e0 = mesh->con[face1][1];
+            }
+
+            if(jj == 0)
+            {
+                B = malloc(sizeof(BLOCK));
+                B->A = tableMallocDouble(solver->Nvar, solver->Nvar);
+                B->ii = e1;            
+                solver->BB[ii] = B;
+            }
+            else
+            {
+                B->next = malloc(sizeof(BLOCK));
+                B = B->next;
+                B->A = tableMallocDouble(solver->Nvar, solver->Nvar);
+                B->ii = e1;            
+            }
+        }
+    }
+    
+    #pragma omp parellel for
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        for(int kk=0; kk<solver->Nvar; kk++)
+        {
+            solver->dW1[kk][ii] = 0.0;
+        }
+    }    
+}
+
+
+void implicitFreeDPLUR(SOLVER* solver)
+{
+    MESH* mesh = solver->mesh;
+
+    #pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        ELEMENT* E = solver->mesh->elemL[ii];
+        BLOCK* B;
+        BLOCK* Bold;
+        
+        for(int jj=0; jj<E->neiN; jj++)
+        {
+            if(jj == 0)
+            {
+                B = solver->BB[ii];
+                tableFreeDouble(B->A, solver->Nvar);
+            }
+            else
+            {
+                Bold = B;
+                B = Bold->next;
+                free(Bold);
+                tableFreeDouble(B->A, solver->Nvar);
+            }
+        }
+        free(B);
+    }
+}
+
+
+void implicitUpdateA(SOLVER* solver)
+{
+    MESH* mesh = solver->mesh;
+    double h = 1.0e-6;
+    
+    #pragma omp parellel for
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        BLOCK* B;
+        ELEMENT* E = mesh->elemL[ii];
+                
+        for(int jj=0; jj<E->neiN; jj++)
+        {        
+            if(jj==0)
+            {
+                B = solver->BB[ii];
+            }
+            else
+            {
+                B = B->next;
+            }
+            
+            int face = E->f[jj];
+            int face1;
+            int e0, e1, p0, p1;
+            if(face > 0)
+            {
+                face1 = face-1;
+                e0 = mesh->con[face1][0];
+                e1 = mesh->con[face1][1];
+                p0 = mesh->con[face1][2];
+                p1 = mesh->con[face1][3];
+            }
+            else if(face < 0)
+            {
+                face1 = -face-1;
+                e1 = mesh->con[face1][0];
+                e0 = mesh->con[face1][1];
+                p1 = mesh->con[face1][2];
+                p0 = mesh->con[face1][3];
+            }            
+            
+            double dSx, dSy, dS;
+            double nx, ny;
+            double x0, y0, x1, y1;
+            
+            ELEMENT* E0 = solver->mesh->elemL[e0];
+            ELEMENT* E1 = solver->mesh->elemL[e1];        
+
+            meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+            dS = sqrt(dSx*dSx + dSy*dSy);
+                
+            nx = dSx/dS;
+            ny = dSy/dS;
+            
+            double F0[4];
+            double F[4];
+            double U[4];
+
+            double rho, u, v, E, p;
+
+            implicitAuxCalcFlux(solver, E1->P[0], E1->P[1], E1->P[2], E1->P[3], nx, ny, F0);
+            
+            for(int mm=0; mm<4; mm++)
+            {            
+                for(int nn=0; nn<4; nn++)
+                {   
+                    if(mm == nn)
+                    {
+                        U[nn] = solver->U[nn][e1] + h;
+                    }
+                    else
+                    {
+                        U[nn] = solver->U[nn][e1];
+                    }
+                } 
+                
+                rho = U[0];
+                u = U[1]/rho;
+                v = U[2]/rho;
+                E = U[3]/rho;
+
+                p = (solver->gamma-1)*rho*(E - 0.5*(u*u + v*v));            
+
+                implicitAuxCalcFlux(solver, rho, u, v, p, nx, ny, F);
+                
+                for(int nn=0; nn<4; nn++)
+                {
+                    B->A[nn][mm] = 0.5*(F[nn] - F0[nn])*dS/h;
+                }
+            }
+
+            double c = sqrt(solver->gamma*E1->P[3]/E1->P[0]);
+            double ra = solver->wImp*(fabs(nx*E1->P[1] + ny*E1->P[2]) + c)*dS;
+
+            if(solver->laminar)
+            {
+                double r = (E0->P[0] + E1->P[0])*0.5;                
+                double T = (E0->P[4] + E1->P[4])*0.5;
+                double mi = sutherland(T);
+
+                elementCenter(E0, solver->mesh, &x0, &y0);
+                elementCenter(E1, solver->mesh, &x1, &y1);
+                
+                double d = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
+                ra += fmax(4/(3*r), solver->gamma/r)*(mi/solver->Pr)*dS/d;                    
+            }
+
+            for(int nn=0; nn<4; nn++)
+            {
+                B->A[nn][nn] -= 0.5*ra;
+            }              
+        }
+    }
+}
+
+void implicitUpdateA_sa(SOLVER* solver)
+{
+    MESH* mesh = solver->mesh;
+    double h = 1.0e-6;
+    
+    #pragma omp parellel for
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        BLOCK* B;
+        ELEMENT* E = mesh->elemL[ii];
+                
+        for(int jj=0; jj<E->neiN; jj++)
+        {        
+            if(jj==0)
+            {
+                B = solver->BB[ii];
+            }
+            else
+            {
+                B = B->next;
+            }
+            
+            int face = E->f[jj];
+            int face1;
+            int e0, e1, p0, p1;
+            if(face > 0)
+            {
+                face1 = face-1;
+                e0 = mesh->con[face1][0];
+                e1 = mesh->con[face1][1];
+                p0 = mesh->con[face1][2];
+                p1 = mesh->con[face1][3];
+            }
+            else if(face < 0)
+            {
+                face1 = -face-1;
+                e1 = mesh->con[face1][0];
+                e0 = mesh->con[face1][1];
+                p1 = mesh->con[face1][2];
+                p0 = mesh->con[face1][3];
+            }            
+            
+            double dSx, dSy, dS;
+            double nx, ny;
+            double x0, y0, x1, y1;
+            
+            ELEMENT* E0 = solver->mesh->elemL[e0];
+            ELEMENT* E1 = solver->mesh->elemL[e1];        
+
+            meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+            dS = sqrt(dSx*dSx + dSy*dSy);
+                
+            nx = dSx/dS;
+            ny = dSy/dS;
+            
+            double F0[5];
+            double F[5];
+            double U[5];
+
+            double rho, u, v, E, p, n;
+
+            implicitAuxCalcFlux_sa(solver, E1->P[0], E1->P[1], E1->P[2], E1->P[3], E1->P[5], nx, ny, F0);
+            
+            for(int mm=0; mm<5; mm++)
+            {            
+                for(int nn=0; nn<5; nn++)
+                {   
+                    if(mm == nn)
+                    {
+                        U[nn] = solver->U[nn][e1] + h;
+                    }
+                    else
+                    {
+                        U[nn] = solver->U[nn][e1];
+                    }
+                } 
+                
+                rho = U[0];
+                u = U[1]/rho;
+                v = U[2]/rho;
+                E = U[3]/rho;
+                n = U[4]/rho;
+
+                p = (solver->gamma-1)*rho*(E - 0.5*(u*u + v*v));            
+
+                implicitAuxCalcFlux_sa(solver, rho, u, v, p, n, nx, ny, F);
+                
+                for(int nn=0; nn<5; nn++)
+                {
+                    B->A[nn][mm] = 0.5*(F[nn] - F0[nn])*dS/h;
+                }
+            }
+
+            double c = sqrt(solver->gamma*E1->P[3]/E1->P[0]);
+            double ra = solver->wImp*(fabs(nx*E1->P[1] + ny*E1->P[2]) + c)*dS;
+            
+            double r = (E0->P[0] + E1->P[0])*0.5;                
+            double T = (E0->P[4] + E1->P[4])*0.5;
+            double mi = sutherland(T);
+
+            elementCenter(E0, solver->mesh, &x0, &y0);
+            elementCenter(E1, solver->mesh, &x1, &y1);
+            
+            double d = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
+            ra += fmax(4/(3*r), solver->gamma/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS/d;
+    
+            for(int nn=0; nn<5; nn++)
+            {
+                B->A[nn][nn] -= 0.5*ra;
+            }              
+        }
+    }
+}
+
+void implicitMultA(SOLVER* solver, double** x, double** y)
+{
+    MESH* mesh = solver->mesh;
+    
+    #pragma omp parallel for
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        BLOCK* B;
+
+        for(int kk=0; kk<solver->Nvar; kk++)
+        {
+            y[kk][ii] = solver->D[ii]*x[kk][ii];
+        }
+
+        for(int jj=0; jj<mesh->elemL[ii]->neiN; jj++)
+        {
+            if(jj==0)
+            {
+                B = solver->BB[ii];
+            }
+            else
+            {
+                B = B->next;
+            }
+
+            for(int kk=0; kk<solver->Nvar; kk++)
+            {
+                for(int nn=0; nn<solver->Nvar; nn++)
+                {
+                    y[kk][ii] += B->A[kk][nn]*x[nn][B->ii];
+                }
+            }
+        }
+    }
+}
+
+
+double implicitProdInter(SOLVER* solver, double** x, double** y)
+{
+    double ans = 0;
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        for(int kk=0; kk<solver->Nvar; kk++)
+        {
+            ans += x[kk][ii]*y[kk][ii];
+        }
+    }
+
+    return ans;    
+}
+
+
+void implicitCalcDPLUR(SOLVER* solver)
+{
+    implicitCalcD(solver);
+    if(solver->sa)
+    {
+        implicitUpdateA_sa(solver);
+    }
+    else
+    {
+        implicitUpdateA(solver);
+    }
+
+    double w = 2./3.;
+    double** aux;
+    int mm;
+
+    for(mm=0; mm<solver->Nlinear; mm++)
+    {
+        aux = solver->dW1;
+        solver->dW1 = solver->dW0;
+        solver->dW0 = aux;    
+        
+        implicitMultA(solver, solver->dW0, solver->dW1);
+            
+        #pragma omp parallel for
+        for(int ii=0; ii<solver->mesh->Nelem; ii++)
+        {
+            for(int kk=0; kk<solver->Nvar; kk++)
+            {
+                solver->dW1[kk][ii] = w*(-solver->R[kk][ii] - solver->dW1[kk][ii])/solver->D[ii] + solver->dW0[kk][ii];
+            }
+        }
+        
+        double ans = fabs(solver->dW1[0][0] - solver->dW0[0][0]);
+        for(int ii=1; ii<solver->mesh->Nelem; ii++)
+        {
+            ans = fmax(ans, fabs(solver->dW1[0][ii] - solver->dW0[0][ii]));
+        }
+        
+        if(ans<1e-14)
+        {
+            break;
+        }
+    }
+}
 

@@ -75,7 +75,6 @@ double conditionVref(CONDITION* cond, SOLVER* solver)
 void solverMalloc(SOLVER* solver)
 {
     solver->U = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
-    solver->Uaux = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);    
     solver->R = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
     solver->faceFlux = tableMallocDouble(solver->Nvar, solver->mesh->Ncon);
     solver->dPx = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
@@ -86,13 +85,23 @@ void solverMalloc(SOLVER* solver)
     {
         solver->dtL = malloc(solver->mesh->Nelem*sizeof(double));
     }
+
+    if(solver->timeScheme == 0)
+    {
+        solver->Uaux = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
+    }
     
-    if(solver->implicitFlag)
+    if(solver->timeScheme == 1 || solver->timeScheme == 2)
     {
         solver->dW0 = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
         solver->dW1 = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
         solver->D = malloc(solver->mesh->Nelem*sizeof(double));
         solver->dtL = malloc(solver->mesh->Nelem*sizeof(double));
+    }
+    
+    if(solver->timeScheme == 2)
+    {    
+        solver->BB = malloc(solver->mesh->Nelem*sizeof(BLOCK*));
     }
 
     if(solver->sa)
@@ -106,8 +115,26 @@ void solverMalloc(SOLVER* solver)
 void solverFree(SOLVER* solver)
 {
 
+    if(solver->timeScheme == 0)
+    {
+        tableFreeDouble(solver->Uaux, solver->Nvar);
+    }
+
+    if(solver->timeScheme == 1 || solver->timeScheme == 2)
+    {
+        tableFreeDouble(solver->dW0, solver->Nvar);
+        tableFreeDouble(solver->dW1, solver->Nvar);
+        free(solver->D);
+        free(solver->dtL);        
+    }
+    
+    if(solver->timeScheme == 2)
+    {    
+        implicitFreeDPLUR(solver);
+        free(solver->BB);
+    }
+
     tableFreeDouble(solver->U, solver->Nvar);
-    tableFreeDouble(solver->Uaux, solver->Nvar);
     tableFreeDouble(solver->R, solver->Nvar);        
     tableFreeDouble(solver->faceFlux, solver->Nvar);
     tableFreeDouble(solver->dPx, solver->Nvar);
@@ -118,15 +145,7 @@ void solverFree(SOLVER* solver)
     if(solver->dtLocal == 1)
     {
         free(solver->dtL);
-    }
-    
-    if(solver->implicitFlag)
-    {
-        tableFreeDouble(solver->dW0, solver->Nvar);
-        tableFreeDouble(solver->dW1, solver->Nvar);
-        free(solver->D);
-        free(solver->dtL);        
-    }
+    }    
 
     if(solver->sa)
     {
@@ -1360,7 +1379,6 @@ void solverSetData(SOLVER* solver, INPUT* input)
     solver->Pr_t = 0.9;
     solver->Cp = solver->gamma*solver->Rgas/(solver->gamma-1);
     solver->eFix = 0.1;
-    solver->e = strtod(inputGetValue(input, "interpE"), NULL);
     
     if(inputNameIsInput(input, "laminar"))
     {
@@ -1425,15 +1443,6 @@ void solverSetData(SOLVER* solver, INPUT* input)
         solver->dtLocalN = -1;
     }
     
-    if(inputNameIsInput(input, "implicit"))
-    {
-        solver->implicitFlag = atoi(inputGetValue(input, "implicit"));
-    }
-    else
-    {
-        solver->implicitFlag = 0;
-    }
-    
     if(inputNameIsInput(input, "wImp"))
     {
         solver->wImp = strtod(inputGetValue(input, "wImp"), NULL);
@@ -1450,6 +1459,24 @@ void solverSetData(SOLVER* solver, INPUT* input)
     else
     {
         solver->turb1order = 0;
+    }
+
+    if(inputNameIsInput(input, "timeScheme"))
+    {
+        solver->timeScheme = solverTimeSchemeChoice(inputGetValue(input, "timeScheme"));
+    }
+    else
+    {
+        solver->timeScheme = 0;
+    }
+
+    if(inputNameIsInput(input, "Nlinear"))
+    {
+        solver->Nlinear = atoi(inputGetValue(input, "Nlinear"));
+    }
+    else
+    {
+        solver->Nlinear = 20;
     }
 
     // Selection of several variables
@@ -1596,6 +1623,11 @@ SOLVER* solverInit(char* wd)
     // Domain initialization
     solverInitDomain(solver);
     
+    if(solver->timeScheme == 2)
+    {
+        implicitInitDPLUR(solver);
+    }
+    
     return solver;
 }
 
@@ -1620,16 +1652,26 @@ void solverSolve(SOLVER* solver)
         printf("\nmain: running solution:\n");
         for(int ii=0; ii<Nmax; ii++)
         {
-            if(solver->implicitFlag)
-            {
-                solverStepImplicit(solver);
-            }
-            else
+            if(solver->timeScheme == 0)
             {
                 solverCalcDt(solver);
-                solverStepRK(solver);
+                solverStepRK(solver);            
             }
-            
+            else if(solver->timeScheme == 1)
+            {
+                solverCalcR(solver, solver->U);
+                implicitCalcD(solver);
+                implicitLUSGS_L(solver);
+                implicitLUSGS_U(solver);    
+                solverUpdateUImplicit(solver);        
+            }
+            else if(solver->timeScheme == 2)
+            {
+                solverCalcR(solver, solver->U);
+                implicitCalcDPLUR(solver);
+                solverUpdateUImplicit(solver);
+            }
+                    
             if(ii == solver->dtLocalN)
             {
                 solver->dtLocal = 0;
@@ -1696,21 +1738,34 @@ void solverUpdateUImplicit(SOLVER* solver)
     {
         for(int kk=0; kk<solver->Nvar; kk++)
         {            
-            solver->Uaux[kk][ii] = solver->U[kk][ii] + solver->dW1[kk][ii];
+            solver->U[kk][ii] += solver->dW1[kk][ii];
         }
     }
 }
 
-void solverStepImplicit(SOLVER* solver)
-{   
-    solverCalcR(solver, solver->U);
+int solverTimeSchemeChoice(char* s)
+{
+    int ans;
+
+    if(strcmp(s, "RK") == 0)
+    {
+        ans = 0;
+    }
+    else if(strcmp(s, "LUSGS") == 0)
+    {
+        ans = 1;
+    }
+    else if(strcmp(s, "DPLUR") == 0)
+    {
+        ans = 2;
+    }
+    else
+    {
+        printf("Error in time scheme choice: %s.\n", s);
+        exit(0);
+    }
     
-    implicitCalcD(solver);
-    //implicitTest(solver);
-    
-    implicitLUSGS_L(solver);
-    implicitLUSGS_U(solver);
-    
-    solverUpdateUImplicit(solver);
-    solverUpdateU(solver);
+    return ans;
+
 }
+
