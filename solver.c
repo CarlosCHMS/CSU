@@ -1718,7 +1718,7 @@ void solverSolve(SOLVER* solver)
             }
 
             solverStepRK(solver);
-            t += solver->dt;
+            t += solver->dt*solver->stages/2.0;
             ii++;
 
             if(ii%100 == 0)
