@@ -153,3 +153,5 @@ void meshFreeHashTable(HASHTABLE* ht);
 void meshInsertHashTable(HASHTABLE* ht, MESH* mesh, int p0, int p1, int elemIndex);
 
 void meshCheckHashTable(HASHTABLE* ht);
+
+int meshBandCalc(MESH* mesh);

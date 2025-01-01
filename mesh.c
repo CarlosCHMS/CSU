@@ -222,6 +222,9 @@ MESH* meshInit(char* fileName, int Nvar, int axi)
     printf("mesh: calculating connections.\n");   
     meshCalcConnection4(mesh);
     
+    int K = meshBandCalc(mesh);
+    printf("mesh bandwidth: %e.\n", K/(mesh->Nelem + 0.0));
+    
     printf("mesh: calculating neighbors.\n");
     meshCalcNeighbors(mesh);
     for(ii=0; ii<mesh->Nmark; ii++)
@@ -1237,4 +1240,14 @@ void meshCalcConnection4(MESH* mesh)
     meshFreeHashTable(ht);
 }
 
+int meshBandCalc(MESH* mesh)
+{
+    int K = 0;
+    for(int ii=0; ii<mesh->Ncon; ii++)
+    {
+        K = fmax(K, fabs(mesh->con[ii][0] - mesh->con[ii][1]));
+    }
+
+    return K;
+}
 
