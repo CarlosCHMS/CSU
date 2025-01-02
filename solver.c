@@ -416,8 +416,7 @@ void inter(SOLVER* solver)
         for(int ii=0; ii<solver->mesh->Nelem; ii++)
         {
 	        int jj, kk, p0, p1;
-            double dPx, dPy;
-            double x0, y0, d2, phi0, phi, xm, ym;
+            double x0, y0, d2, phi0, phi = 0, xm, ym;
             double Pmin, Pmax; 
             double blend = 1.0;
             ELEMENT* E = solver->mesh->elemL[ii];
@@ -470,8 +469,8 @@ void inter(SOLVER* solver)
 	    int kk;
         double dSx, dSy, dS;
         double x0, y0, x1, y1, xm, ym;
-        double PL[5];
-	    double PR[5];
+        double PL[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
+	    double PR[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
         double f[5];
  
         int e0 = solver->mesh->con[ii][0];

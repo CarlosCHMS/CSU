@@ -110,8 +110,6 @@ double elementIsConnected(ELEMENT* e0, ELEMENT* e1, int* p0, int* p1);
 
 int meshSameFace(FACETYPE* f0, FACETYPE* f1);
 
-void meshCalcConnection1(MESH* mesh);
-
 void meshCalcConnection2(MESH* mesh);
 
 void meshCalcConnection3(MESH* mesh);

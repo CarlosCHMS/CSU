@@ -528,7 +528,6 @@ void saCalcD(MESH* mesh)
         //printf("%i\n", mesh->bc[jj]->flagBC);
         if(mesh->bc[jj]->flagBC==3)
         {
-            double tf = 0;
 
             for(int ii=0; ii<mesh->Nelem; ii++)
             {
@@ -566,7 +565,6 @@ void saCalcD(MESH* mesh)
                     if(Evol->d > d)
                     {
                         Evol->d = d;
-                        tf = t;
                     }
 
                 }

@@ -30,7 +30,7 @@ void implicitCalcD(SOLVER* solver)
         for(int jj=0; jj<E->neiN; jj++)
         {
             int face = E->f[jj];
-            int face1;
+            int face1 = 0;
             if(face > 0)
             {
                 face1 = face-1;
@@ -212,8 +212,8 @@ void implicitLUSGS_L(SOLVER* solver)
         for(int jj=0; jj<E->neiN; jj++)
         {
             int face = E->f[jj];
-            int face1;
-            int e0, e1, p0, p1;
+            int face1 = 0;
+            int e0 = 0, e1 = 0, p0 = 0, p1 = 0;
             if(face > 0)
             {
                 face1 = face-1;
@@ -264,13 +264,12 @@ void implicitLUSGS_U(SOLVER* solver)
         }
         
         ELEMENT* E = mesh->elemL[ii];
-        double x0, y0, x1, y1;    
         
         for(int jj=0; jj<E->neiN; jj++)
         {
             int face = E->f[jj];
-            int face1;
-            int e0, e1, p0, p1;
+            int face1 = 0;
+            int e0 = 0, e1 = 0, p0 = 0, p1 = 0;
             if(face > 0)
             {
                 face1 = face-1;
@@ -422,18 +421,16 @@ void implicitInitDPLUR(SOLVER* solver)
         for(int jj=0; jj<E->neiN; jj++)
         {
             int face = E->f[jj];
-            int e0, e1, face1;
+            int e1 = 0, face1 = 0;
             if(face > 0)
             {
                 face1 = face-1;
-                e0 = mesh->con[face1][0];
                 e1 = mesh->con[face1][1];
             }
             else if(face < 0)
             {
                 face1 = -face-1;
                 e1 = mesh->con[face1][0];
-                e0 = mesh->con[face1][1];
             }
 
             if(jj == 0)
@@ -466,13 +463,11 @@ void implicitInitDPLUR(SOLVER* solver)
 
 void implicitFreeDPLUR(SOLVER* solver)
 {
-    MESH* mesh = solver->mesh;
-
     #pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
         ELEMENT* E = solver->mesh->elemL[ii];
-        BLOCK* B;
+        BLOCK* B = NULL;
         BLOCK* Bold;
         
         for(int jj=0; jj<E->neiN; jj++)
@@ -518,8 +513,8 @@ void implicitUpdateA(SOLVER* solver)
             }
             
             int face = E->f[jj];
-            int face1;
-            int e0, e1, p0, p1;
+            int face1 = 0;
+            int e0 = 0, e1 = 0, p0 = 0, p1 = 0;
             if(face > 0)
             {
                 face1 = face-1;
@@ -634,8 +629,8 @@ void implicitUpdateA_sa(SOLVER* solver)
             }
             
             int face = E->f[jj];
-            int face1;
-            int e0, e1, p0, p1;
+            int face1 = 0;
+            int e0 = 0, e1 = 0, p0 = 0, p1 = 0;
             if(face > 0)
             {
                 face1 = face-1;
@@ -732,7 +727,7 @@ void implicitMultA(SOLVER* solver, double** x, double** y)
     #pragma omp parallel for
     for(int ii=0; ii<mesh->Nelem; ii++)
     {
-        BLOCK* B;
+        BLOCK* B = NULL;
 
         for(int kk=0; kk<solver->Nvar; kk++)
         {

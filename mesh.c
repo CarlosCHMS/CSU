@@ -506,51 +506,6 @@ int meshSameFace(FACETYPE* f0, FACETYPE* f1)
 }
 
 
-
-void meshCalcConnection1(MESH* mesh)
-{
-
-    int p0, p1;
-
-    mesh->Ncon = 0;
-    
-    CONNECTION* initCon = malloc(sizeof(CONNECTION));
-    CONNECTION* con = initCon;
-
-    for(int ii=0; ii<mesh->Nelem-1; ii++)
-    {
-        for(int jj=ii+1; jj<mesh->Nelem; jj++)
-        {
-            if(elementIsConnected(mesh->elemL[ii], mesh->elemL[jj], &p0, &p1))
-            {
-                mesh->Ncon += 1;
-                con->data[0] = ii;
-                con->data[1] = jj;
-                con->data[2] = p0;
-                con->data[3] = p1;
-                con->next = malloc(sizeof(CONNECTION));
-                con = con->next;
-            }
-        }
-    }
-
-    mesh->con = tableMallocInt(mesh->Ncon, 4);
-    
-    CONNECTION* next;
-    
-    con = initCon;
-    for(int ii=0; ii<mesh->Ncon; ii++)
-    {
-        mesh->con[ii][0] = con->data[0];
-        mesh->con[ii][1] = con->data[1];
-        mesh->con[ii][2] = con->data[2];
-        mesh->con[ii][3] = con->data[3];
-        next = con->next;
-        free(con);
-        con = next;        
-    } 
-}
-
 void meshCalcConnection2(MESH* mesh)
 {
     mesh->Ncon = 0;
