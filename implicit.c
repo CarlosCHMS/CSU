@@ -87,7 +87,7 @@ void implicitCalcD(SOLVER* solver)
         solver->dtL[ii] = E->omega/Lc;
         
         solver->D[ii] = 0.5*solver->wImp*Lc;        
-        if(solver->laminar)
+        if(solver->laminar || solver->sa)
         {
             Lv /= E->omega;
             solver->D[ii] += Lv;
