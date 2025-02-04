@@ -212,7 +212,6 @@ void solverWriteSolution(SOLVER* solver)
         
     }
 
-
     for(ii=0; ii<solver->mesh->Np; ii++)
     {
         if(den[ii] != 0)
@@ -220,6 +219,28 @@ void solverWriteSolution(SOLVER* solver)
             for(kk=0; kk<solver->Nvar; kk++)
             {
                 Up[kk][ii] /= den[ii];    
+            }
+        }
+    }
+
+    int p0, p1;
+
+    if(solver->laminar || solver->sa)
+    {
+        for(int ii=0; ii<solver->mesh->Nmark; ii++)
+        {
+            if(solver->mesh->bc[ii]->flagBC == 3)
+            {
+                for(int jj=0; jj<solver->mesh->bc[ii]->Nelem; jj++)
+                {
+                    p0 = solver->mesh->bc[ii]->elemL[jj]->p[0];
+                    p1 = solver->mesh->bc[ii]->elemL[jj]->p[1];
+
+                    Up[1][p0] = 0.0;
+                    Up[2][p0] = 0.0;
+                    Up[1][p1] = 0.0;
+                    Up[2][p1] = 0.0;
+                }
             }
         }
     }
@@ -1153,14 +1174,30 @@ void solverCalcPrimitive(SOLVER* solver, double** U)
         ELEMENT* E = solver->mesh->elemL[ii];
         
         E->P[0] = U[0][ii];
+        
+        if(E->P[0] < solver->rLim)
+        {
+            E->P[0] = solver->rLim;
+        }
+        
         E->P[1] = U[1][ii]/U[0][ii];
         E->P[2] = U[2][ii]/U[0][ii];
         E->P[3] = solverCalcP(solver, U, ii);
         E->P[4] = E->P[3]/(E->P[0]*solver->Rgas);
 
+        if(E->P[4] < solver->pLim)
+        {
+            E->P[4] = solver->pLim;
+        }
+
         if(solver->sa == 1)
         {
             E->P[5] = U[4][ii]/U[0][ii];
+            if(E->P[5] < 0.0)
+            {
+                E->P[5] = 0.0;
+            }
+
         }                
     }
     
@@ -1477,6 +1514,25 @@ void solverSetData(SOLVER* solver, INPUT* input)
     {
         solver->Nlinear = 20;
     }
+
+    if(inputNameIsInput(input, "rLim"))
+    {
+        solver->rLim = strtod(inputGetValue(input, "rLim"), NULL);
+    }
+    else
+    {
+        solver->rLim = 1e-6;
+    }
+
+    if(inputNameIsInput(input, "pLim"))
+    {
+        solver->pLim = strtod(inputGetValue(input, "pLim"), NULL);
+    }
+    else
+    {
+        solver->pLim = 1.0;
+    }
+
 
     // Selection of several variables
     solver->flux = fluxChoice(inputGetValue(input, "flux"));

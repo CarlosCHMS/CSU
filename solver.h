@@ -57,6 +57,8 @@ typedef struct {
     double K3;
     double wImp;
     double tol;
+    double rLim;
+    double pLim;    
 
     double *dtL;
     double *D;
