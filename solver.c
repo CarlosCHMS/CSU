@@ -1183,12 +1183,13 @@ void solverCalcPrimitive(SOLVER* solver, double** U)
         E->P[1] = U[1][ii]/U[0][ii];
         E->P[2] = U[2][ii]/U[0][ii];
         E->P[3] = solverCalcP(solver, U, ii);
-        E->P[4] = E->P[3]/(E->P[0]*solver->Rgas);
-
-        if(E->P[4] < solver->pLim)
+        
+        if(E->P[3] < solver->pLim)
         {
-            E->P[4] = solver->pLim;
+            E->P[3] = solver->pLim;
         }
+                
+        E->P[4] = E->P[3]/(E->P[0]*solver->Rgas);
 
         if(solver->sa == 1)
         {
