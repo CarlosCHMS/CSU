@@ -1410,7 +1410,7 @@ void solverSetData(SOLVER* solver, INPUT* input)
     boundaryGetBC(solver->mesh, input);
 
     // Constants
-    solver->Rgas = 287.5;
+    solver->Rgas = 287.0530;
     solver->gamma = 1.4;  
     solver->Pr = 0.72;
     solver->Pr_t = 0.9;
@@ -1544,6 +1544,19 @@ void solverSetData(SOLVER* solver, INPUT* input)
     if(inputNameIsInput(input, "pout"))
     {
         solver->pout = strtod(inputGetValue(input, "pout"), NULL);     
+    }
+    else
+    {
+        solver->pout = 1.0e5;
+    }
+    
+    if(inputNameIsInput(input, "viscBlazek"))
+    {
+        solver->viscBlazek = atoi(inputGetValue(input, "viscBlazek"));
+    }
+    else
+    {
+        solver->viscBlazek = 0;
     }
 
 }

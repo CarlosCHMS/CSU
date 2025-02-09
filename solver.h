@@ -36,6 +36,7 @@ typedef struct {
     int turb1order;
     int timeScheme;
     int Nlinear;
+    int viscBlazek;
 
     char* wd;
 

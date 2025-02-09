@@ -22,7 +22,7 @@ void saInitU(SOLVER* solver, CONDITION* inside)
 }
 
 
-void saInterFace(SOLVER* solver)
+void saInterFaceB(SOLVER* solver)
 {
 
     # pragma omp parallel for
@@ -133,6 +133,93 @@ void saInterFace(SOLVER* solver)
 }
 
 
+
+void saInterFace(SOLVER* solver)
+{
+
+    # pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Ncon; ii++)
+    {
+        double dSx, dSy;
+
+        int e0 = solver->mesh->con[ii][0];
+        int e1 = solver->mesh->con[ii][1];
+        int p0 = solver->mesh->con[ii][2];
+        int p1 = solver->mesh->con[ii][3];
+
+        ELEMENT* E0 = solver->mesh->elemL[e0];
+        ELEMENT* E1 = solver->mesh->elemL[e1];
+
+        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+
+        double dux = (solver->dPx[1][e0] + solver->dPx[1][e1])*0.5;
+        double dvx = (solver->dPx[2][e0] + solver->dPx[2][e1])*0.5;
+        double dTx = (solver->dPx[3][e0] + solver->dPx[3][e1])*0.5;
+        double dnx = (solver->dPx[4][e0] + solver->dPx[4][e1])*0.5;
+
+        double duy = (solver->dPy[1][e0] + solver->dPy[1][e1])*0.5;
+        double dvy = (solver->dPy[2][e0] + solver->dPy[2][e1])*0.5;
+        double dTy = (solver->dPy[3][e0] + solver->dPy[3][e1])*0.5;
+        double dny = (solver->dPy[4][e0] + solver->dPy[4][e1])*0.5;
+
+        // Flow variables in the face
+        double r = (E1->P[0] + E0->P[0])*0.5;
+        double u = (E1->P[1] + E0->P[1])*0.5;
+        double v = (E1->P[2] + E0->P[2])*0.5;
+        double T = (E1->P[4] + E0->P[4])*0.5;
+        double n = (E1->P[5] + E0->P[5])*0.5;
+
+        double mi_L = sutherland(T);
+        double n_L = mi_L/r;
+
+        double fv1;
+        double tx;
+        double ty;
+
+        saCalcFace(n, n_L, r, dnx, dny, &fv1, &tx, &ty);
+
+        double mi_t = fv1*r*n;
+        double mi = mi_L + mi_t;
+        double k = solver->Cp*(mi_L/solver->Pr + mi_t/solver->Pr_t);
+
+        solver->miT[ii] = mi_t;
+
+	    double txx = 2*mi*(dux - (dux + dvy)/3);
+	    double tyy = 2*mi*(dvy - (dux + dvy)/3);
+	    double txy = mi*(duy + dvx);
+
+	    solver->faceFlux[1][ii] = txx*dSx + txy*dSy;
+	    solver->faceFlux[2][ii] = txy*dSx + tyy*dSy;
+	    solver->faceFlux[3][ii] = (txx*dSx + txy*dSy)*u + (txy*dSx + tyy*dSy)*v + k*(dTx*dSx + dTy*dSy);
+	    solver->faceFlux[4][ii] = tx*dSx + ty*dSy;
+
+    }
+
+    # pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        for(int jj=0; jj<solver->mesh->elemL[ii]->Np; jj++)
+        {
+            int face = solver->mesh->elemL[ii]->f[jj];
+            if(face > 0)
+            {
+                for(int kk=1; kk<5; kk++)
+                {
+                    solver->R[kk][ii] -= solver->faceFlux[kk][face-1];
+                }
+            }
+            else if(face < 0)
+            {
+                for(int kk=1; kk<5; kk++)
+                {
+                    solver->R[kk][ii] += solver->faceFlux[kk][-face-1];
+                }
+            }
+        }
+    }
+}
+
+
 void saInterSource(SOLVER* solver)
 {
 
@@ -169,7 +256,15 @@ void saInterSource(SOLVER* solver)
 
 void saInter(SOLVER* solver)
 {
-    saInterFace(solver);
+    if(solver->viscBlazek)
+    {
+        saInterFaceB(solver);
+    }
+    else
+    {
+        saInterFace(solver);
+    }
+    
     saInterSource(solver);
 }
 
