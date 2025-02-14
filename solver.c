@@ -436,7 +436,7 @@ void inter(SOLVER* solver)
         # pragma omp parallel for
         for(int ii=0; ii<solver->mesh->Nelem; ii++)
         {
-	        int jj, kk, p0, p1;
+	        int jj, kk, mm, p0, p1;
             double x0, y0, d2, phi0, phi = 0, xm, ym;
             double Pmin, Pmax; 
             double blend = 1.0;
@@ -450,12 +450,14 @@ void inter(SOLVER* solver)
             {
                 if(kk == 4)
                 {
-                    solverCalcMinMax(solver, E, 5, &Pmin, &Pmax);
+                    mm = 5;
                 }
                 else
                 {
-                    solverCalcMinMax(solver, E, kk, &Pmin, &Pmax);
+                    mm = kk;
                 }
+                
+                solverCalcMinMax(solver, E, mm, &Pmin, &Pmax);
                 
                 for(jj=0; jj<E->Np; jj++)
                 {
@@ -465,7 +467,7 @@ void inter(SOLVER* solver)
                     ym = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;        
                     d2 = (solver->dPx[kk][ii]*(xm - x0) + solver->dPy[kk][ii]*(ym - y0));
                     
-                    phi0 = limiterV2(E->P[kk], Pmin, Pmax, d2, solver->K3*Pref2[kk]*hRatio3);
+                    phi0 = limiterV2(E->P[mm], Pmin, Pmax, d2, solver->K3*Pref2[kk]*hRatio3);
                     
                     if(jj==0)
                     {
