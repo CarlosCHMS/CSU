@@ -59,7 +59,8 @@ typedef struct {
     double wImp;
     double tol;
     double rLim;
-    double pLim;    
+    double pLim; 
+    double Twall;   
 
     double *dtL;
     double *D;

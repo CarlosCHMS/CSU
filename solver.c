@@ -229,7 +229,7 @@ void solverWriteSolution(SOLVER* solver)
     {
         for(int ii=0; ii<solver->mesh->Nmark; ii++)
         {
-            if(solver->mesh->bc[ii]->flagBC == 3)
+            if(solver->mesh->bc[ii]->flagBC == 3 || solver->mesh->bc[ii]->flagBC == 4)
             {
                 for(int jj=0; jj<solver->mesh->bc[ii]->Nelem; jj++)
                 {
@@ -1269,7 +1269,7 @@ void solverCalcCoeff(SOLVER* solver, double *Cx, double *Cy)
     for(int jj=0; jj<solver->mesh->Nmark; jj++)
     {
         bc = solver->mesh->bc[jj];
-        if(bc->flagBC == 3)
+        if(bc->flagBC == 3 || bc->flagBC == 4)
         {
             for(int ii=0; ii<bc->Nelem; ii++)
             {
@@ -1315,7 +1315,7 @@ void solverCalcCoeff2(SOLVER* solver, char* path)
     for(int jj=0; jj<solver->mesh->Nmark; jj++)
     {
         bc = solver->mesh->bc[jj];
-        if(bc->flagBC == 3)
+        if(bc->flagBC == 3 || bc->flagBC == 4)
         {
             for(int ii=0; ii<bc->Nelem; ii++)
             {                
@@ -1361,7 +1361,7 @@ void solverCalcCoeff3(SOLVER* solver, FILE* convFile, int Nint)
     for(int jj=0; jj<solver->mesh->Nmark; jj++)
     {
         bc = solver->mesh->bc[jj];
-        if(bc->flagBC == 3)
+        if(bc->flagBC == 3 || bc->flagBC == 4)
         {
             for(int ii=0; ii<bc->Nelem; ii++)
             {
@@ -1560,6 +1560,15 @@ void solverSetData(SOLVER* solver, INPUT* input)
     {
         solver->viscBlazek = 0;
     }
+    
+    if(inputNameIsInput(input, "Twall"))
+    {
+        solver->Twall = strtod(inputGetValue(input, "Twall"), NULL);     
+    }
+    else
+    {
+        solver->Twall = 300;
+    }    
 
 }
 

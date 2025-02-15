@@ -488,7 +488,6 @@ void saBoundaryFace(SOLVER* solver, MESHBC* bc)
         }
         else if(bc->flagBC == 3)
         {
-
             //wall
             double dSx, dSy;
             meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
@@ -547,6 +546,75 @@ void saBoundaryFace(SOLVER* solver, MESHBC* bc)
 	        solver->R[2][e0] -= txy*dSx + tyy*dSy;
             solver->R[4][e0] -= tx*dSx + ty*dSy;
 
+        }
+        else if(bc->flagBC == 4)
+        {
+            //wallT
+            double dSx, dSy;
+            meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+
+            elementCenter(E0, solver->mesh, &x0, &y0);
+
+           	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
+            y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
+
+            double dx = x1 - x0;
+            double dy = y1 - y0;
+            double L = sqrt(dx*dx + dy*dy);
+
+            double dul = (0 - E0->P[1])/L;
+            double dvl = (0 - E0->P[2])/L;
+            double dTl = (solver->Twall - E0->P[4])/L;            
+            double dnl = (0 - E0->P[5])/L;
+
+            double duxm = solver->dPx[1][e0];
+            double dvxm = solver->dPx[2][e0];
+            double dTxm = solver->dPx[3][e0];
+            double dnxm = solver->dPx[4][e0];
+
+            double duym = solver->dPy[1][e0];
+            double dvym = solver->dPy[2][e0];
+            double dTym = solver->dPy[3][e0];
+            double dnym = solver->dPy[4][e0];
+
+            dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
+            duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;
+
+            dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
+            dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
+
+            dTx = dTxm + (dTl - (dTxm*dx + dTym*dy)/L)*dx/L;
+            dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;
+
+            dnx = dnxm + (dnl - (dnxm*dx + dnym*dy)/L)*dx/L;
+            dny = dnym + (dnl - (dnxm*dx + dnym*dy)/L)*dy/L;
+
+            // Flow variables in the face
+            double rho = E0->P[0];
+            double T = solver->Twall;
+            double n = 0.0;
+
+            double mi_L = sutherland(T);
+            double n_L = mi_L/rho;
+
+            double fv1;
+            double tx;
+            double ty;
+
+            saCalcFace(n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
+
+            double mi_t = fv1*rho*n;
+            double mi = mi_L + mi_t;
+            double k = solver->Cp*(mi_L/solver->Pr + mi_t/solver->Pr_t);
+
+	        double txx = 2*mi*(dux - (dux + dvy)/3);
+	        double tyy = 2*mi*(dvy - (dux + dvy)/3);
+	        double txy = mi*(duy + dvx);
+
+	        solver->R[1][e0] -= txx*dSx + txy*dSy;
+	        solver->R[2][e0] -= txy*dSx + tyy*dSy;
+	        solver->R[3][e0] -= k*(dTx*dSx + dTy*dSy);	        
+            solver->R[4][e0] -= tx*dSx + ty*dSy;        
         }
         else
         {
@@ -621,7 +689,7 @@ void saCalcD(MESH* mesh)
     {
 
         //printf("%i\n", mesh->bc[jj]->flagBC);
-        if(mesh->bc[jj]->flagBC==3)
+        if(mesh->bc[jj]->flagBC==3 || mesh->bc[jj]->flagBC==4)
         {
 
             for(int ii=0; ii<mesh->Nelem; ii++)

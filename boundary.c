@@ -194,7 +194,7 @@ void boundaryCalc(SOLVER* solver, MESHBC* bc)
             flux(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
 		
         }
-        else if(bc->flagBC == 3)
+        else if(bc->flagBC == 3 || bc->flagBC == 4)
         {
             
             if(solver->laminar==1)
@@ -310,9 +310,8 @@ void boundaryCalc_sa(SOLVER* solver, MESHBC* bc)
             //flux(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
             //f[4] = 0.0;
         }
-        else if(bc->flagBC == 3)
-        {
-            
+        else if((bc->flagBC == 3) || (bc->flagBC == 4))
+        {            
             // Rotation of the velocity vectors
             rotation(PL, dSx, dSy, dS);
     
@@ -481,6 +480,54 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
 	        solver->R[2][e0] -= txy*dSx + tyy*dSy;
             
         }
+        else if(bc->flagBC == 4)
+        {
+            double dSx, dSy;
+            meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+        
+            elementCenter(E0, solver->mesh, &x0, &y0);
+
+           	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
+            y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
+
+            double dx = x1 - x0;		    
+            double dy = y1 - y0;
+            double L = sqrt(dx*dx + dy*dy);
+            
+            double dul = (0 - E0->P[1])/L;
+            double dvl = (0 - E0->P[2])/L;
+            double dTl = (solver->Twall - E0->P[4])/L;
+
+            double duxm = solver->dPx[1][e0];
+            double dvxm = solver->dPx[2][e0];
+            double dTxm = solver->dPx[3][e0];
+            
+            double duym = solver->dPy[1][e0];
+            double dvym = solver->dPy[2][e0];
+            double dTym = solver->dPy[3][e0];
+
+            dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
+            duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
+
+            dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
+            dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;  
+            
+            dTx = dTxm + (dTl - (dTxm*dx + dTym*dy)/L)*dx/L;
+            dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;
+                            
+            double T = solver->Twall;
+            double mi = sutherland(T);
+            double k = solver->Cp*mi/solver->Pr;            
+	            
+	        double txx = 2*mi*(dux - (dux + dvy)/3);
+	        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+	        double txy = mi*(duy + dvx);  
+	        
+	        solver->R[1][e0] -= txx*dSx + txy*dSy;
+	        solver->R[2][e0] -= txy*dSx + tyy*dSy;
+	        solver->R[3][e0] -= k*(dTx*dSx + dTy*dSy);
+            
+        }        
         else
         {
             double dSx, dSy;
@@ -569,6 +616,10 @@ int boundaryChoice(char* s)
     {
         ans = 3;
     }
+    else if(strcmp(s, "wallT") == 0)
+    {
+        ans = 4;
+    }
     else
     {
         printf("Error: incorrent input of bc: %s\n", s);
@@ -651,7 +702,7 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
             bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);            
 		
         }
-        else if(bc->flagBC == 3)
+        else if((bc->flagBC == 3) || (bc->flagBC == 4))
         {
             
             if(solver->laminar==1 || solver->sa==1)
@@ -661,7 +712,14 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
                 bc->elemL[ii]->P[2] = 0.0;
                 bc->elemL[ii]->P[3] = PL[3];
 
-                bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);
+                if(bc->flagBC == 4)
+                {
+                    bc->elemL[ii]->P[4] = solver->Twall;
+                }
+                else
+                {
+                    bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);
+                }
             }
             else
             {                        
@@ -708,9 +766,9 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
                 //out
                 bc->elemL[ii]->P[5] = E0->P[5];
             }
-            else if(bc->flagBC == 3)
+            else if((bc->flagBC == 3) || (bc->flagBC == 4))
             {
-                //wall
+                //wall wallT
                 bc->elemL[ii]->P[5] = 0.0;
             }
 
