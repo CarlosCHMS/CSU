@@ -20,3 +20,7 @@ void saBoundary(SOLVER* solver);
 void saCalcD(MESH* mesh);
 
 void saCalcTensorWall(SOLVER* solver, ELEMENT* E, double* Txx, double* Txy, double* Tyy, double* x, double* yp);
+
+void saBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, double* miEddy);
+
+void saSolverWriteSurf(SOLVER* solver);

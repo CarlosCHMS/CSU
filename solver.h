@@ -39,6 +39,7 @@ typedef struct {
     int viscBlazek;
 
     char* wd;
+    char writeSurf[50];
 
     double Rgas;
     double gamma;
@@ -181,3 +182,6 @@ void solverSolve(SOLVER* solver);
 void solverUpdateUImplicit(SOLVER* solver);
 
 int solverTimeSchemeChoice(char* s);
+
+void solverWriteSurf(SOLVER* solver);
+

@@ -1568,8 +1568,18 @@ void solverSetData(SOLVER* solver, INPUT* input)
     else
     {
         solver->Twall = 300;
-    }    
-
+    }
+    
+    solver->writeSurf[0] = '\0';
+    
+    if(inputNameIsInput(input, "writeSurf"))
+    {
+        strcat(solver->writeSurf, inputGetValue(input, "writeSurf"));
+    }
+    else
+    {
+        strcat(solver->writeSurf, "wall");
+    }
 }
 
 void solverInitDomain(SOLVER* solver)
@@ -1847,5 +1857,14 @@ int solverTimeSchemeChoice(char* s)
     
     return ans;
 
+}
+
+
+void solverWriteSurf(SOLVER* solver)
+{
+    if(solver->sa)
+    {
+        saSolverWriteSurf(solver);
+    }
 }
 
