@@ -13,6 +13,7 @@
 #include"boundary.h"
 #include"readTables.h"
 #include"sa.h"
+#include"saCC.h"
 #include"implicit.h"
 
 
@@ -721,8 +722,16 @@ void solverCalcR(SOLVER* solver, double** U)
     if(solver->sa==1)
     {
         solverGrad_T(solver);
-        saInter(solver);
-        saBoundary(solver);
+        if(solver->saCC)
+        {
+            saCC_Inter(solver);
+            saCC_Boundary(solver);
+        }
+        else
+        {
+            saInter(solver);
+            saBoundary(solver);
+        }
     }
     
 }
@@ -1677,6 +1686,15 @@ SOLVER* solverInit(char* wd)
         solver->sa = 0;
     }
 
+    if(inputNameIsInput(solver->input, "saCC"))
+    {
+        solver->saCC = atoi(inputGetValue(solver->input, "saCC"));
+    }
+    else
+    {
+        solver->saCC = 0;
+    }
+
     // Set number of flow variables
     solver->Nvar = 4;
     if(solver->sa == 1)
@@ -1864,7 +1882,14 @@ void solverWriteSurf(SOLVER* solver)
 {
     if(solver->sa)
     {
-        saSolverWriteSurf(solver);
+        if(solver->saCC)
+        {
+            saCC_SolverWriteSurf(solver);
+        }
+        else
+        {
+            saSolverWriteSurf(solver);
+        }
     }
 }
 

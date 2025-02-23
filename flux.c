@@ -263,18 +263,18 @@ void fluxAUSMDV_sa(SOLVER* solver,
 	// entropy fix 
 	int caseA = (uL - cL < 0.0) & (uR - cR > 0.0);
 	int caseB = (uL + cL < 0.0) & (uR + cR > 0.0);
-	double psiL[4] = {1.0, uL, vL, HL};
-	double psiR[4] = {1.0, uR, vR, HR};
+	double psiL[5] = {1.0, uL, vL, HL, nL};
+	double psiR[5] = {1.0, uR, vR, HR, nR};
 	if (caseA & ~caseB) {
 	    aux = 0.125*((uR - cR) - (uL - cL));
-	    for(int kk = 0; kk < 4; kk++)
+	    for(int kk = 0; kk < 5; kk++)
 	    {
 		    f[kk] -= aux*(rR*psiR[kk] - rL*psiL[kk]);
 		}		
 	}
 	else if (~caseA & caseB) {
 	    aux = 0.125*((uR + cR) - (uL + cL));
-    	for(int kk = 0; kk < 4; kk++)
+    	for(int kk = 0; kk < 5; kk++)
 	    {
 		    f[kk] -= aux*(rR*psiR[kk] - rL*psiL[kk]);
 		}		

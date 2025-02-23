@@ -32,6 +32,7 @@ typedef struct {
     int laminar;
     int restart;
     int sa;
+    int saCC;    
     int dtLocal;
     int turb1order;
     int timeScheme;
