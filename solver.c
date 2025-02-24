@@ -728,7 +728,7 @@ void solverCalcR(SOLVER* solver, double** U)
             saCC_Boundary(solver);
         }
         else
-        {    
+        {
             saInter(solver);
             saBoundary(solver);
         }

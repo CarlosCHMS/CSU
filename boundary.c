@@ -707,17 +707,20 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
             
             if(solver->laminar==1 || solver->sa==1)
             {
-                bc->elemL[ii]->P[0] = PL[0];
-                bc->elemL[ii]->P[1] = 0.0;
-                bc->elemL[ii]->P[2] = 0.0;
-                bc->elemL[ii]->P[3] = PL[3];
-
                 if(bc->flagBC == 4)
                 {
+                    bc->elemL[ii]->P[0] = PL[3]/(solver->Rgas*solver->Twall);
+                    bc->elemL[ii]->P[1] = 0.0;
+                    bc->elemL[ii]->P[2] = 0.0;
+                    bc->elemL[ii]->P[3] = PL[3];
                     bc->elemL[ii]->P[4] = solver->Twall;
                 }
                 else
                 {
+                    bc->elemL[ii]->P[0] = PL[0];
+                    bc->elemL[ii]->P[1] = 0.0;
+                    bc->elemL[ii]->P[2] = 0.0;
+                    bc->elemL[ii]->P[3] = PL[3];                
                     bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);
                 }
             }
