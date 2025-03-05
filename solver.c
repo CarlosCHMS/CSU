@@ -561,7 +561,7 @@ void inter(SOLVER* solver)
         // Flux calculation
         if(solver->sa==1)
         {
-            fluxAUSMDV_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4], PR[0], PR[1], PR[2], PR[3], PR[4], f);
+            flux_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4], PR[0], PR[1], PR[2], PR[3], PR[4], f);
         }
         else
         {
@@ -1754,7 +1754,16 @@ void solverSolve(SOLVER* solver)
         s[0] = '\0';
         strcat(s, solver->wd);
         strcat(s, "convergence.csv"); 
-        FILE* convFile = fopen(s, "a");
+        FILE* convFile;
+        
+        if(solver->restart)
+        {
+            convFile = fopen(s, "a");
+        }
+        else
+        {
+            convFile = fopen(s, "w");
+        }
 
         // Run the solver
         printf("\nmain: running solution:\n");

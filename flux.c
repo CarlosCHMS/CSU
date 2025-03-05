@@ -18,7 +18,7 @@ int fluxChoice(char* s)
     {
         ans = 0;
     }
-    else if(strcmp(s, "AUSMD") == 0)
+    else if(strcmp(s, "AUSM") == 0)
     {
         ans = 1;
     }
@@ -26,6 +26,14 @@ int fluxChoice(char* s)
     {
         ans = 2;
     }
+    else if(strcmp(s, "AUSMpup") == 0)
+    {
+        ans = 3;
+    }
+    else if(strcmp(s, "AUSMpup2") == 0)
+    {
+        ans = 4;
+    }    
     else
     {
         printf("Error in flux choice: %s.\n", s);
@@ -119,6 +127,78 @@ void fluxRoe(SOLVER* solver,
 	}
 }
 
+
+void fluxAUSM(SOLVER* solver, 
+               double rL, double uL, double vL, double pL,
+               double rR, double uR, double vR, double pR,
+	           double* f)
+{
+	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+    double HL = (U3L + pL)/rL;
+
+	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double HR = (U3R + pR)/rR;
+    
+    double cL = sqrt(solver->gamma*pL/rL);
+    double cR = sqrt(solver->gamma*pR/rR);
+
+	double ML = uL/cL;
+	double MR = uR/cR;
+
+    double Mplus;
+    double Mminus;
+
+    double Pplus;
+    double Pminus;
+
+    double M2p;
+    double M2m;
+    
+    if(fabs(ML) >= 1)
+    {
+        Mplus = 0.5*(ML + fabs(ML));
+        Pplus = Mplus/ML;
+    } 
+    else
+    {
+        M2p = 0.25*(ML + 1)*(ML + 1);
+        Mplus = M2p;
+        Pplus = M2p*(2 - ML);
+    }
+
+    if(fabs(MR) >= 1)
+    {
+        Mminus = 0.5*(MR - fabs(MR));
+        Pminus = Mminus/MR;
+    } 
+    else
+    {
+        M2m = -0.25*(MR - 1)*(MR - 1);    
+        Mminus = M2m;
+        Pminus = -M2m*(2 + MR);
+    }
+
+    double Mm = Mplus + Mminus;
+
+    double pm = Pplus*pL + Pminus*pR;
+
+    if(Mm > 0)
+    {
+	    f[0] = rL*cL*Mm;
+	    f[1] = f[0]*uL + pm;
+	    f[2] = f[0]*vL;
+	    f[3] = f[0]*HL;
+    }
+    else
+    {
+	    f[0] = rR*cR*Mm;
+	    f[1] = f[0]*uR + pm;
+	    f[2] = f[0]*vR;
+	    f[3] = f[0]*HR;
+    }	
+}
+
+
 void fluxAUSMDV(SOLVER* solver, 
                double rL, double uL, double vL, double pL, 
                double rR, double uR, double vR, double pR,
@@ -199,6 +279,299 @@ void fluxAUSMDV(SOLVER* solver,
 	}	
 	
 }
+
+
+void fluxAUSMpup(SOLVER* solver, 
+               double rL, double uL, double vL, double pL,
+               double rR, double uR, double vR, double pR,
+	           double* f)
+{
+	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+    double HL = (U3L + pL)/rL;
+
+	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double HR = (U3R + pR)/rR;
+    
+    double astar2;
+    
+    astar2 = 2*(solver->gamma-1)*HL/(solver->gamma+1);
+    double ahL = astar2/fmax(sqrt(astar2), fabs(uL));
+
+    astar2 = 2*(solver->gamma-1)*HR/(solver->gamma+1);
+    double ahR = astar2/fmax(sqrt(astar2), fabs(uR));    
+    
+	double am = fmin(ahL, ahR);
+
+    double Kp = 0.25;
+    double Ku = 0.75;
+    double sig = 1.0;
+    double beta = 1.0/8.0;
+
+	double ML = uL/am;
+	double MR = uR/am;
+
+    double Mbar = sqrt((uL*uL + uR*uR)/(2*am*am));
+    double Minf = solver->inlet->mach;
+    double M0 = sqrt(fmin(1, fmax(Mbar*Mbar, Minf*Minf)));
+
+    double fa = M0*(2 - M0);
+    if(fa < 1e-3)
+    {
+        fa = 1e-3;
+    }
+    double alpha = (3.0/16.0)*(-4 + 5*fa*fa);
+    
+    double rhom = 0.5*(rL + rR);
+
+    double Mplus;
+    double Mminus;
+
+    double Pplus;
+    double Pminus;
+
+    double M2p;
+    double M2m;
+    
+    if(fabs(ML) >= 1)
+    {
+        Mplus = 0.5*(ML + fabs(ML));
+        Pplus = Mplus/ML;
+    } 
+    else
+    {
+        M2p = 0.25*(ML + 1)*(ML + 1);
+        M2m = -0.25*(ML - 1)*(ML - 1);
+        Mplus = M2p*(1 - 16*beta*M2m);
+        Pplus = M2p*((2 - ML) - 16*alpha*ML*M2m);
+    }
+
+    if(fabs(MR) >= 1)
+    {
+        Mminus = 0.5*(MR - fabs(MR));
+        Pminus = Mminus/MR;
+    } 
+    else
+    {
+        M2p = 0.25*(MR + 1)*(MR + 1);
+        M2m = -0.25*(MR - 1)*(MR - 1);    
+        Mminus = M2m*(1 + 16*beta*M2p);
+        Pminus = M2m*((-2 - MR) + 16*alpha*MR*M2p);
+    }
+
+    double Mm = Mplus + Mminus - (Kp/fa)*fmax(1 - sig*Mbar*Mbar, 0)*(pR - pL)/(rhom*am*am);
+
+    double pm = Pplus*pL + Pminus*pR - Ku*Pplus*Pminus*(rL + rR)*(fa*am)*(uR-uL);
+
+    double mm;
+    if(Mm > 0)
+    {   
+        mm = am*Mm*rL;
+    }
+    else
+    {
+        mm = am*Mm*rR;        
+    }
+
+    if(mm > 0)
+    {
+	    f[0] = mm;
+	    f[1] = mm*uL + pm;
+	    f[2] = mm*vL;
+	    f[3] = mm*HL;
+    }
+    else
+    {
+	    f[0] = mm;
+	    f[1] = mm*uR + pm;
+	    f[2] = mm*vR;
+	    f[3] = mm*HR;
+    }
+	
+}
+
+
+void fluxAUSMpup2(SOLVER* solver, 
+               double rL, double uL, double vL, double pL,
+               double rR, double uR, double vR, double pR,
+	           double* f)
+{
+	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+    double HL = (U3L + pL)/rL;
+
+	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double HR = (U3R + pR)/rR;
+    
+    double astar2;
+    
+    astar2 = 2*(solver->gamma-1)*HL/(solver->gamma+1);
+    double ahL = astar2/fmax(sqrt(astar2), fabs(uL));
+
+    astar2 = 2*(solver->gamma-1)*HR/(solver->gamma+1);
+    double ahR = astar2/fmax(sqrt(astar2), fabs(uR));    
+    
+	double am = fmin(ahL, ahR);
+
+    double Kp = 0.25;
+    double sig = 1.0;
+    double beta = 1.0/8.0;
+
+	double ML = uL/am;
+	double MR = uR/am;
+
+    double Mbar = sqrt((uL*uL + uR*uR)/(2*am*am));
+    double Minf = solver->inlet->mach;
+    double M0 = sqrt(fmin(1, fmax(Mbar*Mbar, Minf*Minf)));
+
+    double fa = M0*(2 - M0);
+    if(fa < 1e-3)
+    {
+        fa = 1e-3;
+    }
+    double alpha = (3.0/16.0)*(-4 + 5*fa*fa);
+    
+    double rhom = 0.5*(rL + rR);
+
+    double Mplus;
+    double Mminus;
+
+    double Pplus;
+    double Pminus;
+
+    double M2p;
+    double M2m;
+    
+    if(fabs(ML) >= 1)
+    {
+        Mplus = 0.5*(ML + fabs(ML));
+        Pplus = Mplus/ML;
+    } 
+    else
+    {
+        M2p = 0.25*(ML + 1)*(ML + 1);
+        M2m = -0.25*(ML - 1)*(ML - 1);
+        Mplus = M2p*(1 - 16*beta*M2m);
+        Pplus = M2p*((2 - ML) - 16*alpha*ML*M2m);
+    }
+
+    if(fabs(MR) >= 1)
+    {
+        Mminus = 0.5*(MR - fabs(MR));
+        Pminus = Mminus/MR;
+    } 
+    else
+    {
+        M2p = 0.25*(MR + 1)*(MR + 1);
+        M2m = -0.25*(MR - 1)*(MR - 1);    
+        Mminus = M2m*(1 + 16*beta*M2p);
+        Pminus = M2m*((-2 - MR) + 16*alpha*MR*M2p);
+    }
+
+    double Mm = Mplus + Mminus - (Kp/fa)*fmax(1 - sig*Mbar*Mbar, 0)*(pR - pL)/(rhom*am*am);
+
+    double pm = 0.5*(pL + pR) + 0.5*(Pplus - Pminus)*(pL - pR) + sqrt(0.5*(uL*uL + vL*vL + uR*uR + vR*vR))*(Pplus + Pminus - 1)*0.5*(pL + pR)/am;
+
+    double mm;
+    if(Mm > 0)
+    {   
+        mm = am*Mm*rL;
+    }
+    else
+    {
+        mm = am*Mm*rR;        
+    }
+
+    if(mm > 0)
+    {
+	    f[0] = mm;
+	    f[1] = mm*uL + pm;
+	    f[2] = mm*vL;
+	    f[3] = mm*HL;
+    }
+    else
+    {
+	    f[0] = mm;
+	    f[1] = mm*uR + pm;
+	    f[2] = mm*vR;
+	    f[3] = mm*HR;
+    }
+	
+}
+
+
+
+void fluxAUSM_sa(SOLVER* solver, 
+               double rL, double uL, double vL, double pL, double nL,
+               double rR, double uR, double vR, double pR, double nR,
+	           double* f)
+{
+	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+    double HL = (U3L + pL)/rL;
+
+	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double HR = (U3R + pR)/rR;
+    
+    double cL = sqrt(solver->gamma*pL/rL);
+    double cR = sqrt(solver->gamma*pR/rR);
+
+	double ML = uL/cL;
+	double MR = uR/cR;
+
+    double Mplus;
+    double Mminus;
+
+    double Pplus;
+    double Pminus;
+
+    double M2p;
+    double M2m;
+    
+    if(fabs(ML) >= 1)
+    {
+        Mplus = 0.5*(ML + fabs(ML));
+        Pplus = Mplus/ML;
+    } 
+    else
+    {
+        M2p = 0.25*(ML + 1)*(ML + 1);
+        Mplus = M2p;
+        Pplus = M2p*(2 - ML);
+    }
+
+    if(fabs(MR) >= 1)
+    {
+        Mminus = 0.5*(MR - fabs(MR));
+        Pminus = Mminus/MR;
+    } 
+    else
+    {
+        M2m = -0.25*(MR - 1)*(MR - 1);    
+        Mminus = M2m;
+        Pminus = -M2m*(2 + MR);
+    }
+
+    double Mm = Mplus + Mminus;
+
+    double pm = Pplus*pL + Pminus*pR;
+
+    if(Mm > 0)
+    {
+	    f[0] = rL*cL*Mm;
+	    f[1] = f[0]*uL + pm;
+	    f[2] = f[0]*vL;
+	    f[3] = f[0]*HL;
+	    f[4] = f[0]*nL;
+    }
+    else
+    {
+	    f[0] = rR*cR*Mm;
+	    f[1] = f[0]*uR + pm;
+	    f[2] = f[0]*vR;
+	    f[3] = f[0]*HR;
+	    f[4] = f[0]*nR;
+    }
+	
+}
+
 
 void fluxAUSMDV_sa(SOLVER* solver, 
                double rL, double uL, double vL, double pL, double nL,
@@ -283,6 +656,232 @@ void fluxAUSMDV_sa(SOLVER* solver,
 }
 
 
+void fluxAUSMpup_sa(SOLVER* solver, 
+               double rL, double uL, double vL, double pL, double nL,
+               double rR, double uR, double vR, double pR, double nR,
+	           double* f)
+{
+    
+	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+    double HL = (U3L + pL)/rL;
+
+	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double HR = (U3R + pR)/rR;
+
+    double astar2;
+    
+    astar2 = 2*(solver->gamma-1)*HL/(solver->gamma+1);
+    double ahL = astar2/fmax(sqrt(astar2), fabs(uL));
+
+    astar2 = 2*(solver->gamma-1)*HR/(solver->gamma+1);
+    double ahR = astar2/fmax(sqrt(astar2), fabs(uR));    
+    
+	double am = fmin(ahL, ahR);
+
+    double Kp = 0.25;
+    double Ku = 0.75;
+    double sig = 1.0;
+    double beta = 1.0/8.0;
+
+	double ML = uL/am;
+	double MR = uR/am;
+
+    double Mbar = sqrt((uL*uL + uR*uR)/(2*am*am));
+    double Minf = solver->inlet->mach;
+    double M0 = sqrt(fmin(1, fmax(Mbar*Mbar, Minf*Minf)));
+
+    double fa = M0*(2 - M0);
+    if(fa < 1e-3)
+    {
+        fa = 1e-3;
+    }
+    double alpha = (3.0/16.0)*(-4 + 5*fa*fa);
+    
+    double rhom = 0.5*(rL + rR);
+
+    double Mplus;
+    double Mminus;
+
+    double Pplus;
+    double Pminus;
+
+    double M2p;
+    double M2m;
+    
+    if(fabs(ML) >= 1)
+    {
+        Mplus = 0.5*(ML + fabs(ML));
+        Pplus = Mplus/ML;
+    } 
+    else
+    {
+        M2p = 0.25*(ML + 1)*(ML + 1);
+        M2m = -0.25*(ML - 1)*(ML - 1);
+        Mplus = M2p*(1 - 16*beta*M2m);
+        Pplus = M2p*((2 - ML) - 16*alpha*ML*M2m);
+    }
+
+    if(fabs(MR) >= 1)
+    {
+        Mminus = 0.5*(MR - fabs(MR));
+        Pminus = Mminus/MR;
+    } 
+    else
+    {
+        M2p = 0.25*(MR + 1)*(MR + 1);
+        M2m = -0.25*(MR - 1)*(MR - 1);    
+        Mminus = M2m*(1 + 16*beta*M2p);
+        Pminus = M2m*((-2 - MR) + 16*alpha*MR*M2p);
+    }
+
+
+    double Mm = Mplus + Mminus - (Kp/fa)*fmax(1 - sig*Mbar*Mbar, 0)*(pR - pL)/(rhom*am*am);
+
+    double pm = Pplus*pL + Pminus*pR - Ku*Pplus*Pminus*(rL + rR)*(am*fa)*(uR - uL);
+
+    double mm;
+    if(Mm > 0)
+    {   
+        mm = am*Mm*rL;
+    }
+    else
+    {
+        mm = am*Mm*rR;        
+    }
+
+    if(mm > 0)
+    {
+	    f[0] = mm;
+	    f[1] = mm*uL + pm;
+	    f[2] = mm*vL;
+	    f[3] = mm*HL;
+	    f[4] = mm*nL;    
+    }
+    else
+    {
+	    f[0] = mm;
+	    f[1] = mm*uR + pm;
+	    f[2] = mm*vR;
+	    f[3] = mm*HR;
+	    f[4] = mm*nR;        
+    }
+	
+}
+
+
+void fluxAUSMpup2_sa(SOLVER* solver, 
+               double rL, double uL, double vL, double pL, double nL,
+               double rR, double uR, double vR, double pR, double nR,
+	           double* f)
+{
+    
+	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+    double HL = (U3L + pL)/rL;
+
+	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double HR = (U3R + pR)/rR;
+
+    double astar2;
+    
+    astar2 = 2*(solver->gamma-1)*HL/(solver->gamma+1);
+    double ahL = astar2/fmax(sqrt(astar2), fabs(uL));
+
+    astar2 = 2*(solver->gamma-1)*HR/(solver->gamma+1);
+    double ahR = astar2/fmax(sqrt(astar2), fabs(uR));    
+    
+	double am = fmin(ahL, ahR);
+
+    double Kp = 0.25;
+    double sig = 1.0;
+    double beta = 1.0/8.0;
+
+	double ML = uL/am;
+	double MR = uR/am;
+
+    double Mbar = sqrt((uL*uL + uR*uR)/(2*am*am));
+    double Minf = solver->inlet->mach;
+    double M0 = sqrt(fmin(1, fmax(Mbar*Mbar, Minf*Minf)));
+
+    double fa = M0*(2 - M0);
+    if(fa < 1e-3)
+    {
+        fa = 1e-3;
+    }
+    double alpha = (3.0/16.0)*(-4 + 5*fa*fa);
+    
+    double rhom = 0.5*(rL + rR);
+
+    double Mplus;
+    double Mminus;
+
+    double Pplus;
+    double Pminus;
+
+    double M2p;
+    double M2m;
+    
+    if(fabs(ML) >= 1)
+    {
+        Mplus = 0.5*(ML + fabs(ML));
+        Pplus = Mplus/ML;
+    } 
+    else
+    {
+        M2p = 0.25*(ML + 1)*(ML + 1);
+        M2m = -0.25*(ML - 1)*(ML - 1);
+        Mplus = M2p*(1 - 16*beta*M2m);
+        Pplus = M2p*((2 - ML) - 16*alpha*ML*M2m);
+    }
+
+    if(fabs(MR) >= 1)
+    {
+        Mminus = 0.5*(MR - fabs(MR));
+        Pminus = Mminus/MR;
+    } 
+    else
+    {
+        M2p = 0.25*(MR + 1)*(MR + 1);
+        M2m = -0.25*(MR - 1)*(MR - 1);    
+        Mminus = M2m*(1 + 16*beta*M2p);
+        Pminus = M2m*((-2 - MR) + 16*alpha*MR*M2p);
+    }
+
+
+    double Mm = Mplus + Mminus - (Kp/fa)*fmax(1 - sig*Mbar*Mbar, 0)*(pR - pL)/(rhom*am*am);
+
+    double pm = 0.5*(pL + pR) + 0.5*(Pplus - Pminus)*(pL - pR) + sqrt(0.5*(uL*uL + vL*vL + uR*uR + vR*vR))*(Pplus + Pminus - 1)*0.5*(pL + pR)/am;
+
+    double mm;
+    if(Mm > 0)
+    {   
+        mm = am*Mm*rL;
+    }
+    else
+    {
+        mm = am*Mm*rR;        
+    }
+
+    if(mm > 0)
+    {
+	    f[0] = mm;
+	    f[1] = mm*uL + pm;
+	    f[2] = mm*vL;
+	    f[3] = mm*HL;
+	    f[4] = mm*nL;    
+    }
+    else
+    {
+	    f[0] = mm;
+	    f[1] = mm*uR + pm;
+	    f[2] = mm*vR;
+	    f[3] = mm*HR;
+	    f[4] = mm*nR;        
+    }
+	
+}
+
+
+
 void flux(SOLVER* solver, double rL, double uL, double vL, double pL,
                               double rR, double uR, double vR, double pR, double* f)
 {
@@ -290,13 +889,45 @@ void flux(SOLVER* solver, double rL, double uL, double vL, double pL,
 	{
         fluxRoe(solver, rL, uL, vL, pL, rR, uR, vR, pR, f);
     }
+    else if(solver->flux == 1)     
+    {
+        fluxAUSM(solver, rL, uL, vL, pL, rR, uR, vR, pR, f);
+    }
     else if(solver->flux == 2)     
     {
         fluxAUSMDV(solver, rL, uL, vL, pL, rR, uR, vR, pR, f);
     }
-    
+    else if(solver->flux == 3)
+    {
+        fluxAUSMpup(solver, rL, uL, vL, pL, rR, uR, vR, pR, f);
+    }
+    else if(solver->flux == 4)
+    {
+        fluxAUSMpup2(solver, rL, uL, vL, pL, rR, uR, vR, pR, f);
+    }
 }	
 
+void flux_sa(SOLVER* solver, double rL, double uL, double vL, double pL, double nL,
+                              double rR, double uR, double vR, double pR, double nR, double* f)
+{
+    if(solver->flux == 1)     
+    {
+        fluxAUSM_sa(solver, rL, uL, vL, pL, nL, rR, uR, vR, pR, nR, f);
+    }
+    if(solver->flux == 2)     
+    {
+        fluxAUSMDV_sa(solver, rL, uL, vL, pL, nL, rR, uR, vR, pR, nR, f);
+    }
+    else if(solver->flux == 3)
+    {
+        fluxAUSMpup_sa(solver, rL, uL, vL, pL, nL, rR, uR, vR, pR, nR, f);
+    }
+    else if(solver->flux == 4)
+    {
+        fluxAUSMpup2_sa(solver, rL, uL, vL, pL, nL, rR, uR, vR, pR, nR, f);
+    }
+    
+}	
 
 void fluxFree(SOLVER* solver, double rL, double uL, double vL, double pL, double* f)
 {

@@ -280,7 +280,7 @@ void boundaryCalc_sa(SOLVER* solver, MESHBC* bc)
             rotation(PL, dSx, dSy, dS);
         
             // Reflexive
-            fluxAUSMDV_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4], PL[0], -PL[1], PL[2], PL[3], PL[4], f);
+            flux_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4], PL[0], -PL[1], PL[2], PL[3], PL[4], f);
 
         }
         else if(bc->flagBC == 1)
@@ -292,7 +292,7 @@ void boundaryCalc_sa(SOLVER* solver, MESHBC* bc)
             rotation(PL, dSx, dSy, dS);
 	        rotation(Pb, dSx, dSy, dS);
 
-            fluxAUSMDV_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4],  Pb[0], Pb[1], Pb[2], Pb[3], solver->inlet->Pin[5], f);        
+            flux_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4],  Pb[0], Pb[1], Pb[2], Pb[3], solver->inlet->Pin[5], f);        
             //flux(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
             //f[4] = 0.0;
 
@@ -306,7 +306,7 @@ void boundaryCalc_sa(SOLVER* solver, MESHBC* bc)
             rotation(PL, dSx, dSy, dS);
 	        rotation(Pb, dSx, dSy, dS);
         
-            fluxAUSMDV_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4], Pb[0], Pb[1], Pb[2], Pb[3], PL[4], f);
+            flux_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4], Pb[0], Pb[1], Pb[2], Pb[3], PL[4], f);
             //flux(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
             //f[4] = 0.0;
         }
@@ -316,7 +316,7 @@ void boundaryCalc_sa(SOLVER* solver, MESHBC* bc)
             rotation(PL, dSx, dSy, dS);
     
             // Reflexive
-            fluxAUSMDV_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4], PL[0], -PL[1], -PL[2], PL[3], PL[4], f);
+            flux_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4], PL[0], -PL[1], -PL[2], PL[3], PL[4], f);
             
         }       
 
