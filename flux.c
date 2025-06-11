@@ -9,6 +9,7 @@
 #include"mesh.h"
 #include"solver.h"
 #include"flux.h"
+#include"gasprop.h"
 
 int fluxChoice(char* s)
 {
@@ -68,13 +69,13 @@ void fluxRoe(SOLVER* solver,
 	double U0L = rL;
 	double U1L = rL*uL;	
 	double U2L = rL*vL;	
-	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+	double U3L = pL/(solver->gas->gamma - 1) + (uL*uL + vL*vL)*rL/2;
     double HL = (U3L + pL)/rL;
 
 	double U0R = rR;
 	double U1R = rR*uR;	
 	double U2R = rR*vR;	
-	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+	double U3R = pR/(solver->gas->gamma - 1) + (uR*uR + vR*vR)*rR/2;
     double HR = (U3R + pR)/rR;
 
     // Mean values calculation
@@ -84,7 +85,7 @@ void fluxRoe(SOLVER* solver,
 	double ub = (rqL*uL + rqR*uR)/(rqL + rqR);
 	double vb = (rqL*vL + rqR*vR)/(rqL + rqR);
 	double Hb  = (rqL*HL + rqR*HR)/(rqL + rqR);
-	double ab  = sqrt((solver->gamma-1) * (Hb - (ub*ub + vb*vb)/2));
+	double ab  = sqrt((solver->gas->gamma-1) * (Hb - (ub*ub + vb*vb)/2));
 
     // Eigenvalues
 	double l1 = ub - ab;
@@ -106,7 +107,7 @@ void fluxRoe(SOLVER* solver,
 
     // Projections
     double a4 = (Hb - (ub*ub + vb*vb))*d1 + ub*d2 + vb*d3 - d5;
-    a4 /= (ab*ab)/(solver->gamma-1);    
+    a4 /= (ab*ab)/(solver->gas->gamma-1);    
     double a2v = d3 - d1*vb;
     double a5 = ((d1 - a4) + (d2 - ub*d1)/ab)*0.5;
     double a1 = ((d1 - a4) - (d2 - ub*d1)/ab)*0.5;
@@ -133,14 +134,17 @@ void fluxAUSM(SOLVER* solver,
                double rR, double uR, double vR, double pR,
 	           double* f)
 {
-	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+
+    double TL = pL/(solver->gas->R*rL);
+	double U3L = gasprop_T2e(solver->gas, TL)*rL + (uL*uL + vL*vL)*rL/2;
     double HL = (U3L + pL)/rL;
 
-	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double TR = pR/(solver->gas->R*rR);
+	double U3R = gasprop_T2e(solver->gas, TR)*rR + (uR*uR + vR*vR)*rR/2;
     double HR = (U3R + pR)/rR;
     
-    double cL = sqrt(solver->gamma*pL/rL);
-    double cR = sqrt(solver->gamma*pR/rR);
+    double cL = gasprop_T2c(solver->gas, TL);
+    double cR = gasprop_T2c(solver->gas, TR);
 
 	double ML = uL/cL;
 	double MR = uR/cR;
@@ -211,14 +215,16 @@ void fluxAUSMDV(SOLVER* solver,
     */
     
     double aux;
-	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+	double TL = pL/(solver->gas->R*rL);
+	double U3L = gasprop_T2e(solver->gas, TL)*rL + (uL*uL + vL*vL)*rL/2;
     double HL = (U3L + pL)/rL;
 
-	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double TR = pR/(solver->gas->R*rR);
+	double U3R = gasprop_T2e(solver->gas, TR)*rR + (uR*uR + vR*vR)*rR/2;
     double HR = (U3R + pR)/rR;
-
-    double cL = sqrt(solver->gamma*pL/rL);
-    double cR = sqrt(solver->gamma*pR/rR);
+    
+    double cL = gasprop_T2c(solver->gas, TL);
+    double cR = gasprop_T2c(solver->gas, TR);
 	double cm = fmax(cL, cR);
 
 	double alphaL = (2.0*pL/rL)/(pL/rL + pR/rR);
@@ -286,18 +292,21 @@ void fluxAUSMpup(SOLVER* solver,
                double rR, double uR, double vR, double pR,
 	           double* f)
 {
-	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+	double TL = pL/(solver->gas->R*rL);
+	double U3L = gasprop_T2e(solver->gas, TL)*rL + (uL*uL + vL*vL)*rL/2;
     double HL = (U3L + pL)/rL;
 
-	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double TR = pR/(solver->gas->R*rR);
+	double U3R = gasprop_T2e(solver->gas, TR)*rR + (uR*uR + vR*vR)*rR/2;
     double HR = (U3R + pR)/rR;
     
+    //Verify this calculation of sound velocity with thermaly perfect gas
     double astar2;
     
-    astar2 = 2*(solver->gamma-1)*HL/(solver->gamma+1);
+    astar2 = 2*(solver->gas->gamma-1)*HL/(solver->gas->gamma+1);
     double ahL = astar2/fmax(sqrt(astar2), fabs(uL));
 
-    astar2 = 2*(solver->gamma-1)*HR/(solver->gamma+1);
+    astar2 = 2*(solver->gas->gamma-1)*HR/(solver->gas->gamma+1);
     double ahR = astar2/fmax(sqrt(astar2), fabs(uR));    
     
 	double am = fmin(ahL, ahR);
@@ -395,18 +404,21 @@ void fluxAUSMpup2(SOLVER* solver,
                double rR, double uR, double vR, double pR,
 	           double* f)
 {
-	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+	double TL = pL/(solver->gas->R*rL);
+	double U3L = gasprop_T2e(solver->gas, TL)*rL + (uL*uL + vL*vL)*rL/2;
     double HL = (U3L + pL)/rL;
 
-	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double TR = pR/(solver->gas->R*rR);
+	double U3R = gasprop_T2e(solver->gas, TR)*rR + (uR*uR + vR*vR)*rR/2;
     double HR = (U3R + pR)/rR;
     
+    //Verify this calculation of sound velocity with thermaly perfect gas
     double astar2;
     
-    astar2 = 2*(solver->gamma-1)*HL/(solver->gamma+1);
+    astar2 = 2*(solver->gas->gamma-1)*HL/(solver->gas->gamma+1);
     double ahL = astar2/fmax(sqrt(astar2), fabs(uL));
 
-    astar2 = 2*(solver->gamma-1)*HR/(solver->gamma+1);
+    astar2 = 2*(solver->gas->gamma-1)*HR/(solver->gas->gamma+1);
     double ahR = astar2/fmax(sqrt(astar2), fabs(uR));    
     
 	double am = fmin(ahL, ahR);
@@ -504,14 +516,16 @@ void fluxAUSM_sa(SOLVER* solver,
                double rR, double uR, double vR, double pR, double nR,
 	           double* f)
 {
-	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+	double TL = pL/(solver->gas->R*rL);
+	double U3L = gasprop_T2e(solver->gas, TL)*rL + (uL*uL + vL*vL)*rL/2;
     double HL = (U3L + pL)/rL;
 
-	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double TR = pR/(solver->gas->R*rR);
+	double U3R = gasprop_T2e(solver->gas, TR)*rR + (uR*uR + vR*vR)*rR/2;
     double HR = (U3R + pR)/rR;
     
-    double cL = sqrt(solver->gamma*pL/rL);
-    double cR = sqrt(solver->gamma*pR/rR);
+    double cL = gasprop_T2c(solver->gas, TL);
+    double cR = gasprop_T2c(solver->gas, TR);
 
 	double ML = uL/cL;
 	double MR = uR/cR;
@@ -585,14 +599,16 @@ void fluxAUSMDV_sa(SOLVER* solver,
     */
     
     double aux;
-	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+	double TL = pL/(solver->gas->R*rL);
+	double U3L = gasprop_T2e(solver->gas, TL)*rL + (uL*uL + vL*vL)*rL/2;
     double HL = (U3L + pL)/rL;
 
-	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double TR = pR/(solver->gas->R*rR);
+	double U3R = gasprop_T2e(solver->gas, TR)*rR + (uR*uR + vR*vR)*rR/2;
     double HR = (U3R + pR)/rR;
-
-    double cL = sqrt(solver->gamma*pL/rL);
-    double cR = sqrt(solver->gamma*pR/rR);
+    
+    double cL = gasprop_T2c(solver->gas, TL);
+    double cR = gasprop_T2c(solver->gas, TR);
 	double cm = fmax(cL, cR);
 
 	double alphaL = (2.0*pL/rL)/(pL/rL + pR/rR);
@@ -662,18 +678,21 @@ void fluxAUSMpup_sa(SOLVER* solver,
 	           double* f)
 {
     
-	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+	double TL = pL/(solver->gas->R*rL);
+	double U3L = gasprop_T2e(solver->gas, TL)*rL + (uL*uL + vL*vL)*rL/2;
     double HL = (U3L + pL)/rL;
 
-	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double TR = pR/(solver->gas->R*rR);
+	double U3R = gasprop_T2e(solver->gas, TR)*rR + (uR*uR + vR*vR)*rR/2;
     double HR = (U3R + pR)/rR;
-
+    
+    //Verify this calculation of sound velocity with thermaly perfect gas
     double astar2;
     
-    astar2 = 2*(solver->gamma-1)*HL/(solver->gamma+1);
+    astar2 = 2*(solver->gas->gamma-1)*HL/(solver->gas->gamma+1);
     double ahL = astar2/fmax(sqrt(astar2), fabs(uL));
 
-    astar2 = 2*(solver->gamma-1)*HR/(solver->gamma+1);
+    astar2 = 2*(solver->gas->gamma-1)*HR/(solver->gas->gamma+1);
     double ahR = astar2/fmax(sqrt(astar2), fabs(uR));    
     
 	double am = fmin(ahL, ahR);
@@ -775,18 +794,21 @@ void fluxAUSMpup2_sa(SOLVER* solver,
 	           double* f)
 {
     
-	double U3L = pL/(solver->gamma - 1) + (uL*uL + vL*vL)*rL/2;
+	double TL = pL/(solver->gas->R*rL);
+	double U3L = gasprop_T2e(solver->gas, TL)*rL + (uL*uL + vL*vL)*rL/2;
     double HL = (U3L + pL)/rL;
 
-	double U3R = pR/(solver->gamma - 1) + (uR*uR + vR*vR)*rR/2;
+    double TR = pR/(solver->gas->R*rR);
+	double U3R = gasprop_T2e(solver->gas, TR)*rR + (uR*uR + vR*vR)*rR/2;
     double HR = (U3R + pR)/rR;
-
+    
+    //Verify this calculation of sound velocity with thermaly perfect gas
     double astar2;
     
-    astar2 = 2*(solver->gamma-1)*HL/(solver->gamma+1);
+    astar2 = 2*(solver->gas->gamma-1)*HL/(solver->gas->gamma+1);
     double ahL = astar2/fmax(sqrt(astar2), fabs(uL));
 
-    astar2 = 2*(solver->gamma-1)*HR/(solver->gamma+1);
+    astar2 = 2*(solver->gas->gamma-1)*HR/(solver->gas->gamma+1);
     double ahR = astar2/fmax(sqrt(astar2), fabs(uR));    
     
 	double am = fmin(ahL, ahR);
@@ -931,8 +953,13 @@ void flux_sa(SOLVER* solver, double rL, double uL, double vL, double pL, double 
 
 void fluxFree(SOLVER* solver, double rL, double uL, double vL, double pL, double* f)
 {
+
+    double TL = pL/(solver->gas->R*rL);
+	double U3L = gasprop_T2e(solver->gas, TL)*rL + (uL*uL + vL*vL)*rL/2;
+    double HL = (U3L + pL)/rL;
+
     f[0] = rL*uL;   
     f[1] = rL*uL*uL + pL;
     f[2] = rL*uL*vL;
-    f[3] = uL*(solver->gamma*pL/(solver->gamma-1) + 0.5*(uL*uL + vL*vL)*rL);    
+    f[3] = rL*uL*HL;
 }

@@ -3,7 +3,7 @@
 #include<math.h>
 #include<string.h>
 #include<sys/time.h>
-#include <stdbool.h>
+#include<stdbool.h>
 #include<omp.h>
 #include"utils.h"
 #include"input.h"
@@ -15,6 +15,7 @@
 #include"sa.h"
 #include"saCC.h"
 #include"implicit.h"
+#include"gasprop.h"
 
 
 CONDITION* conditionInit(double p, double T, double mach, double nx, double ny)
@@ -37,11 +38,11 @@ void conditionState(CONDITION* cond, SOLVER* solver)
 
     double r, u, v, E, c, n;
     
-    r = cond->p/(solver->Rgas*cond->T);
-    c = sqrt(solver->gamma*solver->Rgas*cond->T);
+    r = cond->p/(solver->gas->R*cond->T);
+    c = gasprop_T2c(solver->gas, cond->T);
     u = cond->nx*cond->mach*c;
     v = cond->ny*cond->mach*c;
-    E = (solver->Rgas*cond->T)/(solver->gamma-1) + (u*u + v*v)/2;
+    E = gasprop_T2e(solver->gas, cond->T) + (u*u + v*v)/2;
     n = solver->turbRatio*sutherland(cond->T)/r;
 
     cond->Uin[0] = r;
@@ -52,7 +53,7 @@ void conditionState(CONDITION* cond, SOLVER* solver)
     cond->Pin[0] = r;
     cond->Pin[1] = u;
     cond->Pin[2] = v;
-    cond->Pin[3] = solver->Rgas*cond->T*r;
+    cond->Pin[3] = solver->gas->R*cond->T*r;
     cond->Pin[4] = cond->T;
 
     if(solver->sa == 1)
@@ -66,7 +67,7 @@ void conditionState(CONDITION* cond, SOLVER* solver)
 double conditionVref(CONDITION* cond, SOLVER* solver)
 {
       
-    double c = sqrt(solver->gamma*solver->Rgas*cond->T);
+    double c = gasprop_T2c(solver->gas, cond->T);
     double Vref = (cond->mach+1)*c;
         
     return Vref;
@@ -154,6 +155,8 @@ void solverFree(SOLVER* solver)
     }
     
     inputFree(solver->input);
+    
+    gaspropFree(solver->gas);
 
     free(solver);
 
@@ -343,8 +346,10 @@ double solverCalcP(SOLVER* solver, double** U, int ii)
 
 	double u = U[1][ii]/U[0][ii];
 	double v = U[2][ii]/U[0][ii];
+    double e = U[3][ii]/U[0][ii] - 0.5*(u*u + v*v);
+    double T = gasprop_e2T(solver->gas, e);
     
-	return (solver->gamma - 1)*(U[3][ii] - 0.5*(u*u + v*v)*U[0][ii]);
+	return solver->gas->R*T*U[0][ii];
     
 }
 
@@ -358,8 +363,8 @@ void solverCalcVel(SOLVER* solver, double** U, int ii, double* u, double* v, dou
     *v = U[2][ii]/U[0][ii];
     
     aux = (E - ((*u)*(*u) + (*v)*(*v))/2);
-    aux *= solver->gamma - 1;
-    *c = sqrt(aux*solver->gamma);
+    double T = gasprop_e2T(solver->gas, aux);
+    *c = gasprop_T2c(solver->gas, T);
     
 }
 
@@ -648,7 +653,7 @@ void interVisc(SOLVER* solver)
 	    
         double T = (E1->P[4] + E0->P[4])*0.5;
         double mi = sutherland(T);
-        double k = solver->Cp*mi/solver->Pr;
+        double k = gasprop_T2Cp(solver->gas, T)*mi/solver->Pr;
 	    		        
 	    double txx = 2*mi*(dux - (dux + dvy)/3);
 	    double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
@@ -1200,7 +1205,7 @@ void solverCalcPrimitive(SOLVER* solver, double** U)
             E->P[3] = solver->pLim;
         }
                 
-        E->P[4] = E->P[3]/(E->P[0]*solver->Rgas);
+        E->P[4] = E->P[3]/(E->P[0]*solver->gas->R);
 
         if(solver->sa == 1)
         {
@@ -1225,7 +1230,8 @@ void solverCalcUfromP(SOLVER* solver, double r, double u, double v, double p, do
     *U0 = r;
     *U1 = r*u;
     *U2 = r*v;
-    *U3 = p/(solver->gamma-1) + 0.5*(u*u + v*v)*r;
+    double T = p/(r*solver->gas->R);
+    *U3 = gasprop_T2e(solver->gas, T)*r + 0.5*(u*u + v*v)*r;
 
 }
 
@@ -1420,12 +1426,25 @@ void solverSetData(SOLVER* solver, INPUT* input)
     printf("main: get boundary conditions.\n");
     boundaryGetBC(solver->mesh, input);
 
-    // Constants
-    solver->Rgas = 287.0530;
-    solver->gamma = 1.4;  
+    int TP;
+
+    if(inputNameIsInput(input, "TP"))
+    {
+        TP = atoi(inputGetValue(input, "TP"));     
+    }
+    else
+    {
+        TP = 0;
+    }
+
+    // Constants    
+    solver->gas = gaspropInit(1.4, 287.0530, TP);
+
+    //printf("\noi%f\n", gasprop_e2T(solver->gas, gasprop_T2e(solver->gas, 3000)));
+    //exit(0);
+
     solver->Pr = 0.72;
     solver->Pr_t = 0.9;
-    solver->Cp = solver->gamma*solver->Rgas/(solver->gamma-1);
     solver->eFix = 0.1;
     
     if(inputNameIsInput(input, "laminar"))

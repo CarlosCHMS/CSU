@@ -20,6 +20,19 @@ typedef struct{
 
 } CONDITION;
 
+typedef struct{
+
+    double gamma;
+    double R;
+    double Cp;
+    double Cv;
+
+    double* cc;
+    int N;
+    int TP;
+
+} GASPROP;
+
 typedef struct {
 
     int Nvar;
@@ -42,8 +55,6 @@ typedef struct {
     char* wd;
     char writeSurf[50];
 
-    double Rgas;
-    double gamma;
     double k4;
     double dt;
     double pout;
@@ -52,7 +63,6 @@ typedef struct {
     double k; 
     double res[5];
     double CFL;
-    double Cp;
     double Pr;
     double Pr_t;
     double Sref;
@@ -87,6 +97,8 @@ typedef struct {
     MESH* mesh;
     
     INPUT* input;
+
+    GASPROP* gas;
 
 } SOLVER;
 

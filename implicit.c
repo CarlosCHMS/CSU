@@ -13,6 +13,7 @@
 #include"boundary.h"
 #include"sa.h"
 #include"implicit.h"
+#include"gasprop.h"
 
 
 void implicitCalcD(SOLVER* solver)
@@ -60,26 +61,27 @@ void implicitCalcD(SOLVER* solver)
             double r = (E0->P[0] + E1->P[0])*0.5;
             double u = (E0->P[1] + E1->P[1])*0.5;
             double v = (E0->P[2] + E1->P[2])*0.5;
-            double p = (E0->P[3] + E1->P[3])*0.5;
+            //double p = (E0->P[3] + E1->P[3])*0.5;
+            double T = (E0->P[4] + E1->P[4])*0.5;
             
-            double c = sqrt(solver->gamma*p/r);
-            
+            double c = gasprop_T2c(solver->gas, T);
+
             Lc += (fabs(nx*u + ny*v) + c)*dS;
             
-            double T, mi;
+            double mi;
             
             if(solver->laminar)
             {
                 T = (E0->P[4] + E1->P[4])*0.5;
                 mi = sutherland(T);
-                Lv += fmax(4/(3*r), solver->gamma/r)*(mi/solver->Pr)*dS*dS;
+                Lv += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS*dS;
             }
             
             if(solver->sa)
             {
                 T = (E0->P[4] + E1->P[4])*0.5;
                 mi = sutherland(T);
-                Lv += fmax(4/(3*r), solver->gamma/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS*dS;
+                Lv += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS*dS;
             }
             
         }
@@ -113,8 +115,9 @@ void implicitCalcD(SOLVER* solver)
 void implicitAuxCalcFlux(SOLVER* solver, double rho, double u, double v, double p, double nx, double ny, double* F)
 {
     double V = nx*u + ny*v;
-    double E = p/(rho*(solver->gamma-1)) + 0.5*(u*u + v*v);
-    double H = E + p/rho;
+    double T = p/(solver->gas->R*rho);
+	double U3 = gasprop_T2e(solver->gas, T)*rho + (u*u + v*v)*rho/2;
+    double H = (U3 + p)/rho;    
     
     F[0] = rho*V;
     F[1] = rho*u*V + nx*p;    
@@ -129,7 +132,8 @@ void implicitCalcDeltaFlux(SOLVER* solver, double rho, double u, double v, doubl
 
     implicitAuxCalcFlux(solver, rho, u, v, p, nx, ny, F0);
 
-    double E = p/(rho*(solver->gamma-1)) + 0.5*(u*u + v*v);
+    double T = p/(solver->gas->R*rho);
+	double E = gasprop_T2e(solver->gas, T) + (u*u + v*v)/2;
 
     double U0 = rho;
     double U1 = rho*u;
@@ -146,7 +150,8 @@ void implicitCalcDeltaFlux(SOLVER* solver, double rho, double u, double v, doubl
     v = U2/rho;
     E = U3/rho;
 
-    p = (solver->gamma-1)*rho*(E - 0.5*(u*u + v*v));
+    T = gasprop_e2T(solver->gas, E - 0.5*(u*u + v*v));
+    p = solver->gas->R*T*rho;
 
     implicitAuxCalcFlux(solver, rho, u, v, p, nx, ny, F1);    
 
@@ -174,8 +179,9 @@ void implicitFunc(SOLVER* solver, int e0, int e1, int p0, int p1, double** dW)
     double dF[4];
     
     implicitCalcDeltaFlux(solver, E1->P[0], E1->P[1], E1->P[2], E1->P[3], dW[0][e1], dW[1][e1], dW[2][e1], dW[3][e1], nx, ny, dF);
-    
-    double c = sqrt(solver->gamma*E1->P[3]/E1->P[0]);
+
+
+	double c = gasprop_T2c(solver->gas, E1->P[4]);
     double ra = solver->wImp*(fabs(nx*E1->P[1] + ny*E1->P[2]) + c)*dS;
 
     if(solver->laminar)
@@ -188,7 +194,7 @@ void implicitFunc(SOLVER* solver, int e0, int e1, int p0, int p1, double** dW)
         elementCenter(E1, solver->mesh, &x1, &y1);
         
         double d = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
-        ra += fmax(4/(3*r), solver->gamma/r)*(mi/solver->Pr)*dS/d;                    
+        ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS/d;                    
     }
     
     for(int kk=0; kk<solver->Nvar; kk++)
@@ -310,8 +316,9 @@ void implicitLUSGS_U(SOLVER* solver)
 void implicitAuxCalcFlux_sa(SOLVER* solver, double rho, double u, double v, double p, double n, double nx, double ny, double* F)
 {
     double V = nx*u + ny*v;
-    double E = p/(rho*(solver->gamma-1)) + 0.5*(u*u + v*v);
-    double H = E + p/rho;
+    double T = p/(solver->gas->R*rho);
+	double U3 = gasprop_T2e(solver->gas, T)*rho + (u*u + v*v)*rho/2;
+    double H = (U3 + p)/rho;
     
     F[0] = rho*V;
     F[1] = rho*u*V + nx*p;    
@@ -327,7 +334,8 @@ void implicitCalcDeltaFlux_sa(SOLVER* solver, double rho, double u, double v, do
 
     implicitAuxCalcFlux_sa(solver, rho, u, v, p, n, nx, ny, F0);
 
-    double E = p/(rho*(solver->gamma-1)) + 0.5*(u*u + v*v);
+    double T = p/(solver->gas->R*rho);
+	double E = gasprop_T2e(solver->gas, T) + (u*u + v*v)/2;
 
     double U0 = rho;
     double U1 = rho*u;
@@ -347,7 +355,8 @@ void implicitCalcDeltaFlux_sa(SOLVER* solver, double rho, double u, double v, do
     E = U3/rho;
     n = U4/rho;
 
-    p = (solver->gamma-1)*rho*(E - 0.5*(u*u + v*v));
+    T = gasprop_e2T(solver->gas, E - 0.5*(u*u + v*v));
+    p = solver->gas->R*T*rho;
 
     implicitAuxCalcFlux_sa(solver, rho, u, v, p, n, nx, ny, F1);    
 
@@ -376,19 +385,21 @@ void implicitFunc_sa(SOLVER* solver, int e0, int e1, int p0, int p1, int face1, 
     double dF[5];
     
     implicitCalcDeltaFlux_sa(solver, E1->P[0], E1->P[1], E1->P[2], E1->P[3], E1->P[5], dW[0][e1], dW[1][e1], dW[2][e1], dW[3][e1], dW[4][e1], nx, ny, dF);
+
+    double T = (E0->P[4] + E1->P[4])*0.5;
     
-    double c = sqrt(solver->gamma*E1->P[3]/E1->P[0]);
+    double c = gasprop_T2c(solver->gas, T);
     double ra = solver->wImp*(fabs(nx*E1->P[1] + ny*E1->P[2]) + c)*dS;
     
     double r = (E0->P[0] + E1->P[0])*0.5;                
-    double T = (E0->P[4] + E1->P[4])*0.5;
+
     double mi = sutherland(T);
 
     elementCenter(E0, solver->mesh, &x0, &y0);
     elementCenter(E1, solver->mesh, &x1, &y1);
     
     double d = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
-    ra += fmax(4/(3*r), solver->gamma/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS/d;
+    ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS/d;
 
     for(int kk=0; kk<solver->Nvar; kk++)
     {
@@ -549,7 +560,7 @@ void implicitUpdateA(SOLVER* solver)
             double F[4];
             double U[4];
 
-            double rho, u, v, E, p;
+            double rho, u, v, E, p, T;
 
             implicitAuxCalcFlux(solver, E1->P[0], E1->P[1], E1->P[2], E1->P[3], nx, ny, F0);
             
@@ -572,7 +583,8 @@ void implicitUpdateA(SOLVER* solver)
                 v = U[2]/rho;
                 E = U[3]/rho;
 
-                p = (solver->gamma-1)*rho*(E - 0.5*(u*u + v*v));            
+                T = gasprop_e2T(solver->gas, E - 0.5*(u*u + v*v));
+                p = solver->gas->R*rho*T;            
 
                 implicitAuxCalcFlux(solver, rho, u, v, p, nx, ny, F);
                 
@@ -582,20 +594,20 @@ void implicitUpdateA(SOLVER* solver)
                 }
             }
 
-            double c = sqrt(solver->gamma*E1->P[3]/E1->P[0]);
+            double c = gasprop_T2c(solver->gas, E1->P[4]);
             double ra = solver->wImp*(fabs(nx*E1->P[1] + ny*E1->P[2]) + c)*dS;
 
             if(solver->laminar)
             {
                 double r = (E0->P[0] + E1->P[0])*0.5;                
-                double T = (E0->P[4] + E1->P[4])*0.5;
+                T = (E0->P[4] + E1->P[4])*0.5;
                 double mi = sutherland(T);
 
                 elementCenter(E0, solver->mesh, &x0, &y0);
                 elementCenter(E1, solver->mesh, &x1, &y1);
                 
                 double d = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
-                ra += fmax(4/(3*r), solver->gamma/r)*(mi/solver->Pr)*dS/d;                    
+                ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS/d;                    
             }
 
             for(int nn=0; nn<4; nn++)
@@ -665,7 +677,7 @@ void implicitUpdateA_sa(SOLVER* solver)
             double F[5];
             double U[5];
 
-            double rho, u, v, E, p, n;
+            double rho, u, v, E, p, T, n;
 
             implicitAuxCalcFlux_sa(solver, E1->P[0], E1->P[1], E1->P[2], E1->P[3], E1->P[5], nx, ny, F0);
             
@@ -689,7 +701,8 @@ void implicitUpdateA_sa(SOLVER* solver)
                 E = U[3]/rho;
                 n = U[4]/rho;
 
-                p = (solver->gamma-1)*rho*(E - 0.5*(u*u + v*v));            
+                T = gasprop_e2T(solver->gas, E - 0.5*(u*u + v*v));
+                p = solver->gas->R*rho*T;
 
                 implicitAuxCalcFlux_sa(solver, rho, u, v, p, n, nx, ny, F);
                 
@@ -699,18 +712,18 @@ void implicitUpdateA_sa(SOLVER* solver)
                 }
             }
 
-            double c = sqrt(solver->gamma*E1->P[3]/E1->P[0]);
+            double c = gasprop_T2c(solver->gas, E1->P[4]);
             double ra = solver->wImp*(fabs(nx*E1->P[1] + ny*E1->P[2]) + c)*dS;
             
             double r = (E0->P[0] + E1->P[0])*0.5;                
-            double T = (E0->P[4] + E1->P[4])*0.5;
+            T = (E0->P[4] + E1->P[4])*0.5;
             double mi = sutherland(T);
 
             elementCenter(E0, solver->mesh, &x0, &y0);
             elementCenter(E1, solver->mesh, &x1, &y1);
             
             double d = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
-            ra += fmax(4/(3*r), solver->gamma/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS/d;
+            ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS/d;
     
             for(int nn=0; nn<5; nn++)
             {

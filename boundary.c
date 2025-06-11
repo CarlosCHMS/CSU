@@ -10,6 +10,7 @@
 #include"solver.h"
 #include"flux.h"
 #include"boundary.h"
+#include"gasprop.h"
 
 
 void boundaryInlet(SOLVER* solver, double* Pa, double* Pd, double* Pb, double nx, double ny)
@@ -18,7 +19,8 @@ void boundaryInlet(SOLVER* solver, double* Pa, double* Pd, double* Pb, double nx
     double ud = Pd[1];
     double vd = Pd[2];
     double pd = Pd[3];
-    double c0 = sqrt(solver->gamma*pd/rd);    
+    double T = pd/rd/solver->gas->R;
+    double c0 = gasprop_T2c(solver->gas, T);    
     double m = sqrt(ud*ud + vd*vd)/c0;
     
     if(m < 1.)
@@ -54,7 +56,8 @@ void boundaryOutlet(SOLVER* solver, double* Pd, double* Pb, double nx, double ny
     double ud = Pd[1];
     double vd = Pd[2];
     double pd = Pd[3];
-    double c0 = sqrt(solver->gamma*pd/rd);    
+    double T = pd/rd/solver->gas->R;
+    double c0 = gasprop_T2c(solver->gas, T); 
     double m = sqrt(ud*ud + vd*vd)/c0;
     
     if(m < 1.)
@@ -86,7 +89,8 @@ void boundaryOutlet_sa(SOLVER* solver, double* Pd, double* Pb, double nx, double
     double vd = Pd[2];
     double pd = Pd[3];
     double nd = Pd[4];    
-    double c0 = sqrt(solver->gamma*pd/rd);    
+    double T = pd/rd/solver->gas->R;
+    double c0 = gasprop_T2c(solver->gas, T); 
     double m = sqrt(ud*ud + vd*vd)/c0;
     
     if(m < 1.)
@@ -120,7 +124,8 @@ void boundaryWall(SOLVER* solver, double* Pd, double* Pb, double nx, double ny)
     double ud = Pd[1];
     double vd = Pd[2];
     double pd = Pd[3];
-    double c0 = sqrt(solver->gamma*pd/rd);
+    double T = pd/rd/solver->gas->R;
+    double c0 = gasprop_T2c(solver->gas, T); 
     
     double pb = pd + rd*c0*(nx*ud + ny*vd);
     double rb = rd + (pb - pd)/(c0*c0);
@@ -375,7 +380,7 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
             
             double T = E0->P[4];
             double mi = sutherland(T);
-            double k = solver->Cp*mi/solver->Pr;            
+            double k = gasprop_T2Cp(solver->gas, T)*mi/solver->Pr;            
 	            
 	        double txx = 2*mi*(dux - (dux + dvy)/3);
 	        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
@@ -426,7 +431,7 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
             
             double T = E0->P[4];
             double mi = sutherland(T);
-            double k = solver->Cp*mi/solver->Pr;            
+            double k = gasprop_T2Cp(solver->gas, T)*mi/solver->Pr;            
 	            
 	        double txx = 2*mi*(dux - (dux + dvy)/3);
 	        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
@@ -517,7 +522,7 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
                             
             double T = solver->Twall;
             double mi = sutherland(T);
-            double k = solver->Cp*mi/solver->Pr;            
+            double k = gasprop_T2Cp(solver->gas, T)*mi/solver->Pr;            
 	            
 	        double txx = 2*mi*(dux - (dux + dvy)/3);
 	        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
@@ -543,7 +548,7 @@ void boundaryCalcVisc(SOLVER* solver, MESHBC* bc)
 
             double T = E0->P[4];
             double mi = sutherland(T);
-            double k = solver->Cp*mi/solver->Pr;            
+            double k = gasprop_T2Cp(solver->gas, T)*mi/solver->Pr;            
 	            
 	        double txx = 2*mi*(dux - (dux + dvy)/3);
 	        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
@@ -673,7 +678,7 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
                 bc->elemL[ii]->P[kk] = PL[kk];
             }
             
-            bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);
+            bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->gas->R);
         
         }
         else if(bc->flagBC == 1)
@@ -686,7 +691,7 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
                 bc->elemL[ii]->P[kk] = Pb[kk];
             }
             
-            bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);            
+            bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->gas->R);            
         
         }
         else if(bc->flagBC == 2)
@@ -699,7 +704,7 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
                 bc->elemL[ii]->P[kk] = Pb[kk];
             }
             
-            bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);            
+            bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->gas->R);            
 		
         }
         else if((bc->flagBC == 3) || (bc->flagBC == 4))
@@ -709,7 +714,7 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
             {
                 if(bc->flagBC == 4)
                 {
-                    bc->elemL[ii]->P[0] = PL[3]/(solver->Rgas*solver->Twall);
+                    bc->elemL[ii]->P[0] = PL[3]/(solver->gas->R*solver->Twall);
                     bc->elemL[ii]->P[1] = 0.0;
                     bc->elemL[ii]->P[2] = 0.0;
                     bc->elemL[ii]->P[3] = PL[3];
@@ -721,7 +726,7 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
                     bc->elemL[ii]->P[1] = 0.0;
                     bc->elemL[ii]->P[2] = 0.0;
                     bc->elemL[ii]->P[3] = PL[3];                
-                    bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);
+                    bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->gas->R);
                 }
             }
             else
@@ -748,7 +753,7 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
                 }
                 
                 
-                bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->Rgas);
+                bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->gas->R);
             }
         } 
 
