@@ -112,33 +112,32 @@ void implicitCalcD(SOLVER* solver)
     }  
 }
 
-void implicitAuxCalcFlux(SOLVER* solver, double rho, double u, double v, double p, double nx, double ny, double* F)
+void implicitAuxCalcFlux2(SOLVER* solver, double U0, double U1, double U2, double U3, double p, double nx, double ny, double* F)
 {
-    double V = nx*u + ny*v;
-    double T = p/(solver->gas->R*rho);
-	double U3 = gasprop_T2e(solver->gas, T)*rho + (u*u + v*v)*rho/2;
-    double H = (U3 + p)/rho;    
+    double V = (nx*U1 + ny*U2)/U0;  
     
-    F[0] = rho*V;
-    F[1] = rho*u*V + nx*p;    
-    F[2] = rho*v*V + ny*p;
-    F[3] = rho*H*V;
+    F[0] = U0*V;
+    F[1] = U1*V + nx*p;    
+    F[2] = U2*V + ny*p;
+    F[3] = (U3 + p)*V;
 }
+
 
 void implicitCalcDeltaFlux(SOLVER* solver, double rho, double u, double v, double p, double d0, double d1, double d2, double d3, double nx, double ny, double* dF)
 {
     double F0[4];
-    double F1[4];    
-
-    implicitAuxCalcFlux(solver, rho, u, v, p, nx, ny, F0);
+    double F1[4];
 
     double T = p/(solver->gas->R*rho);
-	double E = gasprop_T2e(solver->gas, T) + (u*u + v*v)/2;
+    double e0 = gasprop_T2e(solver->gas, T);
+	double E = e0 + (u*u + v*v)/2;
 
     double U0 = rho;
     double U1 = rho*u;
     double U2 = rho*v;
     double U3 = rho*E;  
+
+    implicitAuxCalcFlux2(solver, U0, U1, U2, U3, p, nx, ny, F0);
 
     U0 = U0 + d0;
     U1 = U1 + d1;
@@ -150,10 +149,12 @@ void implicitCalcDeltaFlux(SOLVER* solver, double rho, double u, double v, doubl
     v = U2/rho;
     E = U3/rho;
 
-    T = gasprop_e2T(solver->gas, E - 0.5*(u*u + v*v));
+    double e1 = E - 0.5*(u*u + v*v);
+
+    T = gasprop_e2Taprox(solver->gas, e0, T, e1);
     p = solver->gas->R*T*rho;
 
-    implicitAuxCalcFlux(solver, rho, u, v, p, nx, ny, F1);    
+    implicitAuxCalcFlux2(solver, U0, U1, U2, U3, p, nx, ny, F1);
 
     for(int kk=0; kk<4; kk++)
     {
@@ -313,57 +314,58 @@ void implicitLUSGS_U(SOLVER* solver)
     }
 }
 
-void implicitAuxCalcFlux_sa(SOLVER* solver, double rho, double u, double v, double p, double n, double nx, double ny, double* F)
+void implicitAuxCalcFlux_sa2(SOLVER* solver, double U0, double U1, double U2, double U3, double U4, double p, double nx, double ny, double* F)
 {
-    double V = nx*u + ny*v;
-    double T = p/(solver->gas->R*rho);
-	double U3 = gasprop_T2e(solver->gas, T)*rho + (u*u + v*v)*rho/2;
-    double H = (U3 + p)/rho;
+    double V = (nx*U1 + ny*U2)/U0;      
     
-    F[0] = rho*V;
-    F[1] = rho*u*V + nx*p;    
-    F[2] = rho*v*V + ny*p;
-    F[3] = rho*H*V;
-    F[4] = rho*n*V;    
+    F[0] = U0*V;
+    F[1] = U1*V + nx*p;    
+    F[2] = U2*V + ny*p;
+    F[3] = (U3 + p)*V;
+    F[4] = U4*V;
 }
 
 void implicitCalcDeltaFlux_sa(SOLVER* solver, double rho, double u, double v, double p, double n, double d0, double d1, double d2, double d3, double d4, double nx, double ny, double* dF)
 {
-    double F0[5];
-    double F1[5];    
 
-    implicitAuxCalcFlux_sa(solver, rho, u, v, p, n, nx, ny, F0);
+    double F0[5];
+    double F1[5];
 
     double T = p/(solver->gas->R*rho);
-	double E = gasprop_T2e(solver->gas, T) + (u*u + v*v)/2;
+    double e0 = gasprop_T2e(solver->gas, T);
+	double E = e0 + (u*u + v*v)/2;
 
     double U0 = rho;
     double U1 = rho*u;
     double U2 = rho*v;
     double U3 = rho*E;  
-    double U4 = rho*n;      
+    double U4 = rho*n;
+
+    implicitAuxCalcFlux_sa2(solver, U0, U1, U2, U3, U4, p, nx, ny, F0);
 
     U0 = U0 + d0;
     U1 = U1 + d1;
     U2 = U2 + d2;
     U3 = U3 + d3;
     U4 = U4 + d4;    
-    
+
     rho = U0;
     u = U1/rho;
     v = U2/rho;
     E = U3/rho;
-    n = U4/rho;
 
-    T = gasprop_e2T(solver->gas, E - 0.5*(u*u + v*v));
+    double e1 = E - 0.5*(u*u + v*v);
+
+    T = gasprop_e2Taprox(solver->gas, e0, T, e1);
     p = solver->gas->R*T*rho;
 
-    implicitAuxCalcFlux_sa(solver, rho, u, v, p, n, nx, ny, F1);    
+    implicitAuxCalcFlux_sa2(solver, U0, U1, U2, U3, U4, p, nx, ny, F1);
 
     for(int kk=0; kk<5; kk++)
     {
         dF[kk] = F1[kk] - F0[kk];
     }
+
 }
 
 
@@ -560,10 +562,17 @@ void implicitUpdateA(SOLVER* solver)
             double F[4];
             double U[4];
 
-            double rho, u, v, E, p, T;
-
-            implicitAuxCalcFlux(solver, E1->P[0], E1->P[1], E1->P[2], E1->P[3], nx, ny, F0);
+            double rho, u, v, E, p, T;           
             
+            rho = solver->U[0][e1];
+            u = solver->U[1][e1]/rho;
+            v = solver->U[2][e1]/rho;
+            E = solver->U[3][e1]/rho;
+
+            implicitAuxCalcFlux2(solver, solver->U[0][e1], solver->U[1][e1], solver->U[2][e1], solver->U[3][e1], E1->P[3], nx, ny, F0);
+
+            double ee0 = E - 0.5*(u*u + v*v);
+
             for(int mm=0; mm<4; mm++)
             {            
                 for(int nn=0; nn<4; nn++)
@@ -583,10 +592,12 @@ void implicitUpdateA(SOLVER* solver)
                 v = U[2]/rho;
                 E = U[3]/rho;
 
-                T = gasprop_e2T(solver->gas, E - 0.5*(u*u + v*v));
+                double ee1 = E - 0.5*(u*u + v*v);
+
+                T = gasprop_e2Taprox(solver->gas, ee0, E1->P[4], ee1);
                 p = solver->gas->R*rho*T;            
 
-                implicitAuxCalcFlux(solver, rho, u, v, p, nx, ny, F);
+                implicitAuxCalcFlux2(solver, U[0], U[1], U[2], U[3], p, nx, ny, F);
                 
                 for(int nn=0; nn<4; nn++)
                 {
@@ -677,10 +688,17 @@ void implicitUpdateA_sa(SOLVER* solver)
             double F[5];
             double U[5];
 
-            double rho, u, v, E, p, T, n;
-
-            implicitAuxCalcFlux_sa(solver, E1->P[0], E1->P[1], E1->P[2], E1->P[3], E1->P[5], nx, ny, F0);
+            double rho, u, v, E, p, T;           
             
+            rho = solver->U[0][e1];
+            u = solver->U[1][e1]/rho;
+            v = solver->U[2][e1]/rho;
+            E = solver->U[3][e1]/rho;
+
+            implicitAuxCalcFlux_sa2(solver, solver->U[0][e1], solver->U[1][e1], solver->U[2][e1], solver->U[3][e1], solver->U[4][e1], E1->P[3], nx, ny, F0);
+
+            double ee0 = E - 0.5*(u*u + v*v);
+
             for(int mm=0; mm<5; mm++)
             {            
                 for(int nn=0; nn<5; nn++)
@@ -699,12 +717,13 @@ void implicitUpdateA_sa(SOLVER* solver)
                 u = U[1]/rho;
                 v = U[2]/rho;
                 E = U[3]/rho;
-                n = U[4]/rho;
 
-                T = gasprop_e2T(solver->gas, E - 0.5*(u*u + v*v));
-                p = solver->gas->R*rho*T;
+                double ee1 = E - 0.5*(u*u + v*v);
 
-                implicitAuxCalcFlux_sa(solver, rho, u, v, p, n, nx, ny, F);
+                T = gasprop_e2Taprox(solver->gas, ee0, E1->P[4], ee1);
+                p = solver->gas->R*rho*T;            
+
+                implicitAuxCalcFlux_sa2(solver, U[0], U[1], U[2], U[3], U[4], p, nx, ny, F);
                 
                 for(int nn=0; nn<5; nn++)
                 {

@@ -152,3 +152,9 @@ double gasprop_T2gamma(GASPROP* gas, double T)
     double Cv = gasprop_T2Cv(gas, T);
     return (Cv + gas->R)/Cv;
 }
+
+double gasprop_e2Taprox(GASPROP* gas, double e0, double T0, double e1)
+{
+    return T0 + (e1 - e0)/gasprop_T2Cv(gas, T0);
+}
+
