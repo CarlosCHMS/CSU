@@ -1813,7 +1813,7 @@ void solverSolve(SOLVER* solver)
                 solver->dtLocal = 0;
             }
             
-            if(ii%100 == 0)
+            if(ii%10 == 0)
             {
                 printf("%i, ", ii);
                 solverCalcRes(solver);

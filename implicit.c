@@ -26,9 +26,17 @@ void implicitCalcD(SOLVER* solver)
         double Lc = 0;
         double Lv = 0;
         ELEMENT* E = mesh->elemL[ii];
-        solver->D[ii] = 0.0;
+
+        double r = E->P[0];
+        double u = E->P[1];
+        double v = E->P[2];
+        double T = E->P[4];
+
+        double c = gasprop_T2c(solver->gas, T);
+
+        double mi;
         
-        for(int jj=0; jj<E->neiN; jj++)
+        for(int jj=0; jj<E->Np; jj++)
         {
             int face = E->f[jj];
             int face1 = 0;
@@ -43,43 +51,26 @@ void implicitCalcD(SOLVER* solver)
             
             double dSx, dSy, dS;
             double nx, ny;
-            
-            int e0 = mesh->con[face1][0];
-            int e1 = mesh->con[face1][1];
+
             int p0 = mesh->con[face1][2];
             int p1 = mesh->con[face1][3];
-            
-            ELEMENT* E0 = mesh->elemL[e0];
-            ELEMENT* E1 = mesh->elemL[e1];        
-     
+
             meshCalcDS(mesh, p0, p1, &dSx, &dSy);
             dS = sqrt(dSx*dSx + dSy*dSy);
-                
+
             nx = dSx/dS;
             ny = dSy/dS;
-        
-            double r = (E0->P[0] + E1->P[0])*0.5;
-            double u = (E0->P[1] + E1->P[1])*0.5;
-            double v = (E0->P[2] + E1->P[2])*0.5;
-            //double p = (E0->P[3] + E1->P[3])*0.5;
-            double T = (E0->P[4] + E1->P[4])*0.5;
-            
-            double c = gasprop_T2c(solver->gas, T);
 
             Lc += (fabs(nx*u + ny*v) + c)*dS;
             
-            double mi;
-            
             if(solver->laminar)
-            {
-                T = (E0->P[4] + E1->P[4])*0.5;
+            {            
                 mi = sutherland(T);
                 Lv += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS*dS;
             }
             
             if(solver->sa)
             {
-                T = (E0->P[4] + E1->P[4])*0.5;
                 mi = sutherland(T);
                 Lv += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS*dS;
             }
@@ -91,8 +82,7 @@ void implicitCalcD(SOLVER* solver)
         solver->D[ii] = 0.5*solver->wImp*Lc;        
         if(solver->laminar || solver->sa)
         {
-            Lv /= E->omega;
-            solver->D[ii] += Lv;
+            solver->D[ii] += Lv/E->omega;
         }
     }
     
@@ -181,14 +171,13 @@ void implicitFunc(SOLVER* solver, int e0, int e1, int p0, int p1, double** dW)
     
     implicitCalcDeltaFlux(solver, E1->P[0], E1->P[1], E1->P[2], E1->P[3], dW[0][e1], dW[1][e1], dW[2][e1], dW[3][e1], nx, ny, dF);
 
-
 	double c = gasprop_T2c(solver->gas, E1->P[4]);
     double ra = solver->wImp*(fabs(nx*E1->P[1] + ny*E1->P[2]) + c)*dS;
 
     if(solver->laminar)
     {
-        double r = (E0->P[0] + E1->P[0])*0.5;                
-        double T = (E0->P[4] + E1->P[4])*0.5;
+        double r = E1->P[0];                
+        double T = E1->P[4];
         double mi = sutherland(T);
 
         elementCenter(E0, solver->mesh, &x0, &y0);
@@ -216,7 +205,7 @@ void implicitLUSGS_L(SOLVER* solver)
         
         ELEMENT* E = mesh->elemL[ii];
                 
-        for(int jj=0; jj<E->neiN; jj++)
+        for(int jj=0; jj<E->Np; jj++)
         {
             int face = E->f[jj];
             int face1 = 0;
@@ -272,7 +261,7 @@ void implicitLUSGS_U(SOLVER* solver)
         
         ELEMENT* E = mesh->elemL[ii];
         
-        for(int jj=0; jj<E->neiN; jj++)
+        for(int jj=0; jj<E->Np; jj++)
         {
             int face = E->f[jj];
             int face1 = 0;
@@ -388,12 +377,12 @@ void implicitFunc_sa(SOLVER* solver, int e0, int e1, int p0, int p1, int face1, 
     
     implicitCalcDeltaFlux_sa(solver, E1->P[0], E1->P[1], E1->P[2], E1->P[3], E1->P[5], dW[0][e1], dW[1][e1], dW[2][e1], dW[3][e1], dW[4][e1], nx, ny, dF);
 
-    double T = (E0->P[4] + E1->P[4])*0.5;
+    double T = E1->P[4];
     
     double c = gasprop_T2c(solver->gas, T);
     double ra = solver->wImp*(fabs(nx*E1->P[1] + ny*E1->P[2]) + c)*dS;
     
-    double r = (E0->P[0] + E1->P[0])*0.5;                
+    double r = E1->P[0];                
 
     double mi = sutherland(T);
 
