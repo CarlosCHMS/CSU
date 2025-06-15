@@ -464,7 +464,7 @@ void inter(SOLVER* solver)
                     xm = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
                     ym = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;        
                     d2 = (solver->dPx[kk][ii]*(xm - x0) + solver->dPy[kk][ii]*(ym - y0));
-                    phi0 = limiterV2(E->P[mm], Pmin, Pmax, d2, solver->K3*Pref2[kk]);
+                    phi0 = limiterV2(E->P[mm], Pmin, Pmax, d2, Pref2[kk]);
                     
                     if(jj==0)
                     {
