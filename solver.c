@@ -16,6 +16,7 @@
 #include"saCC.h"
 #include"implicit.h"
 #include"gasprop.h"
+#include"limiter.h"
 
 
 CONDITION* conditionInit(double p, double T, double mach, double nx, double ny)
@@ -157,6 +158,8 @@ void solverFree(SOLVER* solver)
     inputFree(solver->input);
     
     gaspropFree(solver->gas);
+    
+    limiterFree(solver->limiter);
 
     free(solver);
 
@@ -425,20 +428,8 @@ void inter(SOLVER* solver)
 
     if(solver->order == 2)
 	{
-	    double volMax = 0.0;
-	    for(int ii=0; ii<solver->mesh->Nelem; ii++)
-        {
-	        volMax = fmax(solver->mesh->elemL[ii]->omega, volMax);
-	    }
-	    
-	    double Pref2[5];
-	    
-	    Pref2[0] = solver->inlet->Pin[0]*solver->inlet->Pin[0];
-	    Pref2[1] = solver->inlet->Pin[1]*solver->inlet->Pin[1] + solver->inlet->Pin[2]*solver->inlet->Pin[2];
-	    Pref2[2] = Pref2[1];
-	    Pref2[3] = solver->inlet->Pin[3]*solver->inlet->Pin[3];
-	    Pref2[4] = solver->inlet->Pin[5]*solver->inlet->Pin[5];
-	    
+	    limiterUpdate(solver->limiter, solver);
+
         # pragma omp parallel for
         for(int ii=0; ii<solver->mesh->Nelem; ii++)
         {
@@ -447,8 +438,9 @@ void inter(SOLVER* solver)
             double Pmin, Pmax; 
             double blend = 1.0;
             ELEMENT* E = solver->mesh->elemL[ii];
-            double hRatio = sqrt(E->omega/volMax);
-            double hRatio3 = hRatio*hRatio*hRatio;
+            double Pref2[5];
+
+            limiterCalc(solver->limiter, solver, ii, Pref2);
 
       	    elementCenter(E, solver->mesh, &x0, &y0);
       	    
@@ -472,8 +464,7 @@ void inter(SOLVER* solver)
                     xm = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
                     ym = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;        
                     d2 = (solver->dPx[kk][ii]*(xm - x0) + solver->dPy[kk][ii]*(ym - y0));
-                    
-                    phi0 = limiterV2(E->P[mm], Pmin, Pmax, d2, solver->K3*Pref2[kk]*hRatio3);
+                    phi0 = limiterV2(E->P[mm], Pmin, Pmax, d2, solver->K3*Pref2[kk]);
                     
                     if(jj==0)
                     {
@@ -1125,63 +1116,6 @@ double limiterBJ(double Ui, double Umin, double Umax, double d2)
 
 }
 
-double limiterV(double Ui, double Umin, double Umax, double d2, double e)
-{
-
-    double ans;
-    double d1max = Umax - Ui;
-    double d1min = Umin - Ui;
-    
-    if(d2 == 0)
-    {
-        ans = 1;
-    }
-    else if(d2 > 0)
-    {
-        ans = (d1max*d1max + e*e)*d2 + 2*d2*d2*d1max;
-        ans /= d1max*d1max + 2*d2*d2 + d1max*d2 + e*e;
-        ans /= d2;
-    }
-    else
-    {
-        ans = (d1min*d1min + e*e)*d2 + 2*d2*d2*d1min;
-        ans /= d1min*d1min + 2*d2*d2 + d1min*d2 + e*e;
-        ans /= d2;
-    }
-    
-    return ans;
-
-}
-
-double limiterV2(double Ui, double Umin, double Umax, double d2, double ee)
-{
-
-    double ans;
-    double d1max = Umax - Ui;
-    double d1min = Umin - Ui;
-    
-    if(d2 == 0)
-    {
-        ans = 1;
-    }
-    else if(d2 > 0)
-    {
-        ans = (d1max*d1max + ee)*d2 + 2*d2*d2*d1max;
-        ans /= d1max*d1max + 2*d2*d2 + d1max*d2 + ee;
-        ans /= d2;
-    }
-    else
-    {
-        ans = (d1min*d1min + ee)*d2 + 2*d2*d2*d1min;
-        ans /= d1min*d1min + 2*d2*d2 + d1min*d2 + ee;
-        ans /= d2;
-    }
-    
-    return ans;
-
-}
-
-
 void solverCalcPrimitive(SOLVER* solver, double** U)
 {   
     # pragma omp parallel for
@@ -1608,6 +1542,29 @@ void solverSetData(SOLVER* solver, INPUT* input)
     {
         strcat(solver->writeSurf, "wall");
     }
+    
+    int limType;
+    if(inputNameIsInput(solver->input, "limiter"))
+    {
+        limType = atoi(inputGetValue(solver->input, "limiter"));
+    }
+    else
+    {
+        limType = 0;
+    }
+    
+    double limK;
+    if(inputNameIsInput(solver->input, "limK"))
+    {
+        limK = strtod(inputGetValue(solver->input, "limK"), NULL);     
+    }
+    else
+    {
+        limK = 1.0;
+    }
+
+    solver->limiter = limiterInit(limType, limK, solver);
+
 }
 
 void solverInitDomain(SOLVER* solver)
@@ -1754,7 +1711,7 @@ SOLVER* solverInit(char* wd)
     {
         implicitInitDPLUR(solver);
     }
-    
+        
     return solver;
 }
 

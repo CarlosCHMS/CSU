@@ -33,6 +33,17 @@ typedef struct{
 
 } GASPROP;
 
+typedef struct{
+
+    int type;
+    double K;
+    double volMax;
+    
+    double* Pref20;
+    double* Pref2;
+
+} LIMITER;
+
 typedef struct {
 
     int Nvar;
@@ -99,6 +110,8 @@ typedef struct {
     INPUT* input;
 
     GASPROP* gas;
+    
+    LIMITER* limiter;
 
 } SOLVER;
 
@@ -163,10 +176,6 @@ void solverCalcMinMax(SOLVER* solver, ELEMENT* E, int kk, double* Umin, double* 
 void solverCheckGrad(SOLVER* solver);
 
 double limiterBJ(double Ui, double Umin, double Umax, double d2);
-
-double limiterV(double Ui, double Umin, double Umax, double d2, double e);
-
-double limiterV2(double Ui, double Umin, double Umax, double d2, double ee);
 
 void solverCalcPrimitive(SOLVER* solver, double** U);
 
