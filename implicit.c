@@ -27,16 +27,9 @@ void implicitCalcD(SOLVER* solver)
         double Lv = 0;
         ELEMENT* E = mesh->elemL[ii];
 
-        double r = E->P[0];
-        double u = E->P[1];
-        double v = E->P[2];
-        double T = E->P[4];
-
-        double c = gasprop_T2c(solver->gas, T);
-
         double mi;
         
-        for(int jj=0; jj<E->Np; jj++)
+        for(int jj=0; jj<E->neiN; jj++)
         {
             int face = E->f[jj];
             int face1 = 0;
@@ -52,11 +45,25 @@ void implicitCalcD(SOLVER* solver)
             double dSx, dSy, dS;
             double nx, ny;
 
+            int e0 = mesh->con[face1][0];
+            int e1 = mesh->con[face1][1];
             int p0 = mesh->con[face1][2];
             int p1 = mesh->con[face1][3];
 
+            ELEMENT* E0 = mesh->elemL[e0];
+            ELEMENT* E1 = mesh->elemL[e1];
+
             meshCalcDS(mesh, p0, p1, &dSx, &dSy);
             dS = sqrt(dSx*dSx + dSy*dSy);
+            
+            
+            double r = (E0->P[0] + E1->P[0])*0.5;
+            double u = (E0->P[1] + E1->P[1])*0.5;
+            double v = (E0->P[2] + E1->P[2])*0.5;
+            double T = (E0->P[4] + E1->P[4])*0.5;
+
+            double c = gasprop_T2c(solver->gas, T);
+
 
             nx = dSx/dS;
             ny = dSy/dS;
@@ -75,10 +82,9 @@ void implicitCalcD(SOLVER* solver)
                 Lv += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS*dS;
             }
             
-        }
+        }        
         
-        solver->dtL[ii] = E->omega/Lc;
-        
+        solver->dtL[ii] = Lc;
         solver->D[ii] = 0.5*solver->wImp*Lc;        
         if(solver->laminar || solver->sa)
         {
@@ -86,6 +92,78 @@ void implicitCalcD(SOLVER* solver)
         }
     }
     
+    //Complement from the boundaries
+    for(int ii=0; ii<solver->mesh->Nmark; ii++)
+    {
+
+        double Lc;
+        double Lv = 0;
+        double mi;
+        double dSx, dSy, dS;
+        double nx, ny;
+        int p0, p1, e1;
+        
+        MESHBC* bc = solver->mesh->bc[ii];
+        for(int ii=0; ii<bc->Nelem; ii++)
+        {
+ 
+            e1 = bc->elemL[ii]->neiL[0]->ii;
+            p0 = bc->elemL[ii]->p[0];
+            p1 = bc->elemL[ii]->p[1];
+ 
+            meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+            dS = sqrt(dSx*dSx + dSy*dSy);
+
+            ELEMENT* E0 = bc->elemL[ii];
+            ELEMENT* E1 = mesh->elemL[e1];
+
+            double r = (E0->P[0] + E1->P[0])*0.5;
+            double u = (E0->P[1] + E1->P[1])*0.5;
+            double v = (E0->P[2] + E1->P[2])*0.5;
+            double T = (E0->P[4] + E1->P[4])*0.5;
+
+            double c = gasprop_T2c(solver->gas, T);
+            
+            if(dS > 0)
+            {
+                nx = dSx/dS;
+                ny = dSy/dS;
+            }
+            else
+            {
+                nx = 0.0;
+                ny = 1.0;
+            }
+
+            Lc = (fabs(nx*u + ny*v) + c)*dS;
+            
+            if(solver->laminar)
+            {            
+                mi = sutherland(T);
+                Lv = fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS*dS;
+            }
+            
+            if(solver->sa)
+            {
+                mi = sutherland(T);
+                Lv = fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS*dS;
+            }
+
+            solver->dtL[e1] += Lc;
+            solver->D[e1] += 0.5*solver->wImp*Lc;        
+            if(solver->laminar || solver->sa)
+            {
+                solver->D[e1] += Lv/E1->omega;
+            }
+        }
+    }
+
+    #pragma omp parallel for
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        solver->dtL[ii] = mesh->elemL[ii]->omega/solver->dtL[ii];
+    }
+
     // Time step calculation
     double dt = solver->dtL[0];
     for(int ii=1; ii<mesh->Nelem; ii++)
@@ -205,7 +283,7 @@ void implicitLUSGS_L(SOLVER* solver)
         
         ELEMENT* E = mesh->elemL[ii];
                 
-        for(int jj=0; jj<E->Np; jj++)
+        for(int jj=0; jj<E->neiN; jj++)
         {
             int face = E->f[jj];
             int face1 = 0;
@@ -261,7 +339,7 @@ void implicitLUSGS_U(SOLVER* solver)
         
         ELEMENT* E = mesh->elemL[ii];
         
-        for(int jj=0; jj<E->Np; jj++)
+        for(int jj=0; jj<E->neiN; jj++)
         {
             int face = E->f[jj];
             int face1 = 0;
@@ -281,8 +359,8 @@ void implicitLUSGS_U(SOLVER* solver)
                 e0 = mesh->con[face1][1];
                 p1 = mesh->con[face1][2];
                 p0 = mesh->con[face1][3];
-            }
-            
+            }            
+
             if(e1 > e0)
             {
                 if(solver->sa)
@@ -301,6 +379,7 @@ void implicitLUSGS_U(SOLVER* solver)
             solver->dW1[kk][ii] /= solver->D[ii];
         }
     }
+
 }
 
 void implicitAuxCalcFlux_sa2(SOLVER* solver, double U0, double U1, double U2, double U3, double U4, double p, double nx, double ny, double* F)
