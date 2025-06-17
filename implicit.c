@@ -93,7 +93,7 @@ void implicitCalcD(SOLVER* solver)
     }
     
     //Complement from the boundaries
-    for(int ii=0; ii<solver->mesh->Nmark; ii++)
+    for(int jj=0; jj<solver->mesh->Nmark; jj++)
     {
 
         double Lc;
@@ -103,7 +103,7 @@ void implicitCalcD(SOLVER* solver)
         double nx, ny;
         int p0, p1, e1;
         
-        MESHBC* bc = solver->mesh->bc[ii];
+        MESHBC* bc = solver->mesh->bc[jj];
         for(int ii=0; ii<bc->Nelem; ii++)
         {
  
@@ -114,13 +114,13 @@ void implicitCalcD(SOLVER* solver)
             meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
             dS = sqrt(dSx*dSx + dSy*dSy);
 
-            ELEMENT* E0 = bc->elemL[ii];
+            //ELEMENT* E0 = bc->elemL[ii];
             ELEMENT* E1 = mesh->elemL[e1];
 
-            double r = (E0->P[0] + E1->P[0])*0.5;
-            double u = (E0->P[1] + E1->P[1])*0.5;
-            double v = (E0->P[2] + E1->P[2])*0.5;
-            double T = (E0->P[4] + E1->P[4])*0.5;
+            double r = E1->P[0];
+            double u = E1->P[1];
+            double v = E1->P[2];
+            double T = E1->P[4];
 
             double c = gasprop_T2c(solver->gas, T);
             
@@ -157,7 +157,7 @@ void implicitCalcD(SOLVER* solver)
             }
         }
     }
-
+    
     #pragma omp parallel for
     for(int ii=0; ii<mesh->Nelem; ii++)
     {
