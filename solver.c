@@ -1878,3 +1878,139 @@ void solverWriteSurf(SOLVER* solver)
     }
 }
 
+void solverWriteSolution2(SOLVER* solver)
+{
+
+    /* 
+        Based on: Adek Tasri, Accuracy of Cell Centres to Vertices 
+        Interpolation for Unstructured Mesh Finite Volume Solver, 2021
+    */
+
+    // Save solution
+    printf("main: saving the solution 2.\n");    
+
+    char fileName[50];
+    fileName[0] = '\0';
+    strcat(fileName, solver->wd);
+    strcat(fileName, "solution2.csv");
+    
+    FILE* ff = fopen(fileName, "w");
+    int Naux = 3;
+    double** P = tableMallocDouble(solver->Nvar+1, solver->mesh->Np);
+    double** Q = tableMallocDouble(Naux, solver->mesh->Np);
+    double* den = malloc(solver->mesh->Np*sizeof(double));
+    int ii, jj, kk, p;
+    double xc, yc, xp, yp, L;
+    ELEMENT* E;
+
+    solverCalcPrimitive(solver, solver->U);
+
+    for(ii=0; ii<solver->mesh->Np; ii++)
+    {       
+        for(kk=0; kk<solver->Nvar+1; kk++)
+        {
+            P[kk][ii] = 0.;
+        }   
+        den[ii] = 0.;
+    }
+
+    for(ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        E = solver->mesh->elemL[ii];
+        elementCenter(E, solver->mesh, &xc, &yc);
+        
+        for(jj=0; jj<E->Np; jj++)
+        {
+            p = E->p[jj];
+            xp = solver->mesh->p[p][0];
+            yp = solver->mesh->p[p][1];
+            L = sqrt((xp-xc)*(xp-xc) + (yp-yc)*(yp-yc));
+           
+            for(kk=0; kk<solver->Nvar+1; kk++)
+            {        
+                P[kk][p] += E->P[kk]/L;
+            }                        
+            
+            den[p] += 1/L;
+        }        
+        
+    }
+
+    for(ii=0; ii<solver->mesh->Np; ii++)
+    {
+        if(den[ii] != 0)
+        {
+            for(kk=0; kk<solver->Nvar+1; kk++)
+            {
+                P[kk][ii] /= den[ii];    
+            }
+        }
+    }
+
+    int p0, p1;
+
+    if(solver->laminar || solver->sa)
+    {
+        for(int ii=0; ii<solver->mesh->Nmark; ii++)
+        {
+            if(solver->mesh->bc[ii]->flagBC == 3)
+            {
+                for(int jj=0; jj<solver->mesh->bc[ii]->Nelem; jj++)
+                {
+                    p0 = solver->mesh->bc[ii]->elemL[jj]->p[0];
+                    p1 = solver->mesh->bc[ii]->elemL[jj]->p[1];
+
+                    P[1][p0] = 0.0;
+                    P[2][p0] = 0.0;
+                    P[1][p1] = 0.0;
+                    P[2][p1] = 0.0;
+                    
+                    if(solver->sa)
+                    {
+                        P[5][p0] = 0.0;
+                        P[5][p1] = 0.0;
+                        if(solver->Twall >= 0)
+                        {
+                            P[4][p0] = solver->Twall;
+                            P[4][p1] = solver->Twall;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fprintf(ff, "0, %i, %i,\n", solver->mesh->Np, solver->Nvar+1+Naux);
+
+    double s0 = gasprop_Tp2entropy(solver->gas, solver->inlet->T, solver->inlet->p);
+    for(ii=0; ii<solver->mesh->Np; ii++)
+    {   
+        //Mach calc     
+        double V2 = P[1][ii]*P[1][ii] + P[2][ii]*P[2][ii];
+        Q[0][ii] = sqrt(V2)/gasprop_T2c(solver->gas, P[4][ii]);
+        Q[1][ii] = gasprop_T2e(solver->gas, P[4][ii]) + P[3][ii]/P[0][ii] + 0.5*V2;
+        Q[2][ii] = gasprop_Tp2entropy(solver->gas, P[4][ii], P[3][ii]) - s0;
+    }
+    
+    for(ii=0; ii<solver->mesh->Np; ii++)
+    {        
+        for(jj=0; jj<solver->Nvar+1; jj++)
+        {
+            fprintf(ff, "%.10e, ", P[jj][ii]);
+        }
+                
+        for(jj=0; jj<Naux; jj++)
+        {
+            fprintf(ff, "%.10e, ", Q[jj][ii]);
+        }        
+        fprintf(ff, "\n");        
+    }
+
+    fclose(ff);
+
+    tableFreeDouble(P, solver->Nvar+1);
+    tableFreeDouble(Q, Naux);
+    free(den);
+    
+}
+

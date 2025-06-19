@@ -158,3 +158,31 @@ double gasprop_e2Taprox(GASPROP* gas, double e0, double T0, double e1)
     return T0 + (e1 - e0)/gasprop_T2Cv(gas, T0);
 }
 
+double gasprop_T2fentro(GASPROP* gas, double T)
+{
+    double aux;
+    double P;
+
+    if(gas->TP)
+    {
+        P = 1;
+        aux = (gas->cc[1] + gas->R)*log(T);
+        for(int ii=2; ii<gas->N; ii++)
+        {
+            P *= T;
+            aux += ii*gas->cc[ii]*P/(ii-1);
+        }
+    }
+    else
+    {
+        aux = gas->Cp*log(T);
+    }   
+
+    return aux;
+}
+
+double gasprop_Tp2entropy(GASPROP* gas, double T, double p)
+{
+    return gasprop_T2fentro(gas, T) - gas->R*log(p);
+}
+

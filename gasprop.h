@@ -18,3 +18,7 @@ double gasprop_T2gamma(GASPROP* gas, double T);
 void gasprop_T2eCv(GASPROP* gas, double T, double* e, double* Cv);
 
 double gasprop_e2Taprox(GASPROP* gas, double e0, double T0, double e1);
+
+double gasprop_T2fentro(GASPROP* gas, double T);
+
+double gasprop_Tp2entropy(GASPROP* gas, double T, double p);

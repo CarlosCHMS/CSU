@@ -207,3 +207,5 @@ int solverTimeSchemeChoice(char* s);
 
 void solverWriteSurf(SOLVER* solver);
 
+void solverWriteSolution2(SOLVER* solver);
+
