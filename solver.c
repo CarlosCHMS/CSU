@@ -833,7 +833,7 @@ void solverStepRK(SOLVER* solver)
 
 }
 
-void solverCalcRes(SOLVER* solver)
+void solverCalcResOld(SOLVER* solver)
 {
     for(int kk=0; kk<solver->Nvar; kk++)
     {
@@ -857,6 +857,34 @@ void solverCalcRes(SOLVER* solver)
     }
     printf("\n");      
 }
+
+void solverCalcRes(SOLVER* solver)
+{
+    for(int kk=0; kk<solver->Nvar; kk++)
+    {
+        solver->res[kk] = 0.0;
+    }
+    
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        for(int kk=0; kk<solver->Nvar; kk++)
+        {         
+            solver->res[kk] += solver->R[kk][ii]*solver->R[kk][ii];         
+        }
+    }
+
+    for(int kk=0; kk<solver->Nvar; kk++)
+    {
+        solver->res[kk] = sqrt(solver->res[kk]/solver->mesh->Nelem);
+    }
+    
+    for(int kk=0; kk<solver->Nvar; kk++)
+    {
+        printf(" %+.4e,", solver->res[kk]);        
+    }
+    printf("\n");      
+}
+
 
 double solverLocalTimeStep(SOLVER* solver, int ii)
 {
@@ -1989,7 +2017,7 @@ void solverWriteSolution2(SOLVER* solver)
         fprintf(ff, "r,u,v,p,T,mach,H,s,\n");    
     }
 
-    fprintf(ff, "0, %i, %i,\n", solver->mesh->Np, solver->Nvar+1+Naux);
+    //fprintf(ff, "0, %i, %i,\n", solver->mesh->Np, solver->Nvar+1+Naux);
 
     double s0 = gasprop_Tp2entropy(solver->gas, solver->inlet->T, solver->inlet->p);
     for(ii=0; ii<solver->mesh->Np; ii++)
