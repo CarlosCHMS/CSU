@@ -1980,6 +1980,15 @@ void solverWriteSolution2(SOLVER* solver)
         }
     }
 
+    if(solver->sa)
+    {
+        fprintf(ff, "r,u,v,p,T,n,mach,H,s,\n");
+    }
+    else
+    {
+        fprintf(ff, "r,u,v,p,T,mach,H,s,\n");    
+    }
+
     fprintf(ff, "0, %i, %i,\n", solver->mesh->Np, solver->Nvar+1+Naux);
 
     double s0 = gasprop_Tp2entropy(solver->gas, solver->inlet->T, solver->inlet->p);
