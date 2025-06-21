@@ -22,3 +22,9 @@ double gasprop_e2Taprox(GASPROP* gas, double e0, double T0, double e1);
 double gasprop_T2fentro(GASPROP* gas, double T);
 
 double gasprop_Tp2entropy(GASPROP* gas, double T, double p);
+
+double gasprop_critic_T2entalpy(GASPROP* gas, double T);
+
+void gasprop_critic_T2entalpyDer(GASPROP* gas, double T, double *H, double *dH);
+
+double gasprop_critic_H2c(GASPROP* gas, double H);

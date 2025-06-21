@@ -300,14 +300,13 @@ void fluxAUSMpup(SOLVER* solver,
 	double U3R = gasprop_T2e(solver->gas, TR)*rR + (uR*uR + vR*vR)*rR/2;
     double HR = (U3R + pR)/rR;
     
-    //Verify this calculation of sound velocity with thermaly perfect gas
-    double astar2;
+    double astar;
     
-    astar2 = 2*(solver->gas->gamma-1)*HL/(solver->gas->gamma+1);
-    double ahL = astar2/fmax(sqrt(astar2), fabs(uL));
+    astar = gasprop_critic_H2c(solver->gas, HL);
+    double ahL = astar*astar/fmax(astar, fabs(uL));
 
-    astar2 = 2*(solver->gas->gamma-1)*HR/(solver->gas->gamma+1);
-    double ahR = astar2/fmax(sqrt(astar2), fabs(uR));    
+    astar = gasprop_critic_H2c(solver->gas, HR);
+    double ahR = astar*astar/fmax(astar, fabs(uR));
     
 	double am = fmin(ahL, ahR);
 
@@ -412,14 +411,13 @@ void fluxAUSMpup2(SOLVER* solver,
 	double U3R = gasprop_T2e(solver->gas, TR)*rR + (uR*uR + vR*vR)*rR/2;
     double HR = (U3R + pR)/rR;
     
-    //Verify this calculation of sound velocity with thermaly perfect gas
-    double astar2;
+    double astar;
     
-    astar2 = 2*(solver->gas->gamma-1)*HL/(solver->gas->gamma+1);
-    double ahL = astar2/fmax(sqrt(astar2), fabs(uL));
+    astar = gasprop_critic_H2c(solver->gas, HL);
+    double ahL = astar*astar/fmax(astar, fabs(uL));
 
-    astar2 = 2*(solver->gas->gamma-1)*HR/(solver->gas->gamma+1);
-    double ahR = astar2/fmax(sqrt(astar2), fabs(uR));    
+    astar = gasprop_critic_H2c(solver->gas, HR);
+    double ahR = astar*astar/fmax(astar, fabs(uR));
     
 	double am = fmin(ahL, ahR);
 
@@ -686,14 +684,13 @@ void fluxAUSMpup_sa(SOLVER* solver,
 	double U3R = gasprop_T2e(solver->gas, TR)*rR + (uR*uR + vR*vR)*rR/2;
     double HR = (U3R + pR)/rR;
     
-    //Verify this calculation of sound velocity with thermaly perfect gas
-    double astar2;
+    double astar;
     
-    astar2 = 2*(solver->gas->gamma-1)*HL/(solver->gas->gamma+1);
-    double ahL = astar2/fmax(sqrt(astar2), fabs(uL));
+    astar = gasprop_critic_H2c(solver->gas, HL);
+    double ahL = astar*astar/fmax(astar, fabs(uL));
 
-    astar2 = 2*(solver->gas->gamma-1)*HR/(solver->gas->gamma+1);
-    double ahR = astar2/fmax(sqrt(astar2), fabs(uR));    
+    astar = gasprop_critic_H2c(solver->gas, HR);
+    double ahR = astar*astar/fmax(astar, fabs(uR));
     
 	double am = fmin(ahL, ahR);
 
@@ -803,13 +800,13 @@ void fluxAUSMpup2_sa(SOLVER* solver,
     double HR = (U3R + pR)/rR;
     
     //Verify this calculation of sound velocity with thermaly perfect gas
-    double astar2;
+    double astar;
     
-    astar2 = 2*(solver->gas->gamma-1)*HL/(solver->gas->gamma+1);
-    double ahL = astar2/fmax(sqrt(astar2), fabs(uL));
+    astar = gasprop_critic_H2c(solver->gas, HL);
+    double ahL = astar*astar/fmax(astar, fabs(uL));
 
-    astar2 = 2*(solver->gas->gamma-1)*HR/(solver->gas->gamma+1);
-    double ahR = astar2/fmax(sqrt(astar2), fabs(uR));    
+    astar = gasprop_critic_H2c(solver->gas, HR);
+    double ahR = astar*astar/fmax(astar, fabs(uR));
     
 	double am = fmin(ahL, ahR);
 
@@ -867,7 +864,6 @@ void fluxAUSMpup2_sa(SOLVER* solver,
         Mminus = M2m*(1 + 16*beta*M2p);
         Pminus = M2m*((-2 - MR) + 16*alpha*MR*M2p);
     }
-
 
     double Mm = Mplus + Mminus - (Kp/fa)*fmax(1 - sig*Mbar*Mbar, 0)*(pR - pL)/(rhom*am*am);
 

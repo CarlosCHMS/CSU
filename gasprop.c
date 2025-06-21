@@ -186,3 +186,59 @@ double gasprop_Tp2entropy(GASPROP* gas, double T, double p)
     return gasprop_T2fentro(gas, T) - gas->R*log(p);
 }
 
+double gasprop_critic_T2entalpy(GASPROP* gas, double T)
+{
+    double e, Cv;
+    gasprop_T2eCv(gas, T, &e, &Cv);
+
+    double RT = gas->R*T;
+    double gamma = (Cv + gas->R)/Cv;
+    return e + RT + (gamma*RT)*0.5;
+
+}
+
+void gasprop_critic_T2entalpyDer(GASPROP* gas, double T, double *H, double *dH)
+{
+    double e, Cv;
+    gasprop_T2eCv(gas, T, &e, &Cv);
+
+    double RT = gas->R*T;
+    double gamma = (Cv + gas->R)/Cv;
+    *H = e + RT + gamma*RT*0.5;
+    *dH = Cv + gas->R + gamma*gas->R*0.5; //Aproximated 
+}
+
+
+double gasprop_critic_H2c(GASPROP* gas, double H)
+{
+
+    double c2 = 2*(gas->gamma-1)*H/(gas->gamma+1);
+    double ans;
+    double H0, T, dHdT;
+    double error = 1;
+    int ii = 0;
+
+    if(gas->TP)
+    {
+        T = c2/(gas->gamma*gas->R);
+        gasprop_critic_T2entalpyDer(gas, T, &H0, &dHdT);
+        error = (H - H0)/dHdT;
+        T += error;
+        
+        while((fabs(error) > 1.0e-12) & (ii < 3))
+        {        
+            gasprop_critic_T2entalpyDer(gas, T, &H0, &dHdT);
+            error = (H - H0)/dHdT;
+            T += error;
+            ii++;
+        }
+      
+        ans = gasprop_T2c(gas, T);
+    }
+    else
+    {
+        ans = sqrt(c2);
+    }
+    
+    return ans;
+}
