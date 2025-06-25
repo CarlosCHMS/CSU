@@ -17,6 +17,7 @@
 #include"implicit.h"
 #include"gasprop.h"
 #include"limiter.h"
+#include"laminar.h"
 
 
 CONDITION* conditionInit(double p, double T, double mach, double nx, double ny)
@@ -596,92 +597,6 @@ void inter(SOLVER* solver)
     } 
 }
 
-void interVisc(SOLVER* solver)
-{
-    # pragma omp parallel for
-    for(int ii=0; ii<solver->mesh->Ncon; ii++)
-    {
-        double dSx, dSy;
-        double x0, y0, x1, y1;
-
-        int e0 = solver->mesh->con[ii][0];
-        int e1 = solver->mesh->con[ii][1];
-        int p0 = solver->mesh->con[ii][2];
-        int p1 = solver->mesh->con[ii][3];
-        
-        ELEMENT* E0 = solver->mesh->elemL[e0];
-        ELEMENT* E1 = solver->mesh->elemL[e1];
-		    
-        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-                    
-        double duxm = (solver->dPx[1][e0] + solver->dPx[1][e1])*0.5;
-        double dvxm = (solver->dPx[2][e0] + solver->dPx[2][e1])*0.5;        
-        double dTxm = (solver->dPx[3][e0] + solver->dPx[3][e1])*0.5;
-        
-        double duym = (solver->dPy[1][e0] + solver->dPy[1][e1])*0.5;
-        double dvym = (solver->dPy[2][e0] + solver->dPy[2][e1])*0.5;
-        double dTym = (solver->dPy[3][e0] + solver->dPy[3][e1])*0.5;
-        
-	    elementCenter(E0, solver->mesh, &x0, &y0);
-	    elementCenter(E1, solver->mesh, &x1, &y1);
-	        
-        double dx = x1 - x0;		    
-        double dy = y1 - y0;
-        double L = sqrt(dx*dx + dy*dy);
-        
-        double dul = (E1->P[1] - E0->P[1])/L;
-        double dvl = (E1->P[2] - E0->P[2])/L;
-        double dTl = (E1->P[4] - E0->P[4])/L;
-        
-        double dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
-        double duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;        
-
-        double dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
-        double dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;        
-
-        double dTx = dTxm + (dTl - (dTxm*dx + dTym*dy)/L)*dx/L;
-        double dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;        
-	    
-        double T = (E1->P[4] + E0->P[4])*0.5;
-        double mi = sutherland(T);
-        double k = gasprop_T2Cp(solver->gas, T)*mi/solver->Pr;
-	    		        
-	    double txx = 2*mi*(dux - (dux + dvy)/3);
-	    double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
-	    double txy = mi*(duy + dvx);  
-	    
-	    double u = (E1->P[1] + E0->P[1])*0.5;
-        double v = (E1->P[2] + E0->P[2])*0.5;
-    
-	    solver->faceFlux[1][ii] = txx*dSx + txy*dSy;
-	    solver->faceFlux[2][ii] = txy*dSx + tyy*dSy;
-	    solver->faceFlux[3][ii] = (txx*dSx + txy*dSy)*u + (txy*dSx + tyy*dSy)*v + k*(dTx*dSx + dTy*dSy);
-    }
-    
-    # pragma omp parallel for
-    for(int ii=0; ii<solver->mesh->Nelem; ii++)
-    {
-        for(int jj=0; jj<solver->mesh->elemL[ii]->Np; jj++)
-        {
-            int face = solver->mesh->elemL[ii]->f[jj];
-            if(face > 0)
-            {
-                for(int kk=1; kk<4; kk++)
-                {
-                    solver->R[kk][ii] -= solver->faceFlux[kk][face-1];
-                }
-            }
-            else if(face < 0)
-            {
-                for(int kk=1; kk<4; kk++)
-                {
-                    solver->R[kk][ii] += solver->faceFlux[kk][-face-1];
-                }            
-            }
-        }
-    } 
-}
-
 void interAxisPressure(SOLVER* solver)
 {
     # pragma omp parallel for
@@ -711,8 +626,8 @@ void solverCalcR(SOLVER* solver, double** U)
     if(solver->laminar==1)
     {
         solverGrad_T(solver);
-        interVisc(solver);
-        boundaryVisc(solver);
+        laminarInter(solver);
+        laminarBoundary(solver);
     }
     
     if(solver->sa==1)
@@ -1893,6 +1808,11 @@ int solverTimeSchemeChoice(char* s)
 
 void solverWriteSurf(SOLVER* solver)
 {
+    if(solver->laminar)
+    {
+        laminarWriteSurf(solver);
+    }
+
     if(solver->sa)
     {
         if(solver->saCC)

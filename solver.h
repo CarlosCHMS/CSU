@@ -147,8 +147,6 @@ void solverGrad_T(SOLVER* solver);
 
 void inter(SOLVER* solver);
 
-void interVisc(SOLVER* solver);
-
 void interAxisPressure(SOLVER* solver);
 
 void solverCalcR(SOLVER* solver, double** U);
