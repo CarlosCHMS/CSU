@@ -219,6 +219,28 @@ MESH* meshInit(char* fileName, int Nvar, int axi)
     
     fclose(ff);
 
+    printf("mesh: fix mesh orientation.\n");
+    double omega;    
+    int Np;
+    int pAux[4];
+    for(ii=0; ii<mesh->Nelem; ii++)
+    {
+        omega = meshCalcOmega(mesh, ii);
+        if(omega < 0)
+        {
+            Np = mesh->elemL[ii]->Np;
+            for(int jj=0; jj<Np; jj++)
+            {
+                pAux[jj] = mesh->elemL[ii]->p[Np-1-jj];
+            }
+            
+            for(int jj=0; jj<Np; jj++)
+            {
+                mesh->elemL[ii]->p[jj] = pAux[jj];
+            }
+        }
+    }
+
     printf("mesh: calculating connections.\n");   
     meshCalcConnection4(mesh);
     
