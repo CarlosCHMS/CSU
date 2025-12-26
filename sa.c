@@ -250,8 +250,8 @@ void saInterSource(SOLVER* solver)
         double Qt;
 
         saCalcSource(n, n_L, S, d, rho, drx, dry, dnx, dny, &Qt);
+        solver->R[4][ii] -= Qt*E0->omega;
 
-        solver->R[4][ii] -= Qt*meshCalcOmega(solver->mesh, ii);
     }
 }
 

@@ -51,3 +51,15 @@ void fluxAUSMpup2(SOLVER* solver,
                double rR, double uR, double vR, double pR,
 	           double* f);	           
 	           
+void flux_sst(SOLVER* solver, double rL, double uL, double vL, double pL, double kL, double oL,
+                              double rR, double uR, double vR, double pR, double kR, double oK, double* f);
+
+void fluxAUSM_sst(SOLVER* solver, 
+               double rL, double uL, double vL, double pL, double kL, double oL,
+               double rR, double uR, double vR, double pR, double kR, double oR,
+	           double* f);                              	           
+                              
+void fluxAUSMpup2_sst(SOLVER* solver, 
+               double rL, double uL, double vL, double pL, double kL, double oL,
+               double rR, double uR, double vR, double pR, double kR, double oR,
+	           double* f);                              	           

@@ -132,8 +132,7 @@ void saCC_InterSource(SOLVER* solver)
         double Qt;
 
         saCC_CalcSource(n, n_L, S, d, rho, drx, dry, dnx, dny, &Qt);
-
-        solver->R[4][ii] -= Qt*meshCalcOmega(solver->mesh, ii);
+        solver->R[4][ii] -= Qt*E0->omega;
     }
 }
 
@@ -186,7 +185,15 @@ void saCC_CalcSource(double ni, double ni_L, double S, double d, double rho, dou
     }
     else
     {
-        Stil = S + S*(cv2*cv2*S + cv3*Sbar)/((cv3 - 2*cv2)*S - Sbar);
+        double aux2 = ((cv3 - 2*cv2)*S - Sbar);
+        if(aux2 == 0)
+        {
+            Stil = S;
+        }
+        else
+        {
+            Stil = S + S*(cv2*cv2*S + cv3*Sbar)/aux2;
+        }
     }
 
     if(Stil < 0)

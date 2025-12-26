@@ -21,3 +21,5 @@ void boundaryCalcFrictionWall(SOLVER* solver, ELEMENT* E, double* fx, double* fy
 void boundaryCalcTensorWall(SOLVER* solver, ELEMENT* E, double* Txx, double* Txy, double* Tyy, double* x, double* yp);
 
 void boundaryOutlet_sa(SOLVER* solver, double* Pd, double* Pb, double nx, double ny);
+
+void boundaryCalc_sst(SOLVER* solver, MESHBC* bc);

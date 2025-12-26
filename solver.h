@@ -15,8 +15,8 @@ typedef struct{
     double nx;
     double ny;  
     
-    double Uin[5];  
-    double Pin[6];     
+    double Uin[6];  
+    double Pin[7];     
 
 } CONDITION;
 
@@ -44,6 +44,45 @@ typedef struct{
 
 } LIMITER;
 
+
+typedef struct{
+    int flag;
+
+    double sk1;
+    double so1;
+    double b1;
+    
+    double sk2;
+    double so2;
+    double b2;   
+    double bs2;
+    double alphas2;
+    double alpha2;
+    
+    double a1;
+} SST_TRANS;
+
+
+typedef struct{   
+    double L;
+    double kFactor;
+    double oFactor;
+    double oWallFactor;
+    double g1;
+    double g2;
+    double sk1;
+    double so1;
+    double b1;   
+    double sk2;
+    double so2;
+    double b2;   
+    double bs;
+    double a1;
+    
+    SST_TRANS* trans;
+} SST;
+
+
 typedef struct {
 
     int Nvar;
@@ -62,6 +101,7 @@ typedef struct {
     int timeScheme;
     int Nlinear;
     int viscBlazek;
+    int sstFlag;
 
     char* wd;
     char writeSurf[50];
@@ -72,7 +112,7 @@ typedef struct {
     double turbRatio; 
     double eFix; 
     double k; 
-    double res[5];
+    double res[6];
     double CFL;
     double Pr;
     double Pr_t;
@@ -83,11 +123,23 @@ typedef struct {
     double tol;
     double rLim;
     double pLim; 
-    double Twall;   
+    double Twall;
+    double omLim;       
 
     double *dtL;
     double *D;
     double *miT;
+    double *miTe;
+    double *F1;
+    double *F2;  
+    double *dd;
+    double *om2; 
+    double *dQodr;     
+    double *dQodrk;     
+    double *dQodro; 
+    double *dQkdr;     
+    double *dQkdrk;     
+    double *dQkdro;
             
     double **U;
     double **R;
@@ -112,6 +164,8 @@ typedef struct {
     GASPROP* gas;
     
     LIMITER* limiter;
+    
+    SST* sst;
 
 } SOLVER;
 
@@ -176,8 +230,6 @@ void solverCheckGrad(SOLVER* solver);
 double limiterBJ(double Ui, double Umin, double Umax, double d2);
 
 void solverCalcPrimitive(SOLVER* solver, double** U);
-
-void solverCalcUfromP(SOLVER* solver, double r, double u, double v, double p, double* U0, double* U1, double* U2, double* U3);
 
 double sutherland(double T);
 

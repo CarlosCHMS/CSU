@@ -50,9 +50,12 @@ void limiterUpdate(LIMITER* limiter, SOLVER* solver)
 	    limiter->Pref20[1] = solver->inlet->Pin[1]*solver->inlet->Pin[1] + solver->inlet->Pin[2]*solver->inlet->Pin[2];
 	    limiter->Pref20[2] = limiter->Pref20[1];
 	    limiter->Pref20[3] = solver->inlet->Pin[3]*solver->inlet->Pin[3];
-	    if(solver->Nvar == 5)
+	    if(solver->Nvar > 4)
 	    {
-	        limiter->Pref20[4] = solver->inlet->Pin[5]*solver->inlet->Pin[5];
+	        for(int kk = 4; kk<solver->Nvar; kk++)
+	        {
+	            limiter->Pref20[kk] = solver->inlet->Pin[kk+1]*solver->inlet->Pin[kk+1];
+	        }
 	    }
     }
     else if(limiter->type == 1)
