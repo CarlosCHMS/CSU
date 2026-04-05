@@ -368,6 +368,7 @@ void laminarWriteSurf(SOLVER* solver)
     for(int jj=0; jj<solver->mesh->Nmark; jj++)
     {
         bc = solver->mesh->bc[jj];
+
         if(strcmp(bc->name, solver->writeSurf) == 0)
         {
             fprintf(ff, "x,y,rho,u,v,p,T,n,Cp,Cfx,Cfy,q,yplus,mach,\n");

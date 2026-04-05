@@ -5,15 +5,16 @@ import matplotlib.tri as mtri
 from su2MeshReader import reader
 import sys
 import numpy
-import readFluent as rf 
  
+def csv2dict(fileName):
+    data = numpy.genfromtxt(fileName, delimiter=',', names=True, dtype=None, encoding=None)
+    
+    return {name: data[name] for name in data.dtype.names}
+
 class solution():
 
     def __init__(self, meshFile, solFile):
-
-        self.gamma = 1.4
-        self.Rgas = 287.5
-
+        
         self.mesh = reader(meshFile)
         
         self.x = self.mesh.x
@@ -24,35 +25,9 @@ class solution():
                 
         ff = open(solFile)
 
-        self.r = []
-        self.ru = []
-        self.rv = []
-        self.rE = []
-
-        first = True
-        for row in ff:
-            if first:
-                first = False
-            else:
-                aux = row.split(',')
-                self.r.append(float(aux[0]))
-                self.ru.append(float(aux[1]))
-                self.rv.append(float(aux[2]))
-                self.rE.append(float(aux[3]))
+        self.data = csv2dict(solFile)
 
         ff.close()
-
-        self._toArray()
-        self.calcPMT()
-    
-    def _toArray(self):
-
-        self.r = numpy.array(self.r)
-        self.ru = numpy.array(self.ru)
-        self.rv = numpy.array(self.rv)
-        self.rE = numpy.array(self.rE)
-
-        return None
         
     def elemToTri(self):
     
@@ -66,44 +41,6 @@ class solution():
             
         return None                
         
-    def calcPMT(self):
-       
-        Np = len(self.mesh.p)
-       
-        self.p = numpy.zeros(Np)
-        self.mach = numpy.zeros(Np)
-        self.entro = numpy.zeros(Np)               
-        self.H = numpy.zeros(Np)                
-        self.u = numpy.zeros(Np)
-        self.T = numpy.zeros(Np)
-       
-        for ii in range(0, Np):
-       
-            if(self.con[ii] > 0):
-       
-                u = self.ru[ii]/self.r[ii]
-                v = self.rv[ii]/self.r[ii]
-                E = self.rE[ii]/self.r[ii]
-                
-                self.u[ii] = u
-                
-                RT = (E - (u**2 + v**2)/2)*(self.gamma - 1)
-                
-                self.p[ii] = RT*self.r[ii]
-                
-                c = numpy.sqrt(self.gamma*RT)
-                V = numpy.sqrt(u**2 + v**2)
-                
-                self.mach[ii] = V/c
-
-                self.entro[ii] = self.p[ii]/(self.r[ii]**self.gamma)
-
-                self.H[ii] = E + self.p[ii]/self.r[ii]
-                
-                self.T[ii] = RT/self.Rgas
-        
-        return None        
-
     def pConnect(self):
     
         self.con = numpy.zeros(len(self.mesh.p))
@@ -114,7 +51,8 @@ class solution():
             self.con[self.elem[ii][2]] += 1
             
         return None
-
+        
+        
 def levels(v, n):    
 
     max1 = v[0]
@@ -138,13 +76,17 @@ class BL():
         # Blasius solution
     
         gamma = 1.4
-        Rgas = 287.5
+        Rgas = 287.0530
         
         r = p/(Rgas*T)
         self.c = numpy.sqrt(gamma*p/r)
         self.U = self.c*m
         
+        self.qdin = 0.5*r*self.U**2
+        
         mi = 1.45e-6*T*numpy.sqrt(T)/(T + 110.0)
+
+        self.aux = 0.332*numpy.sqrt(r*mi*self.U**3)/self.qdin
         
         Re = r*self.U*L/mi
         
@@ -174,19 +116,13 @@ class BL():
 
         self.y = self.h*self.tab[:, 0]        
         self.u = self.U*self.tab[:, 1]                      
+        
+        return None
 
-class convergence():
+    def calcCfx(self, x):
 
-    def __init__(self, convFile):
-    
-        ff = open(convFile, 'r')
-        self.Cx_p = []
-        self.Cx_v = []
-        for row in ff:
-            aux = row.split(',')
-            self.Cx_p.append(float(aux[1]))
-            self.Cx_v.append(float(aux[2]))
-            
+        return self.aux/numpy.sqrt(x)
+     
                 
 class convergence():
 
@@ -218,13 +154,13 @@ if __name__=="__main__":
     
     path = sys.argv[1]
 
-    s = solution(path+"mesh.su2", path+"solution.csv")
+    s = solution(path+"mesh.su2", path+"solution2.csv")
 
     triang = mtri.Triangulation(s.x, s.y, s.elem)
 
     plt.figure()
     plt.title("Static pressure")
-    plt.tricontourf(triang, s.p)
+    plt.tricontourf(triang, s.data['p'])
     #plt.triplot(triang, 'ko-') 
     plt.axis('equal') 
     plt.colorbar()  
@@ -232,7 +168,7 @@ if __name__=="__main__":
 
     plt.figure()
     #plt.title("Mach")
-    plt.tricontourf(triang, s.mach, levels=levels(s.mach, 30))
+    plt.tricontourf(triang, s.data['mach'])
     #plt.triplot(triang, 'ko-') 
     #plt.axis('equal') 
     plt.colorbar()  
@@ -240,47 +176,53 @@ if __name__=="__main__":
 
     plt.figure()
     #plt.title("Mach")
-    plt.tricontourf(triang, s.u, levels=levels(s.u, 30))
+    plt.tricontourf(triang, s.data['u'])
     #plt.triplot(triang, 'ko-') 
     #plt.axis('equal') 
     cbar = plt.colorbar()
     cbar.set_label('u [m/s]')
     plt.xlabel("x [m]")  
-    plt.ylabel("y [m]")    
-    plt.savefig(path+"u.png", dpi=300)
+    plt.ylabel("y [m]")
+    plt.show()
 
-        
     mar = s.mesh.markers[1]
     mar.getXY(s.mesh)
     
-    inter = mtri.LinearTriInterpolator(triang, s.u)
+    inter = mtri.LinearTriInterpolator(triang, s.data['u'])
     u = inter(mar.x, mar.y)
-    inter = mtri.LinearTriInterpolator(triang, s.T)
+    inter = mtri.LinearTriInterpolator(triang, s.data['T'])
     T = inter(mar.x, mar.y)
-    inter = mtri.LinearTriInterpolator(triang, s.r)
+    inter = mtri.LinearTriInterpolator(triang, s.data['r'])
     r = inter(mar.x, mar.y)
+
+    y = numpy.array(mar.y)
 
     bl = BL(1e5, 300, 0.1, 0.5)
 
-    mar.y = numpy.array(mar.y)
-
-    u[0] = 0;
-
-    fm = rf.read(path+"velocityBLfluent")
-
     plt.figure()
-    plt.plot(mar.y, u, 'b')
-    plt.plot(bl.y, bl.u, 'r--')
-    #plt.plot(fm.x, fm.y, 'g.')   
+    plt.plot(y, u, 'r--')    
+    plt.plot(bl.y, bl.u, 'b')
     plt.legend(['Code', 'Blasius'])
     plt.grid(True)    
     plt.xlabel("y [m]")  
-    plt.ylabel("u [m/s]")        
-    plt.savefig(path+"uProfile.png", dpi=300)
+    plt.ylabel("u [m/s]")
+    plt.show()
     
     plt.figure()
     plt.title("T")
-    plt.plot(mar.y, T, 'b') 
+    plt.plot(y, T, 'b') 
+    plt.show()
+
+    surf = csv2dict(path+'surfData.csv')
+
+    plt.figure()
+    plt.plot(surf['x'], -surf['Cfx'], 'b-') 
+    plt.plot(surf['x'], bl.calcCfx(surf['x']), 'r--')
+    plt.legend(['Code', 'Blasius'])    
+    #plt.ylim([0, 7])    
+    plt.xlabel("x [m/s]")
+    plt.ylabel("Cfx [-]")
+    plt.grid(True)
     plt.show()
 
     conv = convergence(path+"convergence.csv")

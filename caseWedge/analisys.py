@@ -1,11 +1,8 @@
-
-
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
 from su2MeshReader import reader
 import sys
 import numpy
-import readFluent as rf 
 
 def csv2dict(fileName):
     data = numpy.genfromtxt(fileName, delimiter=',', names=True, dtype=None, encoding=None)
