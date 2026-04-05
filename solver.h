@@ -102,6 +102,7 @@ typedef struct {
     int Nlinear;
     int viscBlazek;
     int sstFlag;
+    int tube;
 
     char* wd;
     char writeSurf[50];

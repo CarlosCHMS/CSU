@@ -1427,9 +1427,27 @@ void solverSetData(SOLVER* solver, INPUT* input)
     //printf("\noi%f\n", gasprop_e2T(solver->gas, gasprop_T2e(solver->gas, 3000)));
     //exit(0);
 
-    solver->Pr = 0.72;
-    solver->Pr_t = 0.9;
+    //solver->Pr = 0.72;
+    //solver->Pr_t = 0.9;
     solver->eFix = 0.1;
+    
+    if(inputNameIsInput(input, "Pr"))
+    {
+        solver->Pr = strtod(inputGetValue(input, "Pr"), NULL);     
+    }
+    else
+    {
+        solver->Pr = 0.72;
+    }
+
+    if(inputNameIsInput(input, "Pr_t"))
+    {
+        solver->Pr_t = strtod(inputGetValue(input, "Pr_t"), NULL);     
+    }
+    else
+    {
+        solver->Pr_t = 0.9;
+    }
     
     if(inputNameIsInput(input, "laminar"))
     {
@@ -1438,6 +1456,15 @@ void solverSetData(SOLVER* solver, INPUT* input)
     else
     {
         solver->laminar = 0;
+    }
+
+    if(inputNameIsInput(input, "tube"))
+    {
+        solver->tube = atoi(inputGetValue(input, "tube"));     
+    }
+    else
+    {
+        solver->tube = 0;
     }
 
     if(inputNameIsInput(input, "restart"))
@@ -1551,8 +1578,26 @@ void solverSetData(SOLVER* solver, INPUT* input)
 
     // Selection of several variables
     solver->flux = fluxChoice(inputGetValue(input, "flux"));
-    solver->stages = atoi(inputGetValue(input, "stages"));
-    solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);
+    //solver->stages = atoi(inputGetValue(input, "stages"));
+    //solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);
+
+    if(inputNameIsInput(input, "stages"))
+    {
+        solver->stages = atoi(inputGetValue(input, "stages"));     
+    }
+    else
+    {
+        solver->stages = 5;
+    }
+
+    if(inputNameIsInput(input, "CFL"))
+    {
+        solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);     
+    }
+    else
+    {
+        solver->CFL = 1.0;
+    }
 
     // Environmental condition
     if(inputNameIsInput(input, "pout"))
@@ -1662,7 +1707,7 @@ void solverInitDomain(SOLVER* solver)
     char s[50];
 
     printf("main: initialize U.\n");       
-    if(atoi(inputGetValue(solver->input, "tube")) == 0)
+    if(solver->tube == 0)
     {
 
 
@@ -1839,7 +1884,7 @@ void solverSolve(SOLVER* solver)
     char s[50];
     double Cx, Cy;
        
-    if(atoi(inputGetValue(solver->input, "tube")) == 0)
+    if(solver->tube == 0)
     {                
         // Calculate time step        
         int Nmax = atoi(inputGetValue(solver->input, "Nmax"));
