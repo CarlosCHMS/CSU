@@ -10,14 +10,13 @@ BC:wall2, outlet
 BC:wall3, wall
 BC:wall4, inlet
 
-Nmax, 1000
+Nmax, 3000
 order, 2
-stages, 5
 threads, 4
-flux, AUSMDV
-tube, 0
+flux, AUSMpup2
 axisymmetric, 0
 timeScheme, LUSGS
-CFL, 100.0
+CFL, 1e3
 restart, 0
-wImp, 1.0
+wImp, 1.5
+limK, 0.1
