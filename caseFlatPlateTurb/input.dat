@@ -11,14 +11,14 @@ BC:outlet, outlet
 BC:sym, outlet
 BC:inlet, inlet
 
-Nmax, 20000
-interpE, 1e-10
+Nmax, 40000
 order, 2
-stages, 5
 threads, 4
-flux, AUSMDV
-tube, 0
+flux, AUSMpup2
 axisymmetric, 0
-CFL, 1.0
+CFL, 1e3
 sa, 1
-restart, 1
+restart, 0
+limK, 0.1
+wImp, 1.5
+timeScheme, LUSGS
