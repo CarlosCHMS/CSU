@@ -216,12 +216,13 @@ Spline(1) = { 1 ... 150};
 Spline(2) = { 150 ... 200,1};
 
 Rotate { {1,0,0},{0,0,0},Pi/2 } { Line{1,2}; }
+Rotate { {0,0,1},{0,0,0},-1*Pi/180 } { Line{1,2}; }
 Translate {-0.5,0,0} { Line{1,2}; }
 Dilate {{0, 0, 0}, SC} {
   Line{1, 2};
 }
 
-d=4;
+d=8;
 Point(1000) = {SC*d,SC*d,0,lc2};
 Point(1001) = {-d*SC,d*SC,0,lc2};
 Point(1002) = {-d*SC,-d*SC,0,lc2};
@@ -239,7 +240,7 @@ Plane Surface(11) = {9,10};
 
 Field[1] = BoundaryLayer;
 Field[1].EdgesList = {1, 2};
-Field[1].hwall_n = 0.001*SC;
+Field[1].hwall_n = 0.001*SC/200;
 Field[1].ratio = 1.2;
 Field[1].thickness = 0.02*SC;
 //Field[1].fan_angle = 80;
