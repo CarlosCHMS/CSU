@@ -13,14 +13,14 @@ BC:outlet, outlet
 
 writeSurf, wall
 
-Nmax, 60000
+Nmax, 20000
 order, 2
 threads, 4
 flux, AUSMpup2
 axisymmetric, 0
 CFL, 1e3
 timeScheme, LUSGS
-sst, 1
+sst, 0
 restart, 0
 wImp, 1.5
 limK, 0.1

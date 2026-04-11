@@ -238,18 +238,6 @@ Plane Surface(11) = {9,10};
 //Plane Surface(12) = {10};
 //Plane Surface(11) = {9};
 
-Field[1] = BoundaryLayer;
-Field[1].EdgesList = {1, 2};
-Field[1].hwall_n = 0.00003*SC;
-Field[1].ratio = 1.2;
-Field[1].thickness = 0.02*SC;
-//Field[1].fan_angle = 80;
-//Background Field = 1;
-Field[1].NodesList = {1};
-Field[1].FanNodesList = {1};
-Field[1].Quads = 1;
-BoundaryLayer Field = 1;
-
 //+
 Physical Curve("wall") = {1, 2};
 //+
