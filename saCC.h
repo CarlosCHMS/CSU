@@ -1,3 +1,5 @@
+#ifndef SACC_H
+#define SACC_H
 
 void saCC_InterFace(SOLVER* solver);
 
@@ -16,3 +18,5 @@ void saCC_BoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, do
 void saCC_Boundary(SOLVER* solver);
 
 void saCC_SolverWriteSurf(SOLVER* solver);
+
+#endif

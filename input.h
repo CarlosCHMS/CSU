@@ -1,7 +1,8 @@
+#ifndef INPUT_H
+#define INPUT_H
 
-typedef struct
+typedef struct INPUT
 {
-
     int N;
     int Nmax;
     char** name;
@@ -18,3 +19,5 @@ int inputNameIsInput(INPUT* input, char* name);
 char* inputGetValue(INPUT* input, char* name);
 
 void inputFree(INPUT* input);
+
+#endif

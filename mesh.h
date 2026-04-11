@@ -1,5 +1,7 @@
+#ifndef MESH_H
+#define MESH_H
 
-typedef struct ELEM
+typedef struct ELEMENT
 {
     int ii;
     int Np;
@@ -12,7 +14,7 @@ typedef struct ELEM
     double d;       
     double omega;
 
-    struct ELEM** neiL;    
+    struct ELEMENT** neiL;    
     
 } ELEMENT;
 
@@ -30,7 +32,7 @@ typedef struct
 } MESHBC;
 
 
-typedef struct
+typedef struct MESH
 {
 
     int Ndim;
@@ -153,3 +155,5 @@ void meshInsertHashTable(HASHTABLE* ht, MESH* mesh, int p0, int p1, int elemInde
 void meshCheckHashTable(HASHTABLE* ht);
 
 int meshBandCalc(MESH* mesh);
+
+#endif

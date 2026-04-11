@@ -1,3 +1,5 @@
+#ifndef SA_H
+#define SA_H
 
 void saInitU(SOLVER* solver, CONDITION* inside);
 
@@ -24,3 +26,5 @@ void saCalcTensorWall(SOLVER* solver, ELEMENT* E, double* Txx, double* Txy, doub
 void saBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, double* miEddy);
 
 void saSolverWriteSurf(SOLVER* solver);
+
+#endif

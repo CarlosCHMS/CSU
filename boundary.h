@@ -1,4 +1,5 @@
-
+#ifndef BOUNDARY_H
+#define BOUNDARY_H
 
 void boundaryInlet(SOLVER* solver, double* Pa, double* Pd, double* Pb, double nx, double ny);
 
@@ -23,3 +24,5 @@ void boundaryCalcTensorWall(SOLVER* solver, ELEMENT* E, double* Txx, double* Txy
 void boundaryOutlet_sa(SOLVER* solver, double* Pd, double* Pb, double nx, double ny);
 
 void boundaryCalc_sst(SOLVER* solver, MESHBC* bc);
+
+#endif

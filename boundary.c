@@ -12,6 +12,7 @@
 #include"boundary.h"
 #include"gasprop.h"
 #include"laminar.h"
+#include"sst.h"
 
 
 void boundaryInlet(SOLVER* solver, double* Pa, double* Pd, double* Pb, double nx, double ny)

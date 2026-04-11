@@ -1,3 +1,5 @@
+#ifndef SSTTRANS_H
+#define SSTTRANS_H
 
 SST_TRANS* sstTransInit();
 
@@ -16,3 +18,5 @@ double sstTransBs1(double Rt);
 double sstTransAlpha1(double Rt);
 
 void sstTransSources(SST_TRANS* trans, SSTVAR* var);
+
+#endif

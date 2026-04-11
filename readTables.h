@@ -1,3 +1,5 @@
+#ifndef READTABLES_H
+#define READTABLES_H
 
 typedef struct{
 
@@ -44,3 +46,5 @@ int main()
 }
 
 */
+
+#endif

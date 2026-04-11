@@ -5,10 +5,10 @@
 #include<sys/time.h>
 #include<stdbool.h>
 #include<omp.h>
+#include"solver.h"
 #include"utils.h"
 #include"input.h"
 #include"mesh.h"
-#include"solver.h"
 #include"flux.h"
 #include"boundary.h"
 #include"readTables.h"

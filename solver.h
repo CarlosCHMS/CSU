@@ -1,3 +1,17 @@
+#ifndef SOLVER_H
+#define SOLVER_H
+
+typedef struct INPUT INPUT;
+
+typedef struct MESH MESH;
+
+typedef struct ELEMENT ELEMENT;
+
+typedef struct GASPROP GASPROP;
+
+typedef struct LIMITER LIMITER;
+
+typedef struct SST SST;
 
 typedef struct BAUX{
 
@@ -19,69 +33,6 @@ typedef struct{
     double Pin[7];     
 
 } CONDITION;
-
-typedef struct{
-
-    double gamma;
-    double R;
-    double Cp;
-    double Cv;
-
-    double* cc;
-    int N;
-    int TP;
-
-} GASPROP;
-
-typedef struct{
-
-    int type;
-    double K;
-    double volMax;
-    
-    double* Pref20;
-    double* Pref2;
-
-} LIMITER;
-
-
-typedef struct{
-    int flag;
-
-    double sk1;
-    double so1;
-    double b1;
-    
-    double sk2;
-    double so2;
-    double b2;   
-    double bs2;
-    double alphas2;
-    double alpha2;
-    
-    double a1;
-} SST_TRANS;
-
-
-typedef struct{   
-    double L;
-    double kFactor;
-    double oFactor;
-    double oWallFactor;
-    double g1;
-    double g2;
-    double sk1;
-    double so1;
-    double b1;   
-    double sk2;
-    double so2;
-    double b2;   
-    double bs;
-    double a1;
-    
-    SST_TRANS* trans;
-} SST;
-
 
 typedef struct {
 
@@ -260,3 +211,4 @@ void solverWriteSurf(SOLVER* solver);
 
 void solverWriteSolution2(SOLVER* solver);
 
+#endif

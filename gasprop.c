@@ -5,11 +5,12 @@
 #include<sys/time.h>
 #include<stdbool.h>
 #include<omp.h>
+#include"gasprop.h"
 #include"utils.h"
 #include"input.h"
 #include"mesh.h"
 #include"solver.h"
-#include"gasprop.h"
+
 
 GASPROP* gaspropInit(double gamma, double R, int TP)
 {

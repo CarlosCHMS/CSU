@@ -1,3 +1,18 @@
+#ifndef GASPROP_H
+#define GASPROP_H
+
+typedef struct GASPROP{
+
+    double gamma;
+    double R;
+    double Cp;
+    double Cv;
+
+    double* cc;
+    int N;
+    int TP;
+
+} GASPROP;
 
 GASPROP* gaspropInit(double gamma, double R, int TP);
 
@@ -28,3 +43,5 @@ double gasprop_critic_T2entalpy(GASPROP* gas, double T);
 void gasprop_critic_T2entalpyDer(GASPROP* gas, double T, double *H, double *dH);
 
 double gasprop_critic_H2c(GASPROP* gas, double H);
+
+#endif

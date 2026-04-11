@@ -1,3 +1,5 @@
+#ifndef LAMINAR_H
+#define LAMINAR_H
 
 void laminarInter(SOLVER* solver);
 
@@ -9,4 +11,4 @@ void laminarBoundary(SOLVER* solver);
 
 void laminarWriteSurf(SOLVER* solver);
 
-
+#endif

@@ -1,3 +1,42 @@
+#ifndef SST_H
+#define SST_H
+
+typedef struct{
+    int flag;
+
+    double sk1;
+    double so1;
+    double b1;
+    
+    double sk2;
+    double so2;
+    double b2;   
+    double bs2;
+    double alphas2;
+    double alpha2;
+    
+    double a1;
+} SST_TRANS;
+
+
+typedef struct SST{   
+    double L;
+    double kFactor;
+    double oFactor;
+    double oWallFactor;
+    double g1;
+    double g2;
+    double sk1;
+    double so1;
+    double b1;   
+    double sk2;
+    double so2;
+    double b2;   
+    double bs;
+    double a1;
+    
+    SST_TRANS* trans;
+} SST;
 
 typedef struct{
 
@@ -78,3 +117,4 @@ void sstSolverWriteSurf(SOLVER* solver);
 
 void sstInterMiT(SOLVER* solver);
 
+#endif

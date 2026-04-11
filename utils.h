@@ -1,3 +1,5 @@
+#ifndef UTILS_H
+#define UTILS_H
 
 double** tableMallocDouble(int Nrow, int Ncol);  
  
@@ -9,3 +11,4 @@ void tableFreeInit(int** M, int Nrow);
 
 double duration(struct timeval start, struct timeval stop);
 
+#endif

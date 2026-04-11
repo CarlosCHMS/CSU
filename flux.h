@@ -1,4 +1,5 @@
-
+#ifndef FLUX_H
+#define FLUX_H
 
 int fluxChoice(char* s);
 
@@ -63,3 +64,5 @@ void fluxAUSMpup2_sst(SOLVER* solver,
                double rL, double uL, double vL, double pL, double kL, double oL,
                double rR, double uR, double vR, double pR, double kR, double oR,
 	           double* f);                              	           
+	           
+#endif
