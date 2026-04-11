@@ -83,21 +83,25 @@ Several commands can be understood from the case folders provided. Here, one of 
 
 - **flux, AUSMpup2**: flux scheme type. Available options are: ROE, AUSM, AUSMDV, AUSMpup, and AUSMpup2
 
-- **axisymmetric, 0**: axisymmetric model flag (set to disabled)
+- **axisymmetric, 0**: axisymmetric model flag disabled
 
 - **CFL, 1e3**: Courant number. Must be smaller than 1.0 for explicit solvers (RK)
 
-- **sa, 1**: Spalart–Allmaras turbulence model (enabled)
+- **laminar, 0**: laminar model flag enabled
 
-- **sst, 0**: k-ω SST turbulence model (disabled)
+- **sa, 1**: Spalart–Allmaras turbulence model flag enabled (RANS)
 
-- **restart, 0**: restart from a previous solution (disabled)
+- **sst, 0**: k-ω SST turbulence model flag disabled (RANS)
+
+- **restart, 0**: restart from a previous solution disabled
 
 - **limK, 0.1**: K factor in the Venkatakrishnan limiter
 
 - **wImp, 1.5**: relaxation factor in the LUSGS implicit scheme
 
 - **timeScheme, LUSGS**: time integration scheme. Options are: RK (Runge–Kutta), LUSGS
+
+- **TP, 0**: thermally perfect gas model flag disabled
 
 ## Boundary condition types
 
