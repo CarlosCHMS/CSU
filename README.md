@@ -26,6 +26,8 @@ Since the publication of this paper, several improvements have been made, includ
 
 - The thermally perfect gas model.
 
+The solver considers values in the international system of units.
+
 # How it works
 
 The cases are organized into folders. Inside each case folder, there are:
@@ -49,17 +51,67 @@ With this command, you can view the results again without rerunning the case.
 
 # Commands of input.dat file
 
-Several commands can be obtained from case folders presented. However, some of than must be detailed:
+Several commands can be understood from the case folders provided. Here, one of the `input.dat` files is described in detail:
 
-The types of boundaries are associated to the mesh boundaries using the commands:
+- **pressure, 1e5**: pressure at the inlet
 
-BC:boundary_name, boundary_type
+- **mach, 0.1**: Mach number at the inlet
 
-There are the boundary types: 
+- **temperature, 300.**: temperature at the inlet
 
-- wall: wall adiabatic
-- wallT: wall isothermic
-- inlet: inlet subsonic or supersonic
-- outlet: outlet subsonic or supersonic
-- symmetry: symmetry
+- **nx, 1.**: x-component of the unit velocity vector at the inlet 
+
+- **ny, 0.**: y-component of the unit velocity vector at the inlet
+
+- **pout, 1e5**: pressure at the outlet
+
+- **BC:wall, wall**: wall boundary associated with the wall boundary condition
+
+- **BC:outlet, outlet**: outlet boundary associated with the outlet boundary condition
+
+- **BC:sym, symmetry**: symmetry boundary associated with the symmetry boundary condition
+
+- **BC:inlet, inlet**: inlet boundary associated with the inlet boundary condition
+
+- **BC:boundary_name, boundary_type**: general format for defining boundary conditions
+
+- **Nmax, 40000**: maximum number of iterations
+
+- **order, 2**: order of the solver
+
+- **threads, 4**: number of threads for parallel processing
+
+- **flux, AUSMpup2**: flux scheme type. Available options are: ROE, AUSM, AUSMDV, AUSMpup, and AUSMpup2
+
+- **axisymmetric, 0**: axisymmetric model flag (set to disabled)
+
+- **CFL, 1e3**: Courant number. Must be smaller than 1.0 for explicit solvers (RK)
+
+- **sa, 1**: Spalart–Allmaras turbulence model (enabled)
+
+- **sst, 0**: k-ω SST turbulence model (disabled)
+
+- **restart, 0**: restart from a previous solution (disabled)
+
+- **limK, 0.1**: K factor in the Venkatakrishnan limiter
+
+- **wImp, 1.5**: relaxation factor in the LUSGS implicit scheme
+
+- **timeScheme, LUSGS**: time integration scheme. Options are: RK (Runge–Kutta), LUSGS
+
+## Boundary condition types
+
+The following boundary types are available:
+
+- **wall**: adiabatic wall
+- **wallT**: isothermal wall
+- **inlet**: subsonic or supersonic inlet
+- **outlet**: subsonic or supersonic outlet
+- **symmetry**: symmetry boundary
+
+For the **wallT** condition, the command:
+
+- **Twall, "temperature"**
+
+must be included in `input.dat` to specify the wall temperature ("temperature" can be any numeric value).
 
