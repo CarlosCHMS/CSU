@@ -87,7 +87,7 @@ Several commands can be understood from the case folders provided. Here, one of 
 
 - **CFL, 1e3**: Courant number. Must be smaller than 1.0 for explicit solvers (RK)
 
-- **laminar, 0**: laminar model flag enabled
+- **laminar, 0**: laminar model flag disabled
 
 - **sa, 1**: Spalart–Allmaras turbulence model flag enabled (RANS)
 
