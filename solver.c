@@ -2033,8 +2033,7 @@ void solverWriteSurf(SOLVER* solver)
     {
         laminarWriteSurf(solver);
     }
-
-    if(solver->sa)
+    else if(solver->sa)
     {
         if(solver->saCC)
         {
@@ -2045,10 +2044,13 @@ void solverWriteSurf(SOLVER* solver)
             saSolverWriteSurf(solver);
         }
     }
-    
-    if(solver->sstFlag)
+    else if(solver->sstFlag)
     {
         sstSolverWriteSurf(solver);
+    }
+    else
+    {
+        inviscidWriteSurf(solver);
     }
 }
 
@@ -2279,5 +2281,127 @@ void solverPrintConvReader(SOLVER* solver, FILE* convFile)
     {
         fprintf(convFile, "iteration,res_r,res_u,res_v,res_E,Cx_p,Cx_v,Cy_p,Cy_v,\n");
     }
+}
+
+
+void inviscidWriteSurf(SOLVER* solver)
+{
+
+    MESHBC* bc;
+    char s[50];
+        
+    s[0] = '\0';
+    strcat(s, solver->wd);
+    strcat(s, "surfData.csv");        
+    FILE* ff = fopen(s, "w");   
+
+    double rin = solver->inlet->Pin[0];
+    double uin = solver->inlet->Pin[1];
+    double vin = solver->inlet->Pin[2];
+    double pin = solver->inlet->Pin[3];
+    double qdin = 0.5*rin*(uin*uin + vin*vin);
+
+    
+    for(int jj=0; jj<solver->mesh->Nmark; jj++)
+    {
+        bc = solver->mesh->bc[jj];
+
+        if(strcmp(bc->name, solver->writeSurf) == 0)
+        {
+            fprintf(ff, "x,y,rho,u,v,p,T,Cp,mach,\n");
+                    
+            int Nvar = 7;
+            int Nelem = bc->Nelem;
+            double** D = tableMallocDouble(Nvar, Nelem);
+            double** Dp = tableMallocDouble(Nvar, Nelem+1);
+            int* d = malloc((Nelem+1)*sizeof(int));
+            int* pn = malloc((Nelem+1)*sizeof(int));
+            int* pn2 = malloc((solver->mesh->Np)*sizeof(int));
+            
+            for(int ii=0; ii<bc->Nelem+1; ii++)
+            {                
+                for(int kk=0; kk<Nvar; kk++)
+                {
+                    Dp[kk][ii] = 0.0;
+                } 
+                d[ii] = 0;                 
+            }
+
+            for(int ii=0; ii<bc->Nelem; ii++)
+            {            
+                pn[ii] = bc->elemL[ii]->p[0];                
+            }
+            pn[Nelem] = bc->elemL[Nelem-1]->p[1];
+
+            for(int ii=0; ii<bc->Nelem+1; ii++)
+            {            
+                pn2[pn[ii]] = ii;                
+            }
+        
+            for(int ii=0; ii<bc->Nelem; ii++)
+            {                                
+                for(int kk=0; kk<Nvar; kk++)
+                {
+                    double r = bc->elemL[ii]->P[0];
+                    double u = bc->elemL[ii]->P[1];
+                    double v = bc->elemL[ii]->P[2];                    
+                    double p = bc->elemL[ii]->P[3];
+                    double T = bc->elemL[ii]->P[4];
+                    double c = gasprop_T2c(solver->gas, T);
+                    double Cp = (p - pin)/qdin;                                    
+                    double mach = sqrt(u*u + v*v)/c;
+                    
+                    D[0][ii] = r;
+                    D[1][ii] = u;
+                    D[2][ii] = v;
+                    D[3][ii] = p;
+                    D[4][ii] = T;
+                    
+                    D[5][ii] = Cp;
+                    D[6][ii] = mach;
+                }
+            }
+            
+            for(int ii=0; ii<bc->Nelem; ii++)
+            {                
+                int p0 = bc->elemL[ii]->p[0];
+                int p1 = bc->elemL[ii]->p[1];                
+                for(int kk=0; kk<Nvar; kk++)
+                {
+                    Dp[kk][pn2[p0]] += D[kk][ii];
+                    Dp[kk][pn2[p1]] += D[kk][ii];                    
+                }
+                d[pn2[p0]] += 1;
+                d[pn2[p1]] += 1;                                               
+            }
+            
+            for(int ii=0; ii<bc->Nelem+1; ii++)
+            {                
+                for(int kk=0; kk<Nvar; kk++)
+                {
+                    Dp[kk][ii] /= d[ii];
+                }
+            }
+            
+            for(int ii=0; ii<bc->Nelem+1; ii++)
+            {
+                fprintf(ff, "% .10e,", solver->mesh->p[pn[ii]][0]);
+                fprintf(ff, "% .10e,", solver->mesh->p[pn[ii]][1]);
+                for(int kk=0; kk<Nvar; kk++)
+                {
+                    fprintf(ff, "% .10e,", Dp[kk][ii]);
+                }
+                fprintf(ff, "\n");
+            }
+            
+            tableFreeDouble(D, Nvar);
+            tableFreeDouble(Dp, Nvar);            
+            free(d);
+            free(pn);
+            free(pn2);
+        }
+    }
+    
+    fclose(ff);
 }
 

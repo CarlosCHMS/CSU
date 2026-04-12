@@ -346,7 +346,6 @@ void boundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f)
 }
 
 
-
 void laminarWriteSurf(SOLVER* solver)
 {
 

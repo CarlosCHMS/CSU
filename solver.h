@@ -213,4 +213,6 @@ void solverWriteSolution2(SOLVER* solver);
 
 void solverPrintConvReader(SOLVER* solver, FILE* convFile);
 
+void inviscidWriteSurf(SOLVER* solver);
+
 #endif
