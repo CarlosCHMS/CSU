@@ -2305,11 +2305,11 @@ void inviscidWriteSurf(SOLVER* solver)
     for(int jj=0; jj<solver->mesh->Nmark; jj++)
     {
         bc = solver->mesh->bc[jj];
-
+        
         if(strcmp(bc->name, solver->writeSurf) == 0)
         {
             fprintf(ff, "x,y,rho,u,v,p,T,Cp,mach,\n");
-                    
+
             int Nvar = 7;
             int Nelem = bc->Nelem;
             double** D = tableMallocDouble(Nvar, Nelem);
@@ -2333,10 +2333,15 @@ void inviscidWriteSurf(SOLVER* solver)
             }
             pn[Nelem] = bc->elemL[Nelem-1]->p[1];
 
+            for(int ii=0; ii<solver->mesh->Np; ii++)
+            {            
+                pn2[ii] = 0;                
+            }
+
             for(int ii=0; ii<bc->Nelem+1; ii++)
             {            
                 pn2[pn[ii]] = ii;                
-            }
+            }            
         
             for(int ii=0; ii<bc->Nelem; ii++)
             {                                
@@ -2399,7 +2404,9 @@ void inviscidWriteSurf(SOLVER* solver)
             free(d);
             free(pn);
             free(pn2);
+            
         }
+        
     }
     
     fclose(ff);
