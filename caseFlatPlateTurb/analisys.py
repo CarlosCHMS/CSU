@@ -67,27 +67,7 @@ def levels(v, n):
         levels.append(min1 + d*ii)
     
     return levels                
-        
-class convergence():
 
-    def __init__(self, convFile):
-    
-        ff = open(convFile, 'r')
-        ii = 0
-        self.varList = []
-        for row in ff:
-            aux = row.split(',')
-            if ii == 0:
-                for jj in range(len(aux)-1):
-                    self.varList.append([])
-
-            for jj in range(len(aux)-1):
-                self.varList[jj].append(float(aux[jj]))
-                        
-            ii += 1
-    
-        for jj in range(len(aux)-1):
-            self.varList[jj] = numpy.array(self.varList[jj])  
             
 def qdin(p, T, m):
 
@@ -154,13 +134,11 @@ if __name__=="__main__":
 
     plt.figure()
     plt.plot(mar.y, u, 'b')
-#    plt.plot(bl.y, bl.u, 'r--')
     plt.plot(fm.x, fm.y, 'g.')   
     plt.legend(['Code', 'Fluent'])
     plt.grid(True)    
     plt.xlabel("y [m]")  
-    plt.ylabel("u [m/s]")        
-#    plt.savefig(path+"uProfile.png", dpi=300)
+    plt.ylabel("u [m/s]")
     plt.show()    
 
 
@@ -189,29 +167,29 @@ if __name__=="__main__":
     plt.grid(True)
     plt.show()
     
-    conv = convergence(path+"convergence.csv")
+    conv = csv2dict((path+"convergence.csv"))
     
     plt.figure()
-    plt.semilogy(conv.varList[1]/conv.varList[1][0])
-    plt.semilogy(conv.varList[2]/conv.varList[2][0])    
-    plt.semilogy(conv.varList[3]/conv.varList[3][0])    
-    plt.semilogy(conv.varList[4]/conv.varList[4][0])       
-    plt.semilogy(conv.varList[5]/conv.varList[5][0])           
+    plt.semilogy(conv['res_r']/conv['res_r'][0])
+    plt.semilogy(conv['res_u']/conv['res_u'][0])
+    plt.semilogy(conv['res_v']/conv['res_v'][0])
+    plt.semilogy(conv['res_E']/conv['res_E'][0])
+    plt.semilogy(conv['res_n']/conv['res_n'][0])    
     plt.grid(True)
-    plt.xlabel("iterations [100]")  
-    plt.ylabel("Residuos")            
+    plt.xlabel("iterations")  
+    plt.ylabel("residuals")            
     plt.show()
     
     plt.figure()
-    plt.plot(conv.varList[7])
+    plt.plot(conv['Cx_v'])
     plt.grid(True)
-    plt.xlabel("iterations [100]")  
-    plt.ylabel("Cx_v [-]")            
+    plt.xlabel("iterations")  
+    plt.ylabel("Cx_v")            
     plt.show()
     
     plt.figure()
-    plt.plot(conv.varList[8])
+    plt.plot(conv['Cy_p'])
     plt.grid(True)
-    plt.xlabel("iterations [100]")  
-    plt.ylabel("Cy_p [-]")            
+    plt.xlabel("iterations")  
+    plt.ylabel("Cy_p")            
     plt.show()    

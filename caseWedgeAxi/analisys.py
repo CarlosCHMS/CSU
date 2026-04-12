@@ -1,19 +1,18 @@
-
-
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
 from su2MeshReader import reader
 import sys
 import numpy
-import readFluent as rf 
- 
+
+def csv2dict(fileName):
+    data = numpy.genfromtxt(fileName, delimiter=',', names=True, dtype=None, encoding=None)
+    
+    return {name: data[name] for name in data.dtype.names}
+
 class solution():
 
     def __init__(self, meshFile, solFile):
-
-        self.gamma = 1.4
-        self.Rgas = 287.5
-
+        
         self.mesh = reader(meshFile)
         
         self.x = self.mesh.x
@@ -24,35 +23,9 @@ class solution():
                 
         ff = open(solFile)
 
-        self.r = []
-        self.ru = []
-        self.rv = []
-        self.rE = []
-
-        first = True
-        for row in ff:
-            if first:
-                first = False
-            else:
-                aux = row.split(',')
-                self.r.append(float(aux[0]))
-                self.ru.append(float(aux[1]))
-                self.rv.append(float(aux[2]))
-                self.rE.append(float(aux[3]))
+        self.data = csv2dict(solFile)
 
         ff.close()
-
-        self._toArray()
-        self.calcPMT()
-    
-    def _toArray(self):
-
-        self.r = numpy.array(self.r)
-        self.ru = numpy.array(self.ru)
-        self.rv = numpy.array(self.rv)
-        self.rE = numpy.array(self.rE)
-
-        return None
         
     def elemToTri(self):
     
@@ -66,38 +39,6 @@ class solution():
             
         return None                
         
-    def calcPMT(self):
-       
-        Np = len(self.mesh.p)
-       
-        self.p = numpy.zeros(Np)
-        self.mach = numpy.zeros(Np)
-        self.entro = numpy.zeros(Np)               
-        self.H = numpy.zeros(Np)                
-       
-        for ii in range(0, Np):
-       
-            if(self.con[ii] > 0):
-       
-                u = self.ru[ii]/self.r[ii]
-                v = self.rv[ii]/self.r[ii]
-                E = self.rE[ii]/self.r[ii]
-                
-                RT = (E - (u**2 + v**2)/2)*(self.gamma - 1)
-                
-                self.p[ii] = RT*self.r[ii]
-                
-                c = numpy.sqrt(self.gamma*RT)
-                V = numpy.sqrt(u**2 + v**2)
-                
-                self.mach[ii] = V/c
-
-                self.entro[ii] = self.p[ii]/(self.r[ii]**self.gamma)
-
-                self.H[ii] = E + self.p[ii]/self.r[ii]
-        
-        return None        
-
     def pConnect(self):
     
         self.con = numpy.zeros(len(self.mesh.p))
@@ -123,29 +64,7 @@ def levels(v, n):
     for ii in range(0, n):
         levels.append(min1 + d*ii)
     
-    return levels                
-  
-class convergence():
-
-    def __init__(self, convFile):
-    
-        ff = open(convFile, 'r')
-        ii = 0
-        self.varList = []
-        for row in ff:
-            aux = row.split(',')
-            if ii == 0:
-                for jj in range(len(aux)-1):
-                    self.varList.append([])
-
-            for jj in range(len(aux)-1):
-                self.varList[jj].append(float(aux[jj]))
-                        
-            ii += 1
-    
-        for jj in range(len(aux)-1):
-            self.varList[jj] = numpy.array(self.varList[jj])
-  
+    return levels
     
 if __name__=="__main__":
 
@@ -155,13 +74,13 @@ if __name__=="__main__":
     
     path = sys.argv[1]
 
-    s = solution(path+"mesh.su2", path+"solution.csv")
+    s = solution(path+"mesh.su2", path+"solution2.csv")
 
     triang = mtri.Triangulation(s.x, s.y, s.elem)
 
     plt.figure()
     plt.title("Static pressure")
-    plt.tricontourf(triang, s.p)
+    plt.tricontourf(triang, s.data['p'])
     #plt.triplot(triang, 'ko-') 
     plt.axis('equal') 
     plt.colorbar()  
@@ -169,7 +88,7 @@ if __name__=="__main__":
 
     plt.figure()
     plt.title("Mach")
-    plt.tricontourf(triang, s.mach)
+    plt.tricontourf(triang, s.data['mach'])
     #plt.triplot(triang, 'ko-') 
     plt.axis('equal') 
     plt.colorbar()  
@@ -178,53 +97,39 @@ if __name__=="__main__":
     mar = s.mesh.markers[0]
     mar.getXY(s.mesh)
     
-    inter = mtri.LinearTriInterpolator(triang, s.mach)
+    inter = mtri.LinearTriInterpolator(triang, s.data['mach'])
     mach = inter(mar.x, mar.y)
-    inter = mtri.LinearTriInterpolator(triang, s.p)
+    inter = mtri.LinearTriInterpolator(triang, s.data['p'])
     p = inter(mar.x, mar.y)
-
-    """
-
-    fm = rf.read(path+"machxX")
 
     mar.x = numpy.array(mar.x)
 
     plt.figure()
     plt.title("Mach")
     plt.plot(mar.x, mach)
-    plt.plot(mar.x, mar.x*0 + 2.0)    
-    plt.plot(mar.x, mar.x*0 + 1.21021838)    
-    plt.plot(fm.x, fm.y)
     plt.show()
-    
-    fp = rf.read(path+"pressurexX")    
     
     plt.figure()
     plt.title("Static pressure")        
     plt.plot(mar.x, p)
-    plt.plot(mar.x, mar.x*0 + 1e5)    
-    plt.plot(mar.x, mar.x*0 + 2.84286270*1e5)    
-    plt.plot(fp.x, fp.y)    
     plt.show()
     
-    """
-    
-    conv = convergence(path+"convergence.csv")
+    conv = csv2dict((path+"convergence.csv"))
     
     plt.figure()
-    plt.semilogy(conv.varList[1]/conv.varList[1][0])
-    plt.semilogy(conv.varList[2]/conv.varList[2][0])    
-    plt.semilogy(conv.varList[3]/conv.varList[3][0])    
-    plt.semilogy(conv.varList[4]/conv.varList[4][0])       
+    plt.semilogy(conv['res_r']/conv['res_r'][0])
+    plt.semilogy(conv['res_u']/conv['res_u'][0])
+    plt.semilogy(conv['res_v']/conv['res_v'][0])
+    plt.semilogy(conv['res_E']/conv['res_E'][0])
     plt.grid(True)
-    plt.xlabel("iterations [100]")  
-    plt.ylabel("Residuos")            
+    plt.xlabel("iterations")  
+    plt.ylabel("residuals")            
     plt.show()
     
     plt.figure()
-    plt.plot(conv.varList[5])
+    plt.plot(conv['Cx_p'])
     plt.grid(True)
-    plt.xlabel("iterations [100]")  
-    plt.ylabel("Cx_p [-]")            
+    plt.xlabel("iterations")  
+    plt.ylabel("Cx_p")            
     plt.show()
     

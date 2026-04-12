@@ -66,29 +66,7 @@ def levels(v, n):
     for ii in range(0, n):
         levels.append(min1 + d*ii)
     
-    return levels                
-
-class convergence():
-
-    def __init__(self, convFile):
-    
-        ff = open(convFile, 'r')
-        ii = 0
-        self.varList = []
-        for row in ff:
-            aux = row.split(',')
-            if ii == 0:
-                for jj in range(len(aux)-1):
-                    self.varList.append([])
-
-            for jj in range(len(aux)-1):
-                self.varList[jj].append(float(aux[jj]))
-                        
-            ii += 1
-    
-        for jj in range(len(aux)-1):
-            self.varList[jj] = numpy.array(self.varList[jj])
-
+    return levels
 
     
 if __name__=="__main__":
@@ -119,24 +97,24 @@ if __name__=="__main__":
     plt.colorbar()  
     plt.show()
         
-    conv = convergence(path+"convergence.csv")
+    conv = csv2dict((path+"convergence.csv"))
     
     plt.figure()
-    plt.semilogy(conv.varList[1]/conv.varList[1][0])
-    plt.semilogy(conv.varList[2]/conv.varList[2][0])    
-    plt.semilogy(conv.varList[3]/conv.varList[3][0])    
-    plt.semilogy(conv.varList[4]/conv.varList[4][0])       
+    plt.semilogy(conv['res_r']/conv['res_r'][0])
+    plt.semilogy(conv['res_u']/conv['res_u'][0])
+    plt.semilogy(conv['res_v']/conv['res_v'][0])
+    plt.semilogy(conv['res_E']/conv['res_E'][0])
     plt.grid(True)
-    plt.xlabel("iterations [100]")  
-    plt.ylabel("Residuos")            
+    plt.xlabel("iterations")  
+    plt.ylabel("residuals")            
     plt.show()
     
     plt.figure()
-    plt.plot(conv.varList[5])
-    plt.plot(conv.varList[7])    
+    plt.plot(conv['Cx_p'])
+    plt.plot(conv['Cy_p'])    
     plt.grid(True)
-    plt.xlabel("iterations [100]")
-    plt.ylabel("coeff [-]")
+    plt.xlabel("iterations")
+    plt.ylabel("coeff")
     plt.legend(["Cx_p", "Cy_p"])
     plt.show()
         

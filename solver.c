@@ -1902,6 +1902,7 @@ void solverSolve(SOLVER* solver)
         else
         {
             convFile = fopen(s, "w");
+            solverPrintConvReader(solver, convFile);
         }
 
         // Run the solver
@@ -2262,5 +2263,21 @@ void solverWriteSolution2(SOLVER* solver)
     tableFreeDouble(Q, Naux);
     free(den);
     
+}
+
+void solverPrintConvReader(SOLVER* solver, FILE* convFile)
+{
+    if(solver->sa == 1)
+    {
+        fprintf(convFile, "iteration,res_r,res_u,res_v,res_E,res_n,Cx_p,Cx_v,Cy_p,Cy_v,\n"); 
+    }
+    else if(solver->sstFlag == 1)
+    {
+        fprintf(convFile, "iteration,res_r,res_u,res_v,res_E,res_k,res_om,Cx_p,Cx_v,Cy_p,Cy_v,\n");
+    }
+    else
+    {
+        fprintf(convFile, "iteration,res_r,res_u,res_v,res_E,Cx_p,Cx_v,Cy_p,Cy_v,\n");
+    }
 }
 
