@@ -25,8 +25,6 @@ int main(int argc, char **argv)
     SOLVER* solver = solverInit(argv[1]);
     
     solverSolve(solver);
-        
-    solverWriteSolution(solver);
     
     solverWriteSolution2(solver);
 

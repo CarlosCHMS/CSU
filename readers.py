@@ -10,7 +10,7 @@ class CSUread():
         
         self.mesh = meshRead(path+'mesh.su2')
 
-        self.solution = self.csv2dict(path+'solution2.csv')
+        self.solution = self.csv2dict(path+'solution.csv')
         
         self.surfData = self.csv2dict(path+'surfData.csv')
         

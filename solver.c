@@ -219,110 +219,6 @@ void solverFree(SOLVER* solver)
 
 }
 
-void solverWriteSolution(SOLVER* solver)
-{
-
-    /* 
-        Based on: Adek Tasri, Accuracy of Cell Centres to Vertices 
-        Interpolation for Unstructured Mesh Finite Volume Solver, 2021
-    */
-
-    // Save solution
-    printf("main: saving the solution.\n");    
-
-    char fileName[50];
-    fileName[0] = '\0';
-    strcat(fileName, solver->wd);
-    strcat(fileName, "solution.csv");
-    
-    FILE* ff = fopen(fileName, "w");
-    double** Up = tableMallocDouble(solver->Nvar, solver->mesh->Np);
-    double* den = malloc(solver->mesh->Np*sizeof(double));
-    int ii, jj, kk, p;
-    double xc, yc, xp, yp, L;
-    ELEMENT* E;
-
-    for(ii=0; ii<solver->mesh->Np; ii++)
-    {       
-        for(kk=0; kk<solver->Nvar; kk++)
-        {
-            Up[kk][ii] = 0.;
-        }   
-        den[ii] = 0.;
-    }
-
-    for(ii=0; ii<solver->mesh->Nelem; ii++)
-    {
-        E = solver->mesh->elemL[ii];
-        elementCenter(E, solver->mesh, &xc, &yc);
-        
-        for(jj=0; jj<E->Np; jj++)
-        {
-            p = E->p[jj];
-            xp = solver->mesh->p[p][0];
-            yp = solver->mesh->p[p][1];
-            L = sqrt((xp-xc)*(xp-xc) + (yp-yc)*(yp-yc));
-           
-            for(kk=0; kk<solver->Nvar; kk++)
-            {        
-                Up[kk][p] += solver->U[kk][ii]/L;
-            }
-            
-            den[p] += 1/L;
-        }        
-        
-    }
-
-    for(ii=0; ii<solver->mesh->Np; ii++)
-    {
-        if(den[ii] != 0)
-        {
-            for(kk=0; kk<solver->Nvar; kk++)
-            {
-                Up[kk][ii] /= den[ii];    
-            }
-        }
-    }
-
-    int p0, p1;
-
-    if(solver->laminar || solver->sa || solver->sstFlag)
-    {
-        for(int ii=0; ii<solver->mesh->Nmark; ii++)
-        {
-            if(solver->mesh->bc[ii]->flagBC == 3 || solver->mesh->bc[ii]->flagBC == 4)
-            {
-                for(int jj=0; jj<solver->mesh->bc[ii]->Nelem; jj++)
-                {
-                    p0 = solver->mesh->bc[ii]->elemL[jj]->p[0];
-                    p1 = solver->mesh->bc[ii]->elemL[jj]->p[1];
-
-                    Up[1][p0] = 0.0;
-                    Up[2][p0] = 0.0;
-                    Up[1][p1] = 0.0;
-                    Up[2][p1] = 0.0;
-                }
-            }
-        }
-    }
-
-    fprintf(ff, "0, %i, %i,\n", solver->mesh->Np, solver->Nvar);
-
-    for(ii=0; ii<solver->mesh->Np; ii++)
-    {        
-        for(jj=0; jj<solver->Nvar; jj++)
-        {
-            fprintf(ff, "%.10e, ", Up[jj][ii]);
-        }
-        fprintf(ff, "\n");        
-    }
-
-    fclose(ff);
-
-    tableFreeDouble(Up, solver->Nvar);
-    free(den);
-
-}
 
 void solverWriteReestart(SOLVER* solver)
 {
@@ -2055,7 +1951,7 @@ void solverWriteSolution2(SOLVER* solver)
     char fileName[50];
     fileName[0] = '\0';
     strcat(fileName, solver->wd);
-    strcat(fileName, "solution2.csv");
+    strcat(fileName, "solution.csv");
     
     FILE* ff = fopen(fileName, "w");
     int Naux = 3;
