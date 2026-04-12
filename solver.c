@@ -2147,7 +2147,7 @@ void solverWriteSolution2(SOLVER* solver)
                     {
                         P[5][p0] = 0.0;
                         P[5][p1] = 0.0;
-                        if(solver->Twall >= 0)
+                        if(solver->mesh->bc[ii]->flagBC == 4)
                         {
                             P[4][p0] = solver->Twall;
                             P[4][p1] = solver->Twall;
@@ -2161,7 +2161,7 @@ void solverWriteSolution2(SOLVER* solver)
                         //P[6][p0] = 0.0;
                         //P[6][p1] = 0.0;
 
-                        if(solver->Twall >= 0)
+                        if(solver->mesh->bc[ii]->flagBC == 4)
                         {
                             P[4][p0] = solver->Twall;
                             P[4][p1] = solver->Twall;

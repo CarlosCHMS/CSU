@@ -6,10 +6,12 @@ nx, 1.
 ny, 0.
 pout, 1e5
 
-BC:wall, wall
+BC:wall, wallT
 BC:outlet, outlet
 BC:sym, outlet
 BC:inlet, inlet
+
+Twall, 300
 
 Nmax, 40000
 order, 2
