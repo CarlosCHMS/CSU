@@ -2131,7 +2131,7 @@ void solverWriteSolution2(SOLVER* solver)
     {
         for(int ii=0; ii<solver->mesh->Nmark; ii++)
         {
-            if(solver->mesh->bc[ii]->flagBC == 3)
+            if(solver->mesh->bc[ii]->flagBC == 3 || solver->mesh->bc[ii]->flagBC == 4)
             {
                 for(int jj=0; jj<solver->mesh->bc[ii]->Nelem; jj++)
                 {

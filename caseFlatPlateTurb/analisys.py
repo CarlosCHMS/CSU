@@ -90,8 +90,6 @@ if __name__=="__main__":
     
     path = sys.argv[1]
 
-
-
     s = solution(path+"mesh.su2", path+"solution2.csv")
 
     triang = mtri.Triangulation(s.x, s.y, s.elem)
