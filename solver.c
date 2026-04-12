@@ -1300,44 +1300,6 @@ void solverCalcCoeff(SOLVER* solver, double *Cx, double *Cy)
     }    
 }
 
-void solverCalcCoeff2(SOLVER* solver, char* path)
-{
-    MESHBC* bc;
-    double x, txx, txy, tyy, yp;
-    char s[50];
-        
-    s[0] = '\0';
-    strcat(s, path);
-    strcat(s, "friction.csv");        
-    FILE* ff = fopen(s, "w");   
-        
-    for(int jj=0; jj<solver->mesh->Nmark; jj++)
-    {
-        bc = solver->mesh->bc[jj];
-        if(bc->flagBC == 3 || bc->flagBC == 4)
-        {
-            for(int ii=0; ii<bc->Nelem; ii++)
-            {                
-                if(solver->laminar==1 || solver->sa==1 || solver->sstFlag==1)
-                {
-                    
-                    if(solver->sa==1 || solver->sstFlag==1)
-                    {
-                        saCalcTensorWall(solver, bc->elemL[ii], &txx, &txy, &tyy, &x, &yp);
-                    }
-                    else
-                    {
-                        boundaryCalcTensorWall(solver, bc->elemL[ii], &txx, &txy, &tyy, &x, &yp);
-                    }
-                    
-                    fprintf(ff, "%e, %e, %e, %e, %e,\n", x, txx, txy, tyy, yp);
-                }                               
-            }
-        }
-    }
-        
-    fclose(ff);
-}
 
 void solverCalcCoeff3(SOLVER* solver, FILE* convFile, int Nint)
 {
@@ -1950,9 +1912,7 @@ void solverSolve(SOLVER* solver)
                 solverCalcCoeff3(solver, convFile, ii);
                 fprintf(convFile, "\n");
             }            
-        }
-        solverCalcCoeff2(solver, solver->wd); 
-        
+        }        
         fclose(convFile);
     }
     else

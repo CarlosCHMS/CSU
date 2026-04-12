@@ -191,8 +191,6 @@ void solverPrintP(SOLVER* solver);
 
 void solverCalcCoeff(SOLVER* solver, double *Fx, double *Fy);
 
-void solverCalcCoeff2(SOLVER* solver, char* path);
-
 void solverCalcCoeff3(SOLVER* solver, FILE* convFile, int Nint);
 
 void solverSetData(SOLVER* solver, INPUT* input);
