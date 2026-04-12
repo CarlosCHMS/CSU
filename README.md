@@ -39,7 +39,6 @@ The cases are organized into folders. Inside each case folder, there are:
 There are also:
 
 - **geometry.geo**: an input file for Gmsh used to generate the mesh;
-- **su2MeshReader.py**: a module used by `analysis.py` to read the `mesh.su2` file.
 
 All solution data will be saved inside the case folder. You can run the `analysis.py` script from within the case folder using the following command:
 
