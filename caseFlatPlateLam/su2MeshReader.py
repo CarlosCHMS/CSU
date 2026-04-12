@@ -1,5 +1,6 @@
 
 import sys
+import numpy
 
 class reader():
 
@@ -85,6 +86,9 @@ class reader():
             self.x.append(pp[0])
             self.y.append(pp[1])
 
+        self.x = numpy.array(self.x)
+        self.y = numpy.array(self.y)
+
         return None
     
     def writeFile(self):
@@ -111,7 +115,57 @@ class reader():
         ff.close()
         
         return None
+
+    def removeExtraPoints(self):
+    
+        con = numpy.zeros(len(self.p), dtype=int)
+        self.convert = numpy.zeros(len(self.p), dtype=int)
         
+        for ii in range(0, len(self.elem)):
+            con[self.elem[ii][0]] += 1
+            con[self.elem[ii][1]] += 1
+            con[self.elem[ii][2]] += 1
+        
+        self.extraPoints = False
+        for ii in range(len(con)):
+            if con[ii] == 0:
+                self.extraPoints = True
+        
+        if self.extraPoints:
+    
+            node = 0
+            self.newNodes = []
+            for ii in range(len(self.p)):
+                if con[ii] > 0:
+                    self.convert[ii] = node
+                    self.newNodes.append(ii)
+                    node += 1        
+
+            self.x = self.x[self.newNodes]
+            self.y = self.y[self.newNodes]
+            
+            newElem = []
+            for geo in self.elem:
+                newGeo = []
+                for p in geo:
+                    newGeo.append(self.convert[p])
+                    
+                newElem.append(newGeo)
+
+            self.elem = newElem
+
+            for m in self.markers:
+                newElem = []
+                for geo in m.elem:
+                    newGeo = []
+                    for p in geo:
+                        newGeo.append(self.convert[p])
+                        
+                    newElem.append(newGeo)
+
+                m.elem = newElem
+
+        return None
         
 class marker():
     
