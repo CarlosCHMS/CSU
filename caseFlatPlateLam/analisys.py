@@ -1,33 +1,30 @@
-
-
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
-from su2MeshReader import reader
-import sys
 import numpy
- 
-def csv2dict(fileName):
-    data = numpy.genfromtxt(fileName, delimiter=',', names=True, dtype=None, encoding=None)
-    
-    return {name: data[name] for name in data.dtype.names}
+import sys
+import os
 
-class solution():
+class CSUread():
 
-    def __init__(self, meshFile, solFile):
+    def __init__(self, path):
         
-        self.mesh = reader(meshFile)
+        self.mesh = reader(path+'mesh.su2')
+
+        self.solution = self.csv2dict(path+'solution2.csv')
         
-        self.x = self.mesh.x
-        self.y = self.mesh.y
+        self.surfData = self.csv2dict(path+'surfData.csv')
+        
+        self.convergence = self.csv2dict(path+'convergence.csv')
+        
+        self.mesh.removeExtraPoints()
+
+        if self.mesh.extraPoints:
+            for k in self.solution.keys():
+                self.solution[k] = self.solution[k][self.mesh.newNodes]        
+        
         self.elemToTri()
-                
-        self.pConnect()        
-                
-        ff = open(solFile)
-
-        self.data = csv2dict(solFile)
-
-        ff.close()
+        
+        self.triang = mtri.Triangulation(self.mesh.x, self.mesh.y, self.elem)
         
     def elemToTri(self):
     
@@ -39,36 +36,68 @@ class solution():
                 self.elem.append([e[0], e[1], e[2]])
                 self.elem.append([e[2], e[3], e[0]])
             
-        return None                
-        
-    def pConnect(self):
-    
-        self.con = numpy.zeros(len(self.mesh.p))
-        
-        for ii in range(0, len(self.elem)):
-            self.con[self.elem[ii][0]] += 1
-            self.con[self.elem[ii][1]] += 1
-            self.con[self.elem[ii][2]] += 1
-            
         return None
         
+    def csv2dict(self, fileName):
         
-def levels(v, n):    
+        data = numpy.genfromtxt(fileName, delimiter=',', names=True, dtype=None, encoding=None)
+        
+        return {name: data[name] for name in data.dtype.names}                
+        
+    def plotSolution(self, field):
+    
+        plt.figure()
+        plt.title(field)
+        plt.tricontourf(self.triang, self.solution[field], levels=30)
+        #plt.triplot(triang, 'ko-') 
+        plt.axis('equal') 
+        cbar = plt.colorbar()  
+        cbar.set_label(field)
+        plt.xlabel('x')
+        plt.ylabel('y')        
+        plt.show()
 
-    max1 = v[0]
-    min1 = v[0]
-    for ii in range(0, v.shape[0]):
-        max1 = max(v[ii], max1)
-        min1 = min(v[ii], min1)
-                            
-    d = (max1-min1)/(n-1)
-    levels = []
-    for ii in range(0, n):
-        levels.append(min1 + d*ii)
+        return None
+        
+    def plotResiduals(self):
     
-    return levels                
+        plt.figure()
+        leg = []        
+        for k in s.convergence.keys():
+            if 'res_' in k:
+                plt.semilogy(s.convergence[k]/s.convergence[k][0])
+                leg.append(k)
+
+        plt.grid(True)
+        plt.xlabel("iterations")  
+        plt.ylabel("residuals")            
+        plt.legend(leg)
+        plt.show()
+        
+        return None
+        
+    def plotConvergence(self, field):
     
+        plt.figure()
+        plt.plot(s.convergence[field])
+        plt.grid(True)
+        plt.xlabel("iterations")  
+        plt.ylabel(field)
+        plt.show()
+        
+        return None        
+
+    def plotSurfData(self, field1, field2):
     
+        plt.figure()
+        plt.plot(s.surfData[field1], s.surfData[field2])
+        plt.grid(True)
+        plt.xlabel(field1)  
+        plt.ylabel(field2)
+        plt.show()
+        
+        return None
+        
 class BL():
 
     def __init__(self, p, T, m, L):
@@ -122,8 +151,9 @@ class BL():
     def calcCfx(self, x):
 
         return self.aux/numpy.sqrt(x)
-        
-    
+
+
+
 if __name__=="__main__":
 
     if len(sys.argv) < 1:
@@ -132,46 +162,36 @@ if __name__=="__main__":
     
     path = sys.argv[1]
 
-    s = solution(path+"mesh.su2", path+"solution2.csv")
+    sys.path.append(os.path.abspath(path+'..'))
+    from su2MeshReader import reader
 
-    triang = mtri.Triangulation(s.x, s.y, s.elem)
+    s = CSUread(path)
 
+    s.plotResiduals()
+    
+    s.plotConvergence('Cx_v')
+    
+    s.plotConvergence('Cy_p')
+
+    s.plotSolution('p')
+    
     plt.figure()
-    plt.title("Static pressure")
-    plt.tricontourf(triang, s.data['p'])
+    plt.title('mach')
+    plt.tricontourf(s.triang, s.solution['mach'], levels=30)
     #plt.triplot(triang, 'ko-') 
-    plt.axis('equal') 
-    plt.colorbar()  
+    cbar = plt.colorbar()  
+    cbar.set_label('mach')
+    plt.xlabel('x')
+    plt.ylabel('y')        
     plt.show()
-
-    plt.figure()
-    #plt.title("Mach")
-    plt.tricontourf(triang, s.data['mach'])
-    #plt.triplot(triang, 'ko-') 
-    #plt.axis('equal') 
-    plt.colorbar()  
-    plt.show()
-
-    plt.figure()
-    #plt.title("Mach")
-    plt.tricontourf(triang, s.data['u'])
-    #plt.triplot(triang, 'ko-') 
-    #plt.axis('equal') 
-    cbar = plt.colorbar()
-    cbar.set_label('u [m/s]')
-    plt.xlabel("x [m]")  
-    plt.ylabel("y [m]")
-    plt.show()
-
+    
     mar = s.mesh.markers[1]
     mar.getXY(s.mesh)
     
-    inter = mtri.LinearTriInterpolator(triang, s.data['u'])
+    inter = mtri.LinearTriInterpolator(s.triang, s.solution['u'])
     u = inter(mar.x, mar.y)
-    inter = mtri.LinearTriInterpolator(triang, s.data['T'])
+    inter = mtri.LinearTriInterpolator(s.triang, s.solution['T'])
     T = inter(mar.x, mar.y)
-    inter = mtri.LinearTriInterpolator(triang, s.data['r'])
-    r = inter(mar.x, mar.y)
 
     y = numpy.array(mar.y)
 
@@ -189,35 +209,17 @@ if __name__=="__main__":
     plt.figure()
     plt.title("T")
     plt.plot(y, T, 'b') 
-    plt.show()
-
-    surf = csv2dict(path+'surfData.csv')
-
+    plt.xlabel("y [m]")  
+    plt.ylabel("T [K]")
+    plt.show()    
+    
     plt.figure()
-    plt.plot(surf['x'], -surf['Cfx'], 'b-') 
-    plt.plot(surf['x'], bl.calcCfx(surf['x']), 'r--')
-    plt.legend(['Code', 'Blasius'])    
-    #plt.ylim([0, 7])    
+    plt.plot(s.surfData['x'], -s.surfData['Cfx'], 'b-') 
+    plt.plot(s.surfData['x'], bl.calcCfx(s.surfData['x']), 'r--')
+    plt.legend(['Code', 'Blasius'])
     plt.xlabel("x [m/s]")
     plt.ylabel("Cfx [-]")
     plt.grid(True)
     plt.show()
 
-    conv = csv2dict((path+"convergence.csv"))
-    
-    plt.figure()
-    plt.semilogy(conv['res_r']/conv['res_r'][0])
-    plt.semilogy(conv['res_u']/conv['res_u'][0])
-    plt.semilogy(conv['res_v']/conv['res_v'][0])
-    plt.semilogy(conv['res_E']/conv['res_E'][0])    
-    plt.grid(True)
-    plt.xlabel("iterations")  
-    plt.ylabel("residuals")            
-    plt.show()
-    
-    plt.figure()
-    plt.plot(conv['Cx_v'])
-    plt.grid(True)
-    plt.xlabel("iterations")  
-    plt.ylabel("Cx_v")            
-    plt.show()
+

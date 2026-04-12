@@ -11,6 +11,8 @@ BC:wallUp, wall
 BC:inlet, inlet
 BC:outlet, outlet
 
+writeSurf, wallDown
+
 Nmax, 30000
 order, 2
 stages, 5

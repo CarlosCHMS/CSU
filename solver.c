@@ -1959,6 +1959,22 @@ void solverSolve(SOLVER* solver)
     {   
         double tmax = strtod(inputGetValue(solver->input, "tmax"), NULL);                
 
+        // Convergence history file
+        s[0] = '\0';
+        strcat(s, solver->wd);
+        strcat(s, "convergence.csv"); 
+        FILE* convFile;
+        
+        if(solver->restart)
+        {
+            convFile = fopen(s, "a");
+        }
+        else
+        {
+            convFile = fopen(s, "w");
+            solverPrintConvReader(solver, convFile);
+        }
+
         // Run the solver
         double t = 0.0;
         printf("\nmain: running solution:\n");
@@ -1978,13 +1994,24 @@ void solverSolve(SOLVER* solver)
             t += solver->dt*solver->stages/2.0;
             ii++;
 
-            if(ii%100 == 0)
+            if(ii%1 == 0)
             {
                 printf("%i, ", ii);
                 solverCalcRes(solver);
+                
+                // Write convergence file
+                fprintf(convFile, "%i,", ii);
+                for(int kk=0; kk<solver->Nvar; kk++)
+                {
+                    fprintf(convFile, " %+.4e,", solver->res[kk]);        
+                }                
+                solverCalcCoeff3(solver, convFile, ii);
+                fprintf(convFile, "\n");
             }
         }
         printf("time %f s\n", t);        
+        
+        fclose(convFile);
     }
 }
 

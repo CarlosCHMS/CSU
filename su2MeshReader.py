@@ -122,10 +122,9 @@ class reader():
         self.convert = numpy.zeros(len(self.p), dtype=int)
         
         for ii in range(0, len(self.elem)):
-            con[self.elem[ii][0]] += 1
-            con[self.elem[ii][1]] += 1
-            con[self.elem[ii][2]] += 1
-        
+            for e in self.elem[ii]:
+                con[e] += 1
+
         self.extraPoints = False
         for ii in range(len(con)):
             if con[ii] == 0:

@@ -10,6 +10,8 @@ BC:wall2, outlet
 BC:wall3, wall
 BC:wall4, inlet
 
+writeSurf, wall1
+
 Nmax, 3000
 order, 2
 threads, 4

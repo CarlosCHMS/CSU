@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
-from su2MeshReader import reader
 import sys
+import os
 import numpy
 
-class solution():
+class CSUread():
 
     def __init__(self, path):
         
@@ -15,12 +15,12 @@ class solution():
         self.surfData = self.csv2dict(path+'surfData.csv')
         
         self.convergence = self.csv2dict(path+'convergence.csv')
-
+        
         self.mesh.removeExtraPoints()
 
         if self.mesh.extraPoints:
             for k in self.solution.keys():
-                self.solution[k] = self.solution[k][self.mesh.newNodes]
+                self.solution[k] = self.solution[k][self.mesh.newNodes]        
         
         self.elemToTri()
         
@@ -30,10 +30,8 @@ class solution():
     
         self.elem = []
         for e in self.mesh.elem:
-            
             if(len(e) == 3):
-                self.elem.append([e[0], e[1], e[2]])
-                
+                self.elem.append(e)
             elif(len(e) == 4):
                 self.elem.append([e[0], e[1], e[2]])
                 self.elem.append([e[2], e[3], e[0]])
@@ -109,7 +107,10 @@ if __name__=="__main__":
     
     path = sys.argv[1]
 
-    s = solution(path)
+    sys.path.append(os.path.abspath(path+'..'))
+    from su2MeshReader import reader
+
+    s = CSUread(path)
 
     s.plotResiduals()
     
@@ -120,10 +121,6 @@ if __name__=="__main__":
     s.plotSolution('p')
     
     s.plotSolution('mach')
-    
-    s.plotSolution('s')
-    
-    s.plotSolution('H')
 
     s.plotSurfData('x', 'Cp')
     

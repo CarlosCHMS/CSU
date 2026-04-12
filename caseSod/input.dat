@@ -16,6 +16,8 @@ BC:wallDown, wall
 BC:wallRight, wall
 BC:wallLeft, wall
 
+writeSurf, wallUp
+
 xm, 25.
 tmax, 0.02
 interpE, 0.01

@@ -10,9 +10,9 @@ BC:wall2, outlet
 BC:wall3, wall
 BC:wall4, inlet
 
-Nmax, 2000
-interpE, 1e-10
-K3, 0.01
+writeSurf, wall1
+
+Nmax, 1000
 order, 2
 stages, 5
 threads, 4
@@ -20,3 +20,4 @@ flux, AUSMDV
 tube, 0
 axisymmetric, 1
 CFL, 1.0
+timeScheme, RK
