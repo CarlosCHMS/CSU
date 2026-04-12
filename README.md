@@ -5,14 +5,14 @@ A CFD code for unstructured meshs.
 To run the code use the command (linux): 
 
 ```bash
-python3 CSU.py ./caseFolder/
+python CSU.py ./caseFolder/
 ```
 
 This command will compile the c code, run the case and display the results.
 
 # Theory
 
-The code is a density-based finite volume CFD solver.
+The code is a density-based finite volume CFD solver. It supports 2-D planar and axisymmetric meshes.
 
 More details about the algorithm are presented in the paper: https://jatm.com.br/jatm/article/view/1317/989
 
@@ -44,7 +44,7 @@ There are also:
 All solution data will be saved inside the case folder. You can run the `analysis.py` script from within the case folder using the following command:
 
 ```bash
-python3 ./analysis.py ./
+python ./analysis.py ./
 ```
 
 With this command, you can view the results again without rerunning the case.
