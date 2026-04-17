@@ -49,10 +49,10 @@ laminar, 1
 restart, 0
 
 # w parameter in LUSGS (1 < wImp < 2)
-limK, 0.1
+wImp, 1.5
 
 # K parameter in Venkatakrishnan limiter (limK < 5)
-wImp, 1.5
+limK, 0.1
 
 # Time scheme (RK or LUSGS)
 timeScheme, LUSGS
