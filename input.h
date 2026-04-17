@@ -1,16 +1,32 @@
 #ifndef INPUT_H
 #define INPUT_H
 
+typedef struct COMMAND
+{
+
+    char* variable;
+    char* value;
+    struct COMMAND* next;
+    
+} COMMAND;
+
+
 typedef struct INPUT
 {
-    int N;
-    int Nmax;
-    char** name;
-    char** value;
+
+    COMMAND* firstCommand;
+    int Ncommand;
 
 } INPUT;
 
-INPUT* inputInit(char* fileName, int N);
+
+INPUT* inputInit(char* fileName);
+
+COMMAND* inputCommandInit(char* variable, char* value);
+
+void inputCommandFree(COMMAND* command);
+
+void inputCommandPrint(COMMAND* command);
 
 void inputPrint(INPUT* input);
 

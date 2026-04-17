@@ -1631,7 +1631,7 @@ SOLVER* solverInit(char* wd)
     s[0] = '\0';
     strcat(s, solver->wd);
     strcat(s, "input.dat");
-    solver->input = inputInit(s, 50);
+    solver->input = inputInit(s);
     printf("Input data:\n");
     inputPrint(solver->input);
 
