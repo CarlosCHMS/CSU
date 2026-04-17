@@ -9,7 +9,6 @@
 #include"input.h"
 #include"mesh.h"
 #include"solver.h"
-#include"flux.h"
 #include"boundary.h"
 #include"sst.h"
 #include"gasprop.h"

@@ -1,68 +1,39 @@
 #ifndef FLUX_H
 #define FLUX_H
 
-int fluxChoice(char* s);
+typedef struct GASPROP GASPROP;
 
-void entropyFix(SOLVER* solver, double *l);
+typedef struct SOLVER SOLVER;
 
-void fluxRoe(SOLVER* solver, double rL, double uL, double vL, double pL,
-                             double rR, double uR, double vR, double pR, double* f);
+typedef struct FLUX
+{
+    char* type;
+    
+    int Nvar;
+    
+    double eFix;
+    double Minf;
+    
+    bool extraVar;
+    
+    void (*func)(struct FLUX*, GASPROP*, double*, double*, double*);
 
-void fluxAUSMD(SOLVER* solver, double rL, double uL, double vL, double pL,
-                               double rR, double uR, double vR, double pR, double* f);
+} FLUX;
 
-void fluxAUSMDV(SOLVER* solver, double rL, double uL, double vL, double pL, 
-                                double rR, double uR, double vR, double pR, double* f);
+FLUX* fluxInit(INPUT* input, SOLVER* solver);
 
-void fluxAUSMDV_sa(SOLVER* solver, 
-               double rL, double uL, double vL, double pL, double nL,
-               double rR, double uR, double vR, double pR, double nR,
-	           double* f);
+void fluxFree1(FLUX* flux);
 
-void flux(SOLVER* solver, double rL, double uL, double vL, double pL,
-                          double rR, double uR, double vR, double pR, double* f);
-                           
-void fluxFree(SOLVER* solver, double rL, double uL, double vL, double pL, double* f);
-
-void fluxAUSMpup(SOLVER* solver, 
-               double rL, double uL, double vL, double pL,
-               double rR, double uR, double vR, double pR,
-	           double* f);
+void fluxFuncRoe(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* f);
 	           
-void fluxAUSMpup_sa(SOLVER* solver, 
-               double rL, double uL, double vL, double pL, double nL,
-               double rR, double uR, double vR, double pR, double nR,
-	           double* f);
+void fluxEntropyFix(FLUX* flux, double *l);	           
 	           
-void flux_sa(SOLVER* solver, double rL, double uL, double vL, double pL, double nL,
-                              double rR, double uR, double vR, double pR, double nR, double* f);
-                              
-void fluxAUSM(SOLVER* solver, 
-               double rL, double uL, double vL, double pL,
-               double rR, double uR, double vR, double pR,
-	           double* f);
-	           
-void fluxAUSM_sa(SOLVER* solver, 
-               double rL, double uL, double vL, double pL, double nL,
-               double rR, double uR, double vR, double pR, double nR,
-	           double* f);
-	           
-void fluxAUSMpup2(SOLVER* solver, 
-               double rL, double uL, double vL, double pL,
-               double rR, double uR, double vR, double pR,
-	           double* f);	           
-	           
-void flux_sst(SOLVER* solver, double rL, double uL, double vL, double pL, double kL, double oL,
-                              double rR, double uR, double vR, double pR, double kR, double oK, double* f);
+void fluxFuncAUSM(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* f);
 
-void fluxAUSM_sst(SOLVER* solver, 
-               double rL, double uL, double vL, double pL, double kL, double oL,
-               double rR, double uR, double vR, double pR, double kR, double oR,
-	           double* f);                              	           
-                              
-void fluxAUSMpup2_sst(SOLVER* solver, 
-               double rL, double uL, double vL, double pL, double kL, double oL,
-               double rR, double uR, double vR, double pR, double kR, double oR,
-	           double* f);                              	           
-	           
+void fluxFuncAUSMDV(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* f);
+
+void fluxFuncAUSMpup(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* f);
+
+void fluxFuncAUSMpup2(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* f);
+
 #endif

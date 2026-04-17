@@ -22,6 +22,6 @@ if __name__=="__main__":
     print("\nCSU - A CFD code for unstructured meshs:\n")    
 
     os.system("rm ./executable %ssolution.csv" % (path))
-    os.system("gcc ./main.c ./readTables.c ./utils.c ./boundary.c ./solver.c ./flux.c ./sa.c ./saCC.c ./implicit.c ./limiter.c ./laminar.c ./sst.c ./sstTrans.c ./gasprop.c ./mesh.c ./input.c -o ./executable -lm -fopenmp -Wall -O3")
+    os.system("gcc ./main.c ./readTables.c ./utils.c ./boundary.c ./solver.c ./sa.c ./saCC.c ./implicit.c ./limiter.c ./laminar.c ./sst.c ./sstTrans.c ./gasprop.c ./mesh.c ./input.c ./flux.c -o ./executable -lm -fopenmp -Wall -O3")
     os.system("./executable %s" % path)
     os.system("python3 %sanalisys.py %s" % (path, path))

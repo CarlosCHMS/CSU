@@ -9,6 +9,8 @@ typedef struct ELEMENT ELEMENT;
 
 typedef struct GASPROP GASPROP;
 
+typedef struct FLUX FLUX;
+
 typedef struct LIMITER LIMITER;
 
 typedef struct SST SST;
@@ -34,14 +36,13 @@ typedef struct{
 
 } CONDITION;
 
-typedef struct {
+typedef struct SOLVER{
 
     int Nvar;
     int Nrow;
     int Ncol;
     int pOutFlag;
     int order;
-    int flux;
     int stages;
     int laminar;
     int restart;
@@ -112,6 +113,8 @@ typedef struct {
     MESH* mesh;
     
     INPUT* input;
+    
+    FLUX* flux1;
 
     GASPROP* gas;
     

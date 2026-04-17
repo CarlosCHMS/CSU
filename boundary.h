@@ -7,9 +7,7 @@ void boundaryOutlet(SOLVER* solver, double* Pd, double* Pb, double nx, double ny
 
 void boundaryWall(SOLVER* solver, double* Pd, double* Pb, double nx, double ny);
 
-void boundaryCalc(SOLVER* solver, MESHBC* bc);
-
-void boundary(SOLVER* solver);
+void boundary1(SOLVER* solver);
 
 void boundaryGetBC(MESH* mesh, INPUT* input);
 
@@ -20,9 +18,5 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc);
 void boundaryCalcFrictionWall(SOLVER* solver, ELEMENT* E, double* fx, double* fy);
 
 void boundaryCalcTensorWall(SOLVER* solver, ELEMENT* E, double* Txx, double* Txy, double* Tyy, double* x, double* yp);
-
-void boundaryOutlet_sa(SOLVER* solver, double* Pd, double* Pb, double nx, double ny);
-
-void boundaryCalc_sst(SOLVER* solver, MESHBC* bc);
 
 #endif

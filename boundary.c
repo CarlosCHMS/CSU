@@ -83,41 +83,6 @@ void boundaryOutlet(SOLVER* solver, double* Pd, double* Pb, double nx, double ny
     }    
 }
 
-void boundaryOutlet_sa(SOLVER* solver, double* Pd, double* Pb, double nx, double ny)
-{
-
-    double rd = Pd[0];
-    double ud = Pd[1];
-    double vd = Pd[2];
-    double pd = Pd[3];
-    double nd = Pd[4];    
-    double T = pd/rd/solver->gas->R;
-    double c0 = gasprop_T2c(solver->gas, T); 
-    double m = sqrt(ud*ud + vd*vd)/c0;
-    
-    if(m < 1.)
-    {
-        double pb = solver->pout;
-        double rb = rd + (pb - pd)/(c0*c0);
-        double ub = ud + nx*(pd - pb)/(rd*c0);
-        double vb = vd + ny*(pd - pb)/(rd*c0);
-        double nb = nd + nd*(pd - pb)/(rd*c0*c0);
-
-        Pb[0] = rb;
-        Pb[1] = ub;
-        Pb[2] = vb;
-        Pb[3] = pb;
-        Pb[4] = nb;
-    }
-    else
-    {
-        for(int ii=0; ii<5; ii++)
-        {
-            Pb[ii] = Pd[ii];
-        }
-    }    
-}
-
 
 void boundaryWall(SOLVER* solver, double* Pd, double* Pb, double nx, double ny)
 {
@@ -141,328 +106,161 @@ void boundaryWall(SOLVER* solver, double* Pd, double* Pb, double nx, double ny)
     
 }
 
-void boundaryCalc(SOLVER* solver, MESHBC* bc)
+
+void boundary1(SOLVER* solver)
 {
-    
-	int kk;
-    double dSx, dSy, dS;
-    double aux;
-    double PL[4];
-	double Pb[4];
-    double f[4];
-    int e0, p0, p1;
 
-    for(int ii=0; ii<bc->Nelem; ii++)
+    for(int ii=0; ii<solver->mesh->Nmark; ii++)
     {
- 
-        e0 = bc->elemL[ii]->neiL[0]->ii;
-        p0 = bc->elemL[ii]->p[0];
-        p1 = bc->elemL[ii]->p[1];
- 
-        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-        dS = sqrt(dSx*dSx + dSy*dSy);
+        MESHBC* bc = solver->mesh->bc[ii];
         
-        for(kk=0; kk<4; kk++)
-		{
-			PL[kk] = solver->mesh->elemL[e0]->P[kk];
-		}      		
-        
-        if(bc->flagBC == 0)
+	    int kk;
+        double dSx, dSy, dS;
+        double aux;
+        double PL[6];
+	    double Pb[6];
+        double f[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        int e0, p0, p1;
+
+        for(int ii=0; ii<bc->Nelem; ii++)
         {
-
-            // Rotation of the velocity vectors
-            rotation(PL, dSx, dSy, dS);
-        
-            // Reflexive
-            flux(solver, PL[0], PL[1], PL[2], PL[3], PL[0], -PL[1], PL[2], PL[3], f);
-
-        }
-        else if(bc->flagBC == 1)
-        {
-
-            boundaryInlet(solver, solver->inlet->Pin, PL, Pb, dSx/dS, dSy/dS);
-
-            // Rotation of the velocity vectors
-            rotation(PL, dSx, dSy, dS);
-	        rotation(Pb, dSx, dSy, dS);
-
-            flux(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
-        
-        }
-        else if(bc->flagBC == 2)
-        {           
-
-            boundaryOutlet(solver, PL, Pb, dSx/dS, dSy/dS);
-
-            // Rotation of the velocity vectors
-            rotation(PL, dSx, dSy, dS);
-	        rotation(Pb, dSx, dSy, dS);
-        
-            flux(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
-		
-        }
-        else if(bc->flagBC == 3 || bc->flagBC == 4)
-        {
+     
+            e0 = bc->elemL[ii]->neiL[0]->ii;
+            p0 = bc->elemL[ii]->p[0];
+            p1 = bc->elemL[ii]->p[1];
+     
+            meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+            dS = sqrt(dSx*dSx + dSy*dSy);
             
-            if(solver->laminar==1)
+            for(kk=0; kk<solver->Nvar; kk++)
+		    {
+		        if(kk > 3)
+		        {
+			        PL[kk] = solver->mesh->elemL[e0]->P[kk+1];
+			    }
+			    else
+			    {
+			        PL[kk] = solver->mesh->elemL[e0]->P[kk];			
+			    }
+		    }      		
+            
+            if(bc->flagBC == 0)
             {
+                //Symmetry
+                
                 // Rotation of the velocity vectors
                 rotation(PL, dSx, dSy, dS);
-        
-                // Reflexive
-                flux(solver, PL[0], PL[1], PL[2], PL[3], PL[0], -PL[1], -PL[2], PL[3], f);
-            }
-            else
-            {            
+            
+                for(int kk=0; kk<solver->Nvar; kk++)
+                {
+                    Pb[kk] = PL[kk];
+                }
+                Pb[1] *= -1;
+            
+                solver->flux1->func(solver->flux1, solver->gas, PL, Pb, f);
 
+            }
+            else if(bc->flagBC == 1)
+            {
+                //Inlet
+                boundaryInlet(solver, solver->inlet->Pin, PL, Pb, dSx/dS, dSy/dS);
+
+                // Rotation of the velocity vectors
+                rotation(PL, dSx, dSy, dS);
+	            rotation(Pb, dSx, dSy, dS);
+
+                if(solver->flux1->extraVar)
+                {
+                    for(int kk=4; kk<solver->Nvar; kk++)
+                    {
+                        Pb[kk] = solver->inlet->Pin[kk+1];
+                    }
+                }
                 
-                boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
+                solver->flux1->func(solver->flux1, solver->gas, PL, Pb, f);
+            }
+            else if(bc->flagBC == 2)
+            {           
+                //Outlet
+                boundaryOutlet(solver, PL, Pb, dSx/dS, dSy/dS);
 
                 // Rotation of the velocity vectors
                 rotation(PL, dSx, dSy, dS);
 	            rotation(Pb, dSx, dSy, dS);
             
-                //flux(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
-                fluxFree(solver, Pb[0], Pb[1], Pb[2], Pb[3], f);
+                if(solver->flux1->extraVar)
+                {
+                    for(int kk=4; kk<solver->Nvar; kk++)
+                    {
+                        Pb[kk] = PL[kk];
+                    }
+                }
                 
+                solver->flux1->func(solver->flux1, solver->gas, PL, Pb, f);
+            }
+            else if((bc->flagBC == 3) || (bc->flagBC == 4))
+            {            
+                //Wall
 
                 /*
-		        double p2 = PL[3];
-	    
-                // Outlet
-                f[0] = .0;
-                f[2] = .0;
-                f[3] = .0;
-
-                f[1] =  p2;
+                boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
+                
+                for(int kk=0; kk<solver->Nvar; kk++)
+                {
+                    f[kk] = 0;
+                }
+                f[1] = Pb[3];            
                 */
-            }
-        }       
-
-        // Rotation of the flux
-		rotation(f, dSx, -dSy, dS);
-        
-        if(dS > 0)
-        {             
-            for(kk=0; kk<4; kk++)
-            {
-                aux = f[kk]*dS;
-                solver->R[kk][e0] += aux;
-            }
-        } 
-    }
-}
-
-void boundaryCalc_sa(SOLVER* solver, MESHBC* bc)
-{
-    
-	int kk;
-    double dSx, dSy, dS;
-    double aux;
-    double PL[5];
-	double Pb[5];
-    double f[5];
-    int e0, p0, p1;
-
-    for(int ii=0; ii<bc->Nelem; ii++)
-    {
- 
-        e0 = bc->elemL[ii]->neiL[0]->ii;
-        p0 = bc->elemL[ii]->p[0];
-        p1 = bc->elemL[ii]->p[1];
- 
-        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-        dS = sqrt(dSx*dSx + dSy*dSy);
-        
-        for(kk=0; kk<4; kk++)
-		{
-			PL[kk] = solver->mesh->elemL[e0]->P[kk];
-		}      		
-        PL[4] = solver->mesh->elemL[e0]->P[5];
-        
-        if(bc->flagBC == 0)
-        {
-
-            // Rotation of the velocity vectors
-            rotation(PL, dSx, dSy, dS);
-        
-            // Reflexive
-            flux_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4], PL[0], -PL[1], PL[2], PL[3], PL[4], f);
-
-        }
-        else if(bc->flagBC == 1)
-        {
-
-            boundaryInlet(solver, solver->inlet->Pin, PL, Pb, dSx/dS, dSy/dS);
-
-            // Rotation of the velocity vectors
-            rotation(PL, dSx, dSy, dS);
-	        rotation(Pb, dSx, dSy, dS);
-
-            flux_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4],  Pb[0], Pb[1], Pb[2], Pb[3], solver->inlet->Pin[5], f);        
-            //flux(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
-            //f[4] = 0.0;
-
-        }
-        else if(bc->flagBC == 2)
-        {           
-
-            boundaryOutlet(solver, PL, Pb, dSx/dS, dSy/dS);
-
-            // Rotation of the velocity vectors
-            rotation(PL, dSx, dSy, dS);
-	        rotation(Pb, dSx, dSy, dS);
-        
-            flux_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4], Pb[0], Pb[1], Pb[2], Pb[3], PL[4], f);
-            //flux(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
-            //f[4] = 0.0;
-        }
-        else if((bc->flagBC == 3) || (bc->flagBC == 4))
-        {            
-            // Rotation of the velocity vectors
-            rotation(PL, dSx, dSy, dS);
-    
-            // Reflexive
-            flux_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4], PL[0], -PL[1], -PL[2], PL[3], PL[4], f);
+                
+                /*
+                // Rotation of the velocity vectors
+                rotation(PL, dSx, dSy, dS);
             
-        }       
+                for(int kk=0; kk<solver->Nvar; kk++)
+                {
+                    Pb[kk] = PL[kk];
+                }
+                Pb[1] *= -1;
+                if(solver->sa || solver->sstFlag)
+                {
+                    Pb[2] *= -1;
+                }
+            
+                solver->flux1->func(solver->flux1, solver->gas, PL, Pb, f);
+                */
+                
+                // Rotation of the velocity vectors
+                boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
+                rotation(PL, dSx, dSy, dS);
+	            rotation(Pb, dSx, dSy, dS);
+            
+                if(solver->flux1->extraVar)
+                {
+                    for(int kk=4; kk<solver->Nvar; kk++)
+                    {
+                        Pb[kk] = PL[kk];
+                    }
+                }
+                
+                solver->flux1->func(solver->flux1, solver->gas, PL, Pb, f);
+                
+            }       
 
-        // Rotation of the flux
-		rotation(f, dSx, -dSy, dS);
-        
-        if(dS > 0)
-        {             
-            for(kk=0; kk<solver->Nvar; kk++)
-            {
-                aux = f[kk]*dS;
-                solver->R[kk][e0] += aux;
-            }
-        } 
+            // Rotation of the flux
+		    rotation(f, dSx, -dSy, dS);
+            
+            if(dS > 0)
+            {             
+                for(kk=0; kk<solver->Nvar; kk++)
+                {
+                    aux = f[kk]*dS;
+                    solver->R[kk][e0] += aux;
+                }
+            } 
+        }
     }
 }
 
-
-void boundaryCalc_sst(SOLVER* solver, MESHBC* bc)
-{
-    
-	int kk;
-    double dSx, dSy, dS;
-    double aux;
-    double PL[6];
-	double Pb[6];
-    double f[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    int e0, p0, p1;
-
-    for(int ii=0; ii<bc->Nelem; ii++)
-    {
- 
-        e0 = bc->elemL[ii]->neiL[0]->ii;
-        p0 = bc->elemL[ii]->p[0];
-        p1 = bc->elemL[ii]->p[1];
- 
-        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-        dS = sqrt(dSx*dSx + dSy*dSy);
-        
-        for(kk=0; kk<solver->Nvar; kk++)
-		{
-		    if(kk > 3)
-		    {
-			    PL[kk] = solver->mesh->elemL[e0]->P[kk+1];
-			}
-			else
-			{
-			    PL[kk] = solver->mesh->elemL[e0]->P[kk];			
-			}
-		}      		
-        
-        if(bc->flagBC == 0)
-        {
-
-            // Rotation of the velocity vectors
-            rotation(PL, dSx, dSy, dS);
-        
-            // Reflexive
-            flux_sst(solver, PL[0], PL[1], PL[2], PL[3], PL[4], PL[5], PL[0], -PL[1], PL[2], PL[3], PL[4], PL[5], f);
-
-        }
-        else if(bc->flagBC == 1)
-        {
-
-            boundaryInlet(solver, solver->inlet->Pin, PL, Pb, dSx/dS, dSy/dS);
-
-            // Rotation of the velocity vectors
-            rotation(PL, dSx, dSy, dS);
-	        rotation(Pb, dSx, dSy, dS);
-
-            flux_sst(solver, PL[0], PL[1], PL[2], PL[3], PL[4], PL[5],  Pb[0], Pb[1], Pb[2], Pb[3], solver->inlet->Pin[5], solver->inlet->Pin[6], f);        
-            //flux(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
-            //f[4] = 0.0;
-
-        }
-        else if(bc->flagBC == 2)
-        {           
-
-            boundaryOutlet(solver, PL, Pb, dSx/dS, dSy/dS);
-
-            // Rotation of the velocity vectors
-            rotation(PL, dSx, dSy, dS);
-	        rotation(Pb, dSx, dSy, dS);
-        
-            flux_sst(solver, PL[0], PL[1], PL[2], PL[3], PL[4], PL[5], Pb[0], Pb[1], Pb[2], Pb[3], PL[4], PL[5], f);
-            //flux(solver, PL[0], PL[1], PL[2], PL[3], Pb[0], Pb[1], Pb[2], Pb[3], f);
-            //f[4] = 0.0;
-        }
-        else if((bc->flagBC == 3) || (bc->flagBC == 4))
-        {            
-            // Rotation of the velocity vectors
-            rotation(PL, dSx, dSy, dS);        
-
-            flux_sst(solver, PL[0], PL[1], PL[2], PL[3], PL[4], PL[5], PL[0], -PL[1], -PL[2], PL[3], PL[4], PL[5], f);
-            /*
-            boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
-            f[0] = 0;
-            f[1] = Pb[3];
-            f[2] = 0;
-            f[3] = 0;
-            f[4] = 0;
-            f[5] = 0;
-            */
-        }       
-
-        // Rotation of the flux
-		rotation(f, dSx, -dSy, dS);
-        
-        if(dS > 0)
-        {             
-            for(kk=0; kk<solver->Nvar; kk++)
-            {
-                aux = f[kk]*dS;
-                solver->R[kk][e0] += aux;
-            }
-        } 
-    }
-}
-
-
-
-void boundary(SOLVER* solver)
-{
-    for(int ii=0; ii<solver->mesh->Nmark; ii++)
-    {
-        if(solver->sstFlag)
-        {
-            boundaryCalc_sst(solver, solver->mesh->bc[ii]);
-        }
-        else if(solver->sa)
-        {
-            boundaryCalc_sa(solver, solver->mesh->bc[ii]);
-        }
-        else
-        {
-            boundaryCalc(solver, solver->mesh->bc[ii]);
-        }   
-    }
-}
 
 void boundaryGetBC(MESH* mesh, INPUT* input)
 {
@@ -588,20 +386,22 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
             
             if(solver->laminar==1 || solver->sa==1)
             {
+                boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
+            
                 if(bc->flagBC == 4)
                 {
-                    bc->elemL[ii]->P[0] = PL[3]/(solver->gas->R*solver->Twall);
+                    bc->elemL[ii]->P[0] = Pb[3]/(solver->gas->R*solver->Twall);
                     bc->elemL[ii]->P[1] = 0.0;
                     bc->elemL[ii]->P[2] = 0.0;
-                    bc->elemL[ii]->P[3] = PL[3];
+                    bc->elemL[ii]->P[3] = Pb[3];
                     bc->elemL[ii]->P[4] = solver->Twall;
                 }
                 else
                 {
-                    bc->elemL[ii]->P[0] = PL[0];
+                    bc->elemL[ii]->P[0] = Pb[0];
                     bc->elemL[ii]->P[1] = 0.0;
                     bc->elemL[ii]->P[2] = 0.0;
-                    bc->elemL[ii]->P[3] = PL[3];                
+                    bc->elemL[ii]->P[3] = Pb[3];                
                     bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->gas->R);
                 }
             }

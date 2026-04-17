@@ -215,6 +215,8 @@ void solverFree(SOLVER* solver)
     
     limiterFree(solver->limiter);
     
+    fluxFree1(solver->flux1);
+    
     free(solver);
 
 }
@@ -516,20 +518,10 @@ void inter(SOLVER* solver)
                     
         // Rotation of the velocity vectors
 		rotation(PR, dSx, dSy, dS);
-        
+
         // Flux calculation
-        if(solver->sstFlag==1)
-        {
-            flux_sst(solver, PL[0], PL[1], PL[2], PL[3], PL[4], PL[5], PR[0], PR[1], PR[2], PR[3], PR[4], PR[5], f);
-        }
-        else if(solver->sa==1)
-        {
-            flux_sa(solver, PL[0], PL[1], PL[2], PL[3], PL[4], PR[0], PR[1], PR[2], PR[3], PR[4], f);
-        }
-        else
-        {
-            flux(solver, PL[0], PL[1], PL[2], PL[3], PR[0], PR[1], PR[2], PR[3], f);
-        }
+        solver->flux1->func(solver->flux1, solver->gas, PL, PR, f);
+        
         // Rotation of the flux
 		rotation(f, dSx, -dSy, dS);
         
@@ -597,7 +589,7 @@ void solverCalcR(SOLVER* solver, double** U)
         printf("\n");
     }
     */ 
-    boundary(solver); 
+    boundary1(solver); 
     
     if(solver->mesh->axi==1)
     {
@@ -1435,7 +1427,6 @@ void solverSetData(SOLVER* solver, INPUT* input)
 
 
     // Selection of several variables
-    solver->flux = fluxChoice(inputGetValue(input, "flux"));
     //solver->stages = atoi(inputGetValue(input, "stages"));
     //solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);
 
@@ -1727,6 +1718,9 @@ SOLVER* solverInit(char* wd)
     
     // Domain initialization
     solverInitDomain(solver);
+
+    // Set convective flux functions    
+    solver->flux1 = fluxInit(solver->input, solver);
     
     if(solver->timeScheme == 2)
     {
