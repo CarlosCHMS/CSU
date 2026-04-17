@@ -1,27 +1,58 @@
+###################################################
+#
+# Case of a flat plate laminar
+#
+###################################################
 
+# Inlet conditions
 pressure, 1e5
 mach, 0.1
 temperature, 300.
 nx, 1.
 ny, 0.
+
+# Outlet pressure
 pout, 1e5
 
+# Boundary atribuition (BC:boundary_name, boundary_type)
+# Types of boundaries: wall, wallT, inlet, outlet, symmetry
 BC:wall, wall
 BC:outlet, outlet
 BC:sym, outlet
 BC:inlet, inlet
 
+# Surface data extraction (insert the interest surface)
 writeSurf, wall
 
+# Max number of iterations
 Nmax, 40000
+
+# Order of the solver (1 or 2)
 order, 2
+
+# Number of threads (use the number of physical cores in the CPU)
 threads, 4
+
+# Type of convective flux scheme (ROE, AUSM, AUSMDV, AUSMpup, AUSMpup2)
 flux, AUSMpup2
-tube, 0
+
+# Case is axisymmetric? (0 or 1)
 axisymmetric, 0
+
+# Courant number (< 1 for RK)
 CFL, 1e3
+
+# Activate the Navier-Stokes equations (0 or 1)
 laminar, 1
+
+# Start the case from a previous simulation? (0 or 1)
 restart, 0
+
+# w parameter in LUSGS (1 < wImp < 2)
 limK, 0.1
+
+# K parameter in Venkatakrishnan limiter (limK < 5)
 wImp, 1.5
+
+# Time scheme (RK or LUSGS)
 timeScheme, LUSGS
