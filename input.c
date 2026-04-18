@@ -33,7 +33,7 @@ INPUT* inputInit(char* fileName)
     
     while(c != EOF)
     {   
-        if(c == ' ' || c == ',' || c == '\n' || c == '\r' || c == '#')
+        if(c == ' ' || c == '=' || c == '\n' || c == '\r' || c == '#')
         {
             save = false;
         }
@@ -71,7 +71,7 @@ INPUT* inputInit(char* fileName)
             nValue = 0;
         }
 
-        if(c == ',')
+        if(c == '=')
         {
             getVar = false;
             getValue = true;
@@ -136,7 +136,7 @@ void inputCommandFree(COMMAND* command)
 
 void inputCommandPrint(COMMAND* command)
 {
-    printf(" %s, %s\n", command->variable, command->value);
+    printf(" %s = %s\n", command->variable, command->value);
 }
 
 

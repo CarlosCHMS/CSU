@@ -1630,7 +1630,7 @@ SOLVER* solverInit(char* wd)
     // Load input   
     s[0] = '\0';
     strcat(s, solver->wd);
-    strcat(s, "input.dat");
+    strcat(s, "input.ini");
     solver->input = inputInit(s);
     printf("Input data:\n");
     inputPrint(solver->input);
