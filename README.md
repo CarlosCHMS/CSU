@@ -50,7 +50,7 @@ With this command, you can view the results again without rerunning the case.
 
 # Commands of input.ini file
 
-The case folders provided include input.ini files with several types of commands that can be used in CSU. These input.ini files also contain comments for each command, helping to better understand how each one is used.
+The case folders provided include `input.ini` files with several types of commands that can be used in CSU. These `input.ini` files also contain comments for each command, helping to better understand how each one is used.
 
 ## Boundary condition types
 
@@ -66,5 +66,5 @@ For the **wallT** condition, the command:
 
 - **Twall, "temperature"**
 
-must be included in `input.dat` to specify the wall temperature ("temperature" can be any numeric value).
+must be included in `input.ini` to specify the wall temperature ("temperature" can be any numeric value).
 
