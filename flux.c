@@ -157,8 +157,6 @@ void fluxFuncRoe(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* f)
 	    double vec1[4];
 	    double vec2[4];
 	    double vec3[4];
-	    
-	    double delta[4];
 
 	    double g1 = gas->gamma - 1;	    
 	    double V2aux = g1*(ub*ub + vb*vb);
@@ -171,36 +169,26 @@ void fluxFuncRoe(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* f)
 
 	    vec2[0] =  (0.5*ab*ub + 0.25*V2aux)*ab2inv;
         vec2[1] =  -0.5*(ab + g1*ub)*ab2inv;
-        vec2[2] =  -0.5*vb*g1*ab2inv;
-        vec2[3] =  0.5*g1*ab2inv;
+        vec2[2] =  -0.5*vec1[2];
+        vec2[3] =  -0.5*vec1[3];
 
         vec3[0] =  (-0.5*ab*ub + 0.25*V2aux)*ab2inv;
         vec3[1] =  -0.5*(-ab + g1*ub)*ab2inv;
-        vec3[2] =  -0.5*vb*g1*ab2inv;
-        vec3[3] =  0.5*g1*ab2inv;
+        vec3[2] =  -0.5*vec1[2];
+        vec3[3] =  -0.5*vec1[3];
         
-        delta[0] = d1;
-        delta[1] = d2;
-        delta[2] = d3;
-        delta[3] = d5;
-
-        double v1 = 0; 
-        double v2 = 0;
-        double v3 = 0;
+        double v1 = vec1[0]*d1 + vec1[1]*d2 + vec1[2]*d3 + vec1[3]*d5;
+        double v2 = vec2[0]*d1 + vec2[1]*d2 + vec2[2]*d3 + vec2[3]*d5;
+        double v3 = vec3[0]*d1 + vec3[1]*d2 + vec3[2]*d3 + vec3[3]*d5;        
         
-        for(int ii=0; ii<4; ii++)
-        {
-            v1 += vec1[ii]*delta[ii];
-            v2 += vec2[ii]*delta[ii];
-            v3 += vec3[ii]*delta[ii];            
-        }
+        double Vsum = v1*fabs(l2) + v2*fabs(l1) + v3*fabs(l5);
         
-        for (int ii = 4; ii < flux->Nvar; ++ii) 
+        for (int ii=4; ii<flux->Nvar; ++ii) 
 	    {
 	        double Pb = (rqL*PL[ii] + rqR*PR[ii])/(rqL + rqR);
            	        
 	        f[ii] = 0.5*(PL[ii]*U1L + PR[ii]*U1R);
-	        f[ii] -= 0.5*(v1*fabs(l2) + v2*fabs(l1) + v3*fabs(l5))*Pb;
+	        f[ii] -= 0.5*Vsum*Pb;
 	        f[ii] -= 0.5*fabs(l2)*(rR*PR[ii] - rL*PL[ii]);
 	    }   
 	}
