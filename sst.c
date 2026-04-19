@@ -144,7 +144,7 @@ void sstInterFace(SOLVER* solver)
         var.T = (E1->P[4] + E0->P[4])*0.5;
         var.k = (E1->P[5] + E0->P[5])*0.5;
         var.om = (E1->P[6] + E0->P[6])*0.5;        
-        var.d = (E1->d + E0->d)*0.5;
+        var.d = (solver->mesh->d[e1] + solver->mesh->d[e0])*0.5;
 
         var.mi_L = sutherland(var.T);
 
@@ -253,7 +253,7 @@ void sstBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, doub
         var.T = E0->P[4];
         var.k = E0->P[5];
         var.om = E0->P[6];
-        var.d = E0->d;
+        var.d = solver->mesh->d[e0];
 
         var.mi_L = sutherland(var.T);
 
@@ -330,7 +330,7 @@ void sstBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, doub
         var.k = solver->inlet->Pin[5];
         var.om = solver->inlet->Pin[6];
 
-        var.d = E0->d;
+        var.d = solver->mesh->d[e0];
         var.mi_L = sutherland(var.T);
 
         sstFlux(solver->sst, &var);
@@ -370,7 +370,7 @@ void sstBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, doub
         var.T = E0->P[4];        
         var.k = E0->P[5];
         var.om = E0->P[6];        
-        var.d = E0->d;
+        var.d = solver->mesh->d[e0];
 
         var.mi_L = sutherland(var.T);
         double n_L = var.mi_L/var.r;
@@ -440,7 +440,7 @@ void sstBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, doub
         var.T = E0->P[4];        
         var.k = E0->P[5];
         var.om = E0->P[6];        
-        var.d = E0->d;
+        var.d = solver->mesh->d[e0];
 
         var.mi_L = sutherland(var.T);
         double n_L = var.mi_L/var.r;
@@ -522,7 +522,7 @@ void sstBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, doub
         var.T = E0->P[4];
         var.k = E0->P[5];
         var.om = E0->P[6];        
-        var.d = E0->d;
+        var.d = solver->mesh->d[e0];
 
         var.mi_L = sutherland(var.T);
 
@@ -621,7 +621,7 @@ void sstInterSource(SOLVER* solver)
         var.T = E0->P[4];
         var.k = E0->P[5];
         var.om = E0->P[6];
-        var.d = E0->d;
+        var.d = solver->mesh->d[ii];
         var.l = sqrt(solver->mesh->omega[ii]);
 
         var.mi_L = sutherland(var.T);
@@ -899,7 +899,8 @@ void sstSolverWriteSurf(SOLVER* solver)
                     double q = (f[3] - u*f[1] - v*f[2])/dS;
                     double tau = sqrt(f[1]*f[1] + f[2]*f[2])/dS;
                     double uplus = sqrt(tau/r);
-                    double yplus = fabs(r*uplus*bc->elemL[ii]->neiL[0]->d)/sutherland(T);
+                    int iiaux = bc->elemL[ii]->neiL[0]->ii;
+                    double yplus = fabs(r*uplus*solver->mesh->d[iiaux])/sutherland(T);
                     double c = gasprop_T2c(solver->gas, T);
                     double mach = sqrt(u*u + v*v)/c;
                     
@@ -988,7 +989,7 @@ void sstInterMiT(SOLVER* solver)
         var.T = E0->P[4];
         var.k = E0->P[5];
         var.om = E0->P[6];
-        var.d = E0->d;
+        var.d = solver->mesh->d[ii];
         
         var.mi_L = sutherland(var.T);
         

@@ -482,7 +482,7 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
             {
                 //wall wallT
                 double n = sutherland(bc->elemL[ii]->P[4])/bc->elemL[ii]->P[0];
-                double d = E0->d;
+                double d = solver->mesh->d[E0->ii];
                 double owall = solver->sst->oWallFactor*6*n/(solver->sst->b1*d*d);
                 bc->elemL[ii]->P[5] = 1e-14;
                 bc->elemL[ii]->P[6] = owall;

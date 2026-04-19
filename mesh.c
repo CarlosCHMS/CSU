@@ -1,7 +1,8 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-#include <stdbool.h>
+#include<stdbool.h>
+#include<omp.h>
 #include<math.h>
 #include"utils.h"
 #include"mesh.h"
@@ -112,7 +113,7 @@ MESHBC* meshBCread(FILE* ff, int Nvar)
 
 }
 
-MESH* meshInit(char* fileName, int Nvar, int axi)
+MESH* meshInit(char* fileName, int Nvar, int axi, bool dFlag)
 {
 
     MESH* mesh = malloc(sizeof(MESH));
@@ -259,7 +260,7 @@ MESH* meshInit(char* fileName, int Nvar, int axi)
 
     meshCalcFaces(mesh);   
     
-    meshOmega(mesh);
+    meshOmega(mesh);    
 
     return mesh;
 
@@ -361,6 +362,11 @@ void meshFree(MESH* mesh)
     for(int ii=0; ii<mesh->Nmark; ii++)
     {
         meshBCFree(mesh->bc[ii]);
+    }
+    
+    if(mesh->dFlag)
+    {
+        free(mesh->d);
     }
     
     free(mesh->omega);
@@ -1241,4 +1247,108 @@ int meshBandCalc(MESH* mesh)
 
     return K;
 }
+
+void meshCalcD(MESH* mesh)
+{
+    double x, y, xMin, xMax, yMin, yMax;
+
+    mesh->d = malloc(mesh->Nelem*sizeof(double));
+
+    // Calculation of the initial distance as maximal mesh distance
+    ELEMENT* Evol = mesh->elemL[0];
+    elementCenter(Evol, mesh, &x, &y);
+    
+    xMax = x;
+    xMin = x;
+    yMax = y;
+    yMin = y;
+
+    for(int ii=1; ii<mesh->Nelem; ii++)
+    {
+        ELEMENT* Evol = mesh->elemL[ii];
+        elementCenter(Evol, mesh, &x, &y);
+        
+        xMax = fmax(xMax, x);
+        xMin = fmin(xMin, x);        
+        yMax = fmax(yMax, y);
+        yMin = fmin(yMin, y);        
+    }
+
+    double d0 = sqrt((xMax - xMin)*(xMax - xMin) + (yMax - yMin)*(yMax - yMin));
+
+    # pragma omp parallel for
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        mesh->d[ii] = d0;
+    }
+
+    // Calculation of the distance for the mesh
+    # pragma omp parallel for    
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        double xVol, yVol;
+        ELEMENT* Evol = mesh->elemL[ii];
+        elementCenter(Evol, mesh, &xVol, &yVol);
+        
+        for(int jj=0; jj<mesh->Nmark; jj++)
+        {
+            //printf("%i\n", mesh->bc[jj]->flagBC);
+            if(mesh->bc[jj]->flagBC==3 || mesh->bc[jj]->flagBC==4)
+            {            
+                for(int kk=0; kk<mesh->bc[jj]->Nelem; kk++)
+                {
+                    ELEMENT* Esurf = mesh->bc[jj]->elemL[kk];
+                    double p0x = mesh->p[Esurf->p[0]][0];
+                    double p0y = mesh->p[Esurf->p[0]][1];
+
+                    double p1x = mesh->p[Esurf->p[1]][0];
+                    double p1y = mesh->p[Esurf->p[1]][1];
+
+                    double num = (p1x - p0x)*(xVol - p0x) + (p1y - p0y)*(yVol - p0y);
+                    double den = (p1x - p0x)*(p1x - p0x) + (p1y - p0y)*(p1y - p0y);
+
+                    double t = num/den;
+
+                    if(t>1.)
+                    {
+                        t = 1.;
+                    }
+                    else if(t<0.)
+                    {
+                        t = 0.;
+                    }
+
+                    double dx = (p1x - p0x)*t + p0x - xVol;
+                    double dy = (p1y - p0y)*t + p0y - yVol;
+
+                    double d = sqrt(dx*dx + dy*dy);
+
+                    if(mesh->d[ii] > d)
+                    {
+                        mesh->d[ii] = d;
+                    }
+                }
+            }
+        }
+    }
+    /*
+    //Test
+    for(int jj=0; jj<mesh->Nmark; jj++)
+    {
+        if(mesh->bc[jj]->flagBC==3 || mesh->bc[jj]->flagBC==4)
+        {
+            printf("flagBC %i\n", mesh->bc[jj]->flagBC);
+     
+            for(int kk=0; kk<mesh->bc[jj]->Nelem; kk++)
+            {
+                ELEMENT* Esurf = mesh->bc[jj]->elemL[kk];
+                int iiaux = Esurf->neiL[0]->ii;
+                printf("%e\n", mesh->d[iiaux]);
+
+            }
+        }
+    } 
+    */  
+}
+
 

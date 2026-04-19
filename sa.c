@@ -242,7 +242,7 @@ void saInterSource(SOLVER* solver)
         double T = E0->P[4];
         double n = E0->P[5];
 
-        double d = E0->d;
+        double d = solver->mesh->d[ii];
         double mi_L = sutherland(T);
         double n_L = mi_L/rho;
         double S = fabs(duy - dvx);
@@ -699,156 +699,6 @@ void saBoundary(SOLVER* solver)
     }
 }
 
-void saCalcD(MESH* mesh)
-{
-
-    double xVol, yVol;
-
-    for(int ii=0; ii<mesh->Nelem; ii++)
-    {
-        ELEMENT* Evol = mesh->elemL[ii];
-        Evol->d = 1e6;
-    }
-
-    for(int jj=0; jj<mesh->Nmark; jj++)
-    {
-
-        //printf("%i\n", mesh->bc[jj]->flagBC);
-        if(mesh->bc[jj]->flagBC==3 || mesh->bc[jj]->flagBC==4)
-        {
-
-            for(int ii=0; ii<mesh->Nelem; ii++)
-            {
-                ELEMENT* Evol = mesh->elemL[ii];
-                elementCenter(Evol, mesh, &xVol, &yVol);
-
-                for(int kk=0; kk<mesh->bc[jj]->Nelem; kk++)
-                {
-                    ELEMENT* Esurf = mesh->bc[jj]->elemL[kk];
-                    double p0x = mesh->p[Esurf->p[0]][0];
-                    double p0y = mesh->p[Esurf->p[0]][1];
-
-                    double p1x = mesh->p[Esurf->p[1]][0];
-                    double p1y = mesh->p[Esurf->p[1]][1];
-
-                    double num = (p1x - p0x)*(xVol - p0x) + (p1y - p0y)*(yVol - p0y);
-                    double den = (p1x - p0x)*(p1x - p0x) + (p1y - p0y)*(p1y - p0y);
-
-                    double t = num/den;
-
-                    if(t>1.)
-                    {
-                        t = 1.;
-                    }
-                    else if(t<0.)
-                    {
-                        t = 0.;
-                    }
-
-                    double dx = (p1x - p0x)*t + p0x - xVol;
-                    double dy = (p1y - p0y)*t + p0y - yVol;
-
-                    double d = sqrt(dx*dx + dy*dy);
-
-                    if(Evol->d > d)
-                    {
-                        Evol->d = d;
-                    }
-
-                }
-
-                //printf("\ntf: %f\n", tf);
-
-            }
-        }
-    }
-
-    /*
-    for(int jj=0; jj<mesh->Nmark; jj++)
-    {
-
-        //printf("%i\n", mesh->bc[jj]->flagBC);
-        if(mesh->bc[jj]->flagBC==3)
-        {
-
-            for(int ii=0; ii<mesh->Nelem; ii++)
-            {
-
-                for(int kk=0; kk<mesh->bc[jj]->Nelem; kk++)
-                {
-                    ELEMENT* Esurf = mesh->bc[jj]->elemL[kk];
-                    ELEMENT* Evol = Esurf->neiL[0];
-                    printf("%e\n", Evol->d);
-
-                }
-
-            }
-
-        }
-
-    }
-    */
-
-}
-
-void saCalcTensorWall(SOLVER* solver, ELEMENT* E, double* Txx, double* Txy, double* Tyy, double* x, double* yp)
-{
-
-    double x0, y0, x1, y1, dSx, dSy;
-
-    int e0 = E->neiL[0]->ii;
-    int p0 = E->p[0];
-    int p1 = E->p[1];
-
-    ELEMENT* E0 = E->neiL[0];
-
-    meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-    double dS = sqrt(dSx*dSx + dSy*dSy);
-
-
-    elementCenter(E0, solver->mesh, &x0, &y0);
-    elementCenter(E, solver->mesh, &x1, &y1);
-
-    double dx = x1 - x0;
-    double dy = y1 - y0;
-    double L = sqrt(dx*dx + dy*dy);
-
-    double dul = (0 - E0->P[1])/L;
-    double dvl = (0 - E0->P[2])/L;
-
-    double duxm = solver->dPx[1][e0];
-    double dvxm = solver->dPx[2][e0];
-
-    double duym = solver->dPy[1][e0];
-    double dvym = solver->dPy[2][e0];
-
-    double dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
-    double duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;
-
-    double dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
-    double dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
-
-    double T = E0->P[4];
-    double mi = sutherland(T);
-
-    //printf("%f\n", E0->P[1]);
-
-    double txx = 2*mi*(dux - (dux + dvy)/3);
-    double tyy = 2*mi*(dvy - (dux + dvy)/3);
-    double txy = mi*(duy + dvx);
-
-    double fx = (txx*dSx + txy*dSy)/dS;
-    double fy = (txy*dSx + tyy*dSy)/dS;
-    double ft = (fx*dSy - fy*dSx)/dS;
-
-    double ut = sqrt(fabs(ft)/E0->P[0]);
-
-    *Txx = 0.0;
-	*Txy = ft;
-	*Tyy = 0.0;
-	*x = x1;
-	*yp = E0->P[0]*E0->d*ut/mi;
-}
 
 void saSolverWriteSurf(SOLVER* solver)
 {
@@ -931,7 +781,8 @@ void saSolverWriteSurf(SOLVER* solver)
                     double q = (f[3] - u*f[1] - v*f[2])/dS;
                     double tau = sqrt(f[1]*f[1] + f[2]*f[2])/dS;
                     double uplus = sqrt(tau/r);
-                    double yplus = fabs(r*uplus*bc->elemL[ii]->neiL[0]->d)/sutherland(T);
+                    int iiaux = bc->elemL[ii]->neiL[0]->ii;
+                    double yplus = fabs(r*uplus*solver->mesh->d[iiaux])/sutherland(T);
                     double c = gasprop_T2c(solver->gas, T);
                     double mach = sqrt(u*u + v*v)/c;
                     

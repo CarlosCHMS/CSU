@@ -124,7 +124,7 @@ void saCC_InterSource(SOLVER* solver)
         double T = E0->P[4];
         double n = E0->P[5];
 
-        double d = E0->d;
+        double d = solver->mesh->d[ii];
         double mi_L = sutherland(T);
         double n_L = mi_L/rho;
         double S = fabs(duy - dvx);
@@ -677,7 +677,8 @@ void saCC_SolverWriteSurf(SOLVER* solver)
                     double q = (f[3] - u*f[1] - v*f[2])/dS;
                     double tau = sqrt(f[1]*f[1] + f[2]*f[2])/dS;
                     double uplus = sqrt(tau/r);
-                    double yplus = fabs(r*uplus*bc->elemL[ii]->neiL[0]->d)/sutherland(T);
+                    int iiaux = bc->elemL[ii]->neiL[0]->ii;
+                    double yplus = fabs(r*uplus*solver->mesh->d[iiaux])/sutherland(T);
                     double c = gasprop_T2c(solver->gas, T);
                     double mach = sqrt(u*u + v*v)/c;
                     

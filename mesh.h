@@ -10,8 +10,7 @@ typedef struct ELEMENT
     int* p;
     int* f;
     
-    double* P; 
-    double d;
+    double* P;
 
     struct ELEMENT** neiL;    
     
@@ -33,6 +32,8 @@ typedef struct
 
 typedef struct MESH
 {
+
+    bool dFlag;
 
     int Ndim;
     int Nelem;
@@ -88,7 +89,7 @@ char meshGetWord(FILE* ff, char* s);
  
 MESHBC* meshBCread(FILE* ff, int Nvar);
 
-MESH* meshInit(char* fileName, int Nvar, int axi);
+MESH* meshInit(char* fileName, int Nvar, int axi, bool dFlag);
 
 void meshPrintBC(MESHBC* bc);
 
@@ -159,5 +160,7 @@ void meshInsertHashTable(HASHTABLE* ht, MESH* mesh, int p0, int p1, int elemInde
 void meshCheckHashTable(HASHTABLE* ht);
 
 int meshBandCalc(MESH* mesh);
+
+void meshCalcD(MESH* mesh);
 
 #endif

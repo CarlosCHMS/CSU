@@ -1679,33 +1679,29 @@ SOLVER* solverInit(char* wd)
         }
     }   
 
-    // Set number of flow variables
+    // Set number of flow variables and dFlag
+    bool dFlag = false;
     solver->Nvar = 4;
     if(solver->sa == 1)
     {
         solver->Nvar = 5;
+        dFlag = true;
     }    
 
     if(solver->sstFlag == 1)
     {
         solver->Nvar = 6;
+        dFlag = true;        
     }
 
     // Load mesh    
     s[0] = '\0';
     strcat(s, solver->wd);
     strcat(s, "mesh.su2");
-    solver->mesh = meshInit(s, solver->Nvar, atoi(inputGetValue(solver->input, "axisymmetric")));
+    solver->mesh = meshInit(s, solver->Nvar, atoi(inputGetValue(solver->input, "axisymmetric")), dFlag);
     
     // Setting the solver   
     solverSetData(solver, solver->input);
-      
-    if((solver->sa == 1) || (solver->sstFlag == 1))
-    {
-        printf("main: calculating distance.\n");
-        saCalcD(solver->mesh);
-
-    }    
   
     //meshCheckNei(solver->mesh);
     //solverCheckGrad(solver);
@@ -1726,6 +1722,13 @@ SOLVER* solverInit(char* wd)
     {
         implicitInitDPLUR(solver);
     }
+  
+    solver->mesh->dFlag = dFlag;
+    if(solver->mesh->dFlag)
+    {
+        printf("mesh: calculating distance.\n");
+        meshCalcD(solver->mesh);
+    }  
         
     return solver;
 }
