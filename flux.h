@@ -30,6 +30,8 @@ void fluxEntropyFix(FLUX* flux, double *l);
 	           
 void fluxFuncAUSM(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* f);
 
+void fluxFuncAUSMp(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* f);
+
 void fluxFuncAUSMDV(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* f);
 
 void fluxFuncAUSMpup(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* f);

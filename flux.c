@@ -44,10 +44,15 @@ FLUX* fluxInit(INPUT* input, SOLVER* solver)
     {
         flux->func = fluxFuncAUSMDV;
     }
+    else if(strcmp(flux->type, "AUSMp") == 0)
+    {
+        flux->func = fluxFuncAUSMp;        
+    }
     else if(strcmp(flux->type, "AUSMpup") == 0)
     {
         flux->func = fluxFuncAUSMpup;        
     }
+
     else if(strcmp(flux->type, "AUSMpup2") == 0)
     {
         flux->func = fluxFuncAUSMpup2;        
@@ -420,6 +425,124 @@ void fluxFuncAUSMDV(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* f)
 		    f[kk] -= aux*(rR*psiR[kk] - rL*psiL[kk]);
 		}		
 	}	
+}
+
+void fluxFuncAUSMp(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* f)
+{
+
+    double rL = PL[0];
+    double uL = PL[1];
+    double vL = PL[2];
+    double pL = PL[3];
+    
+    double rR = PR[0];
+    double uR = PR[1];
+    double vR = PR[2];
+    double pR = PR[3];    
+
+	double TL = pL/(gas->R*rL);
+	double U3L = gasprop_T2e(gas, TL)*rL + (uL*uL + vL*vL)*rL/2;
+    double HL = (U3L + pL)/rL;
+
+    double TR = pR/(gas->R*rR);
+	double U3R = gasprop_T2e(gas, TR)*rR + (uR*uR + vR*vR)*rR/2;
+    double HR = (U3R + pR)/rR;
+    
+    double astar;
+    
+    astar = gasprop_critic_H2c(gas, HL);
+    double ahL = astar*astar/fmax(astar, fabs(uL));
+
+    astar = gasprop_critic_H2c(gas, HR);
+    double ahR = astar*astar/fmax(astar, fabs(uR));
+    
+	double am = fmin(ahL, ahR);
+
+	double ML = uL/am;
+	double MR = uR/am;
+
+    double alpha = 3.0/16.0;
+    double beta = 1.0/8.0;
+
+    double Mplus;
+    double Mminus;
+
+    double Pplus;
+    double Pminus;
+
+    double M2p;
+    double M2m;
+    
+    if(fabs(ML) >= 1)
+    {
+        Mplus = 0.5*(ML + fabs(ML));
+        Pplus = Mplus/ML;
+    } 
+    else
+    {
+        M2p = 0.25*(ML + 1)*(ML + 1);
+        M2m = -0.25*(ML - 1)*(ML - 1);
+        Mplus = M2p*(1 - 16*beta*M2m);
+        Pplus = M2p*((2 - ML) - 16*alpha*ML*M2m);
+    }
+
+    if(fabs(MR) >= 1)
+    {
+        Mminus = 0.5*(MR - fabs(MR));
+        Pminus = Mminus/MR;
+    } 
+    else
+    {
+        M2p = 0.25*(MR + 1)*(MR + 1);
+        M2m = -0.25*(MR - 1)*(MR - 1);    
+        Mminus = M2m*(1 + 16*beta*M2p);
+        Pminus = M2m*((-2 - MR) + 16*alpha*MR*M2p);
+    }
+
+    double Mm = Mplus + Mminus;
+
+    double pm = Pplus*pL + Pminus*pR;
+
+    double mm;
+    if(Mm > 0)
+    {   
+        mm = am*Mm*rL;
+    }
+    else
+    {
+        mm = am*Mm*rR;        
+    }
+
+    if(mm > 0)
+    {
+	    f[0] = mm;
+	    f[1] = mm*uL + pm;
+	    f[2] = mm*vL;
+	    f[3] = mm*HL;
+	    
+        if(flux->extraVar)
+	    {
+	        for(int kk=4; kk<flux->Nvar; kk++)
+	        {
+	            f[kk] = mm*PL[kk];
+	        }
+	    }
+    }
+    else
+    {
+	    f[0] = mm;
+	    f[1] = mm*uR + pm;
+	    f[2] = mm*vR;
+	    f[3] = mm*HR;
+	    
+	    if(flux->extraVar)
+	    {
+	        for(int kk=4; kk<flux->Nvar; kk++)
+	        {
+	            f[kk] = mm*PR[kk];
+	        }
+	    }
+    }
 }
 
 
