@@ -20,7 +20,7 @@ Since the publication of this paper, several improvements have been made, includ
 
 - The k-omega SST turbulence model;
 
-- Flux algorithms: AUSM, AUSM+up, and AUSM+up2;
+- Flux algorithms: AUSM, AUSM+, AUSM+up, and AUSM+up2;
 
 - The implicit LUSGS algorithm;
 
