@@ -61,7 +61,6 @@ FLUX* fluxInit(INPUT* input, SOLVER* solver)
     {
         flux->func = fluxFuncAUSMpup;        
     }
-
     else if(strcmp(flux->type, "AUSMpup2") == 0)
     {
         flux->func = fluxFuncAUSMpup2;        
