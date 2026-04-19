@@ -636,7 +636,7 @@ void solverRK(SOLVER* solver, double a)
         {
             for(int kk=0; kk<solver->Nvar; kk++)
             {            
-                solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dtL[ii]*sigma*a*solver->R[kk][ii]/solver->mesh->elemL[ii]->omega;
+                solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dtL[ii]*sigma*a*solver->R[kk][ii]/solver->mesh->omega[ii];
             }
         }    
     }
@@ -647,7 +647,7 @@ void solverRK(SOLVER* solver, double a)
         {
             for(int kk=0; kk<solver->Nvar; kk++)
             {            
-                solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dt*sigma*a*solver->R[kk][ii]/solver->mesh->elemL[ii]->omega;
+                solver->Uaux[kk][ii] = solver->U[kk][ii] - solver->dt*sigma*a*solver->R[kk][ii]/solver->mesh->omega[ii];
             }
         }
     }
@@ -806,7 +806,7 @@ double solverLocalTimeStep(SOLVER* solver, int ii)
     Lx = (fabs(u) + c)*dSxm;
     Ly = (fabs(v) + c)*dSym;
     
-    return solver->mesh->elemL[ii]->omega/(Lx + Ly);
+    return solver->mesh->omega[ii]/(Lx + Ly);
     
 }
 

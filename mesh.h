@@ -11,8 +11,7 @@ typedef struct ELEMENT
     int* f;
     
     double* P; 
-    double d;       
-    double omega;
+    double d;
 
     struct ELEMENT** neiL;    
     
@@ -42,6 +41,9 @@ typedef struct MESH
     int Ncon;
     int axi;
     int order;
+    
+    double* omega;
+    double* d;
     
     int** con;    
 
@@ -105,6 +107,8 @@ double meshCalcOmegaTri(MESH* mesh, int p0, int p1, int p2);
 double meshCalcDSlateral(MESH* mesh, int ii);
 
 double meshCalcOmega(MESH* mesh, int ii);
+
+void meshOmega(MESH* mesh);
 
 void meshUpdateOmega(MESH* mesh);
 

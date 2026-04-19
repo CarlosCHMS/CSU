@@ -622,7 +622,7 @@ void sstInterSource(SOLVER* solver)
         var.k = E0->P[5];
         var.om = E0->P[6];
         var.d = E0->d;
-        var.l = sqrt(E0->omega);
+        var.l = sqrt(solver->mesh->omega[ii]);
 
         var.mi_L = sutherland(var.T);
 
@@ -640,8 +640,8 @@ void sstInterSource(SOLVER* solver)
         {
             sstSources(solver->sst, &var);
 
-            solver->R[4][ii] -= var.Qtk*E0->omega;
-            solver->R[5][ii] -= var.Qto*E0->omega;
+            solver->R[4][ii] -= var.Qtk*solver->mesh->omega[ii];
+            solver->R[5][ii] -= var.Qto*solver->mesh->omega[ii];
 
             double dQkdr = var.Qtk;
             double dQkdo = var.Qtk;
@@ -678,13 +678,15 @@ void sstInterSource(SOLVER* solver)
             dQodr = (var.Qto - dQodr)/hh;
             var.r = E0->P[0];
 
-            solver->dQkdr[ii] = (dQkdr - dQkdk*var.k/var.r - dQkdo*var.om/var.r)*E0->omega;//var.dQkdr*E0->omega;
-            solver->dQkdrk[ii] = dQkdk*E0->omega/var.r;//dQkdk*E0->omega/var.r;//var.dQkdrk*E0->omega;        
-            solver->dQkdro[ii] = dQkdo*E0->omega/var.r;//var.dQkdro*E0->omega;
+            double omega = solver->mesh->omega[ii];
 
-            solver->dQodr[ii] = (dQodr - dQodk*var.k/var.r - dQodo*var.om/var.r)*E0->omega;//var.dQodr*E0->omega;
-            solver->dQodrk[ii] = dQodk*E0->omega/var.r;//var.dQodrk*E0->omega;        
-            solver->dQodro[ii] = dQodo*E0->omega/var.r;//var.dQodro*E0->omega;
+            solver->dQkdr[ii] = (dQkdr - dQkdk*var.k/var.r - dQkdo*var.om/var.r)*omega;//var.dQkdr*E0->omega;
+            solver->dQkdrk[ii] = dQkdk*omega/var.r;//dQkdk*E0->omega/var.r;//var.dQkdrk*E0->omega;        
+            solver->dQkdro[ii] = dQkdo*solver->mesh->omega[ii]/var.r;//var.dQkdro*E0->omega;
+
+            solver->dQodr[ii] = (dQodr - dQodk*var.k/var.r - dQodo*var.om/var.r)*omega;//var.dQodr*E0->omega;
+            solver->dQodrk[ii] = dQodk*omega/var.r;//var.dQodrk*E0->omega;        
+            solver->dQodro[ii] = dQodo*omega/var.r;//var.dQodro*E0->omega;
         }
     }
 }

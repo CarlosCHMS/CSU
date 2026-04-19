@@ -44,7 +44,7 @@ void limiterUpdate(LIMITER* limiter, SOLVER* solver)
         limiter->volMax = 0.0;
 	    for(int ii=0; ii<solver->mesh->Nelem; ii++)
         {
-	        limiter->volMax = fmax(solver->mesh->elemL[ii]->omega, limiter->volMax);
+	        limiter->volMax = fmax(solver->mesh->omega[ii], limiter->volMax);
 	    }        
         limiter->Pref20[0] = solver->inlet->Pin[0]*solver->inlet->Pin[0];
 	    limiter->Pref20[1] = solver->inlet->Pin[1]*solver->inlet->Pin[1] + solver->inlet->Pin[2]*solver->inlet->Pin[2];
@@ -100,7 +100,7 @@ void limiterCalc(LIMITER* limiter, SOLVER* solver, int ii, double* Pref2)
     double aux;
     if(limiter->type == 0)
     {
-        aux = limiter->K*sqrt(solver->mesh->elemL[ii]->omega/limiter->volMax);
+        aux = limiter->K*sqrt(solver->mesh->omega[ii]/limiter->volMax);
         aux = aux*aux*aux;
         
 	    for(int jj=0; jj<solver->Nvar; jj++)

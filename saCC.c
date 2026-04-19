@@ -131,7 +131,7 @@ void saCC_InterSource(SOLVER* solver)
         double Qt;
 
         saCC_CalcSource(n, n_L, S, d, rho, drx, dry, dnx, dny, &Qt);
-        solver->R[4][ii] -= Qt*E0->omega;
+        solver->R[4][ii] -= Qt*solver->mesh->omega[ii];
     }
 }
 

@@ -87,7 +87,7 @@ void implicitCalcD(SOLVER* solver)
         solver->D[ii] = 0.5*solver->wImp*Lc;        
         if(solver->laminar || solver->sa || solver->sstFlag)
         {
-            solver->D[ii] += Lv/E->omega;
+            solver->D[ii] += Lv/solver->mesh->omega[ii];
         }
     }
     
@@ -152,7 +152,7 @@ void implicitCalcD(SOLVER* solver)
             solver->D[e1] += 0.5*solver->wImp*Lc;        
             if(solver->laminar || solver->sa || solver->sstFlag)
             {
-                solver->D[e1] += Lv/E1->omega;
+                solver->D[e1] += Lv/solver->mesh->omega[e1];
             }
         }
     }
@@ -160,7 +160,7 @@ void implicitCalcD(SOLVER* solver)
     #pragma omp parallel for
     for(int ii=0; ii<mesh->Nelem; ii++)
     {
-        solver->dtL[ii] = mesh->elemL[ii]->omega/solver->dtL[ii];
+        solver->dtL[ii] = solver->mesh->omega[ii]/solver->dtL[ii];
     }
 
     // Time step calculation
@@ -175,7 +175,7 @@ void implicitCalcD(SOLVER* solver)
     #pragma omp parallel for
     for(int ii=0; ii<mesh->Nelem; ii++)
     {
-        solver->D[ii] += mesh->elemL[ii]->omega/dt;
+        solver->D[ii] += solver->mesh->omega[ii]/dt;
     }  
 }
 

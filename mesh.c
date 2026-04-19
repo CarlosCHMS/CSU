@@ -259,7 +259,7 @@ MESH* meshInit(char* fileName, int Nvar, int axi)
 
     meshCalcFaces(mesh);   
     
-    meshUpdateOmega(mesh);
+    meshOmega(mesh);
 
     return mesh;
 
@@ -363,6 +363,7 @@ void meshFree(MESH* mesh)
         meshBCFree(mesh->bc[ii]);
     }
     
+    free(mesh->omega);
     free(mesh->bc);
     free(mesh);
 
@@ -440,13 +441,26 @@ double meshCalcOmega(MESH* mesh, int ii)
 
 }
 
+
+void meshOmega(MESH* mesh)
+{
+    mesh->omega = malloc(mesh->Nelem*sizeof(double));
+
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        mesh->omega[ii] = meshCalcOmega(mesh, ii);
+    }
+}
+
+
 void meshUpdateOmega(MESH* mesh)
 {
     for(int ii=0; ii<mesh->Nelem; ii++)
     {
-        mesh->elemL[ii]->omega = meshCalcOmega(mesh, ii);
+        mesh->omega[ii] = meshCalcOmega(mesh, ii);
     }
 }
+
 
 double elementIsConnected(ELEMENT* e0, ELEMENT* e1, int* p0, int* p1)
 {
