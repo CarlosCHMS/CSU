@@ -226,7 +226,7 @@ MESH* meshInit(char* fileName, int Nvar, int axi, bool dFlag)
     int pAux[4];
     for(ii=0; ii<mesh->Nelem; ii++)
     {
-        omega = meshCalcOmega(mesh, ii);
+        omega = meshCalcOmegaOld(mesh, ii);
         if(omega < 0)
         {
             Np = mesh->elemL[ii]->Np;
@@ -260,7 +260,7 @@ MESH* meshInit(char* fileName, int Nvar, int axi, bool dFlag)
 
     meshCalcFaces(mesh);   
     
-    meshOmega(mesh);    
+    meshOmegaCenter(mesh);    
 
     return mesh;
 
@@ -370,6 +370,14 @@ void meshFree(MESH* mesh)
     }
     
     free(mesh->omega);
+    free(mesh->cx);
+    free(mesh->cy);
+    
+    if(mesh->axi)
+    {
+        free(mesh->dSlateral);
+    }
+            
     free(mesh->bc);
     free(mesh);
 
@@ -377,19 +385,16 @@ void meshFree(MESH* mesh)
 
 void elementCenter(ELEMENT* E, MESH* mesh, double* x, double* y)    
 {
-
-    *x = 0.0;
-    *y = 0.0;
-    
-    for(int jj=0; jj<E->Np; jj++)
+    if(E->Np == 2)
     {
-        *x += mesh->p[E->p[jj]][0];
-        *y += mesh->p[E->p[jj]][1];
+        *x = 0.5*(mesh->p[E->p[0]][0] + mesh->p[E->p[1]][0]);
+        *y = 0.5*(mesh->p[E->p[0]][1] + mesh->p[E->p[1]][1]);
     }
-
-    *x /= E->Np;
-    *y /= E->Np;
-
+    else
+    {
+        *x = mesh->cx[E->ii];
+        *y = mesh->cy[E->ii];
+    }
 }
 
 double meshCalcOmegaTri(MESH* mesh, int p0, int p1, int p2)
@@ -424,10 +429,8 @@ double meshCalcDSlateral(MESH* mesh, int ii)
 
 }
 
-double meshCalcOmega(MESH* mesh, int ii)
+double meshCalcOmegaOld(MESH* mesh, int ii)
 {
- 
-    double x, y;
     ELEMENT* E = mesh->elemL[ii];
     
     double ans = meshCalcOmegaTri(mesh, E->p[0], E->p[1], E->p[2]);
@@ -437,33 +440,40 @@ double meshCalcOmega(MESH* mesh, int ii)
         ans += meshCalcOmegaTri(mesh, E->p[2], E->p[3], E->p[0]);
     }
 
-    if(mesh->axi == 1)
-    {
-        elementCenter(E, mesh, &x, &y);
-        ans *= y;
-    }
-
     return ans;
-
 }
 
 
-void meshOmega(MESH* mesh)
+void meshOmegaCenter(MESH* mesh)
 {
     mesh->omega = malloc(mesh->Nelem*sizeof(double));
+    mesh->cx = malloc(mesh->Nelem*sizeof(double));
+    mesh->cy = malloc(mesh->Nelem*sizeof(double));
 
-    for(int ii=0; ii<mesh->Nelem; ii++)
+    if(mesh->axi)
     {
-        mesh->omega[ii] = meshCalcOmega(mesh, ii);
+        mesh->dSlateral = malloc(mesh->Nelem*sizeof(double));
     }
-}
 
-
-void meshUpdateOmega(MESH* mesh)
-{
+    # pragma omp parallel for
     for(int ii=0; ii<mesh->Nelem; ii++)
     {
-        mesh->omega[ii] = meshCalcOmega(mesh, ii);
+        double omega, cx, cy;
+        meshCalcOmegaCenter(mesh, ii, &omega, &cx, &cy);
+        
+        if(mesh->axi)
+        {
+            mesh->dSlateral[ii] = omega;
+            mesh->omega[ii] = omega*cy;
+            mesh->cx[ii] = cx;
+            mesh->cy[ii] = cy;            
+        }
+        else
+        {        
+            mesh->omega[ii] = omega;
+            mesh->cx[ii] = cx;
+            mesh->cy[ii] = cy;
+        }        
     }
 }
 
@@ -1351,4 +1361,74 @@ void meshCalcD(MESH* mesh)
     */  
 }
 
+void meshCalcOmegaCenter(MESH* mesh, int ii, double* omega, double* cx, double* cy)
+{
+    ELEMENT* E = mesh->elemL[ii];
+    
+    *omega = 0;
+    *cx = 0;
+    *cy = 0;
+    
+    if(E->Np==3)
+    {
+        int p0 = E->p[0];
+        int p1 = E->p[1];
+        int p2 = E->p[2];        
+
+        *omega = meshCalcOmegaTri(mesh, p0, p1, p2);
+        
+        double x0 = mesh->p[p0][0];
+        double x1 = mesh->p[p1][0];
+        double x2 = mesh->p[p2][0];
+    
+        double y0 = mesh->p[p0][1];
+        double y1 = mesh->p[p1][1];
+        double y2 = mesh->p[p2][1];
+        
+        *cx = (x0 + x1 + x2)/3;
+        *cy = (y0 + y1 + y2)/3;
+        
+    }
+    else
+    {
+        int p0 = E->p[0];
+        int p1 = E->p[1];
+        int p2 = E->p[2];
+
+        double omega1 = meshCalcOmegaTri(mesh, p0, p1, p2);
+        
+        double x0 = mesh->p[p0][0];
+        double x1 = mesh->p[p1][0];
+        double x2 = mesh->p[p2][0];
+    
+        double y0 = mesh->p[p0][1];
+        double y1 = mesh->p[p1][1];
+        double y2 = mesh->p[p2][1];
+        
+        *omega = omega1;
+        *cx = omega1*(x0 + x1 + x2)/3;
+        *cy = omega1*(y0 + y1 + y2)/3;    
+    
+        p0 = E->p[2];
+        p1 = E->p[3];
+        p2 = E->p[0];
+
+        omega1 = meshCalcOmegaTri(mesh, p0, p1, p2);
+        
+        x0 = mesh->p[p0][0];
+        x1 = mesh->p[p1][0];
+        x2 = mesh->p[p2][0];
+    
+        y0 = mesh->p[p0][1];
+        y1 = mesh->p[p1][1];
+        y2 = mesh->p[p2][1];
+        
+        *omega += omega1;
+        *cx += omega1*(x0 + x1 + x2)/3;
+        *cy += omega1*(y0 + y1 + y2)/3;    
+    
+        *cx /= *omega;
+        *cy /= *omega;
+    }
+}
 

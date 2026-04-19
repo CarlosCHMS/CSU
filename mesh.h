@@ -42,8 +42,11 @@ typedef struct MESH
     int Ncon;
     int axi;
     int order;
-    
+
+    double* cx;
+    double* cy;    
     double* omega;
+    double* dSlateral;
     double* d;
     
     int** con;    
@@ -107,11 +110,9 @@ double meshCalcOmegaTri(MESH* mesh, int p0, int p1, int p2);
 
 double meshCalcDSlateral(MESH* mesh, int ii);
 
-double meshCalcOmega(MESH* mesh, int ii);
+double meshCalcOmegaOld(MESH* mesh, int ii);
 
-void meshOmega(MESH* mesh);
-
-void meshUpdateOmega(MESH* mesh);
+void meshOmegaCenter(MESH* mesh);
 
 double elementIsConnected(ELEMENT* e0, ELEMENT* e1, int* p0, int* p1);
 
@@ -162,5 +163,7 @@ void meshCheckHashTable(HASHTABLE* ht);
 int meshBandCalc(MESH* mesh);
 
 void meshCalcD(MESH* mesh);
+
+void meshCalcOmegaCenter(MESH* mesh, int ii, double* omega, double* cx, double* cy);
 
 #endif

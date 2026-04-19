@@ -419,7 +419,6 @@ void laminarWriteSurf(SOLVER* solver)
                     double p = bc->elemL[ii]->P[3];
                     double T = bc->elemL[ii]->P[4];                    
                     
-                    
                     boundaryFaceViscFlux(solver, bc, ii, f);
 
                     double Cp = (p - pin)/qdin;                
@@ -448,6 +447,8 @@ void laminarWriteSurf(SOLVER* solver)
                     D[11][ii] = mach;
                 }
             }
+            
+
             
             for(int ii=0; ii<bc->Nelem; ii++)
             {                

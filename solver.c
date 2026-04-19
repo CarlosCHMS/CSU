@@ -1702,6 +1702,11 @@ SOLVER* solverInit(char* wd)
         implicitInitDPLUR(solver);
     }
   
+    if(solver->laminar)
+    {
+        dFlag = true;
+    }
+  
     solver->mesh->dFlag = dFlag;
     if(solver->mesh->dFlag)
     {
@@ -1890,7 +1895,7 @@ void solverWriteSurf(SOLVER* solver)
 {
     if(solver->laminar)
     {
-        laminarWriteSurf(solver);
+        laminarWriteSurf(solver);   
     }
     else if(solver->sa)
     {
