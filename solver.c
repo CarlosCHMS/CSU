@@ -138,17 +138,7 @@ void solverMalloc(SOLVER* solver)
     if(solver->sstFlag)
     {
         solver->miT = malloc(solver->mesh->Ncon*sizeof(double));
-        solver->miTe = malloc(solver->mesh->Nelem*sizeof(double));
-        solver->F1 = malloc(solver->mesh->Nelem*sizeof(double));
-        solver->F2 = malloc(solver->mesh->Nelem*sizeof(double));                
-        solver->dd = malloc(solver->mesh->Nelem*sizeof(double));
-        solver->om2 = malloc(solver->mesh->Nelem*sizeof(double));
-        solver->dQodro = malloc(solver->mesh->Nelem*sizeof(double));
-        solver->dQodrk = malloc(solver->mesh->Nelem*sizeof(double));
-        solver->dQodr = malloc(solver->mesh->Nelem*sizeof(double));                        
-        solver->dQkdro = malloc(solver->mesh->Nelem*sizeof(double));                
-        solver->dQkdrk = malloc(solver->mesh->Nelem*sizeof(double));
-        solver->dQkdr = malloc(solver->mesh->Nelem*sizeof(double));
+        sstMalloc(solver->sst, solver->mesh->Nelem);
     }
 }
 
@@ -195,18 +185,7 @@ void solverFree(SOLVER* solver)
     if(solver->sstFlag)
     {
         free(solver->miT);
-        free(solver->miTe);
-        free(solver->F1);
-        free(solver->F2);
-        free(solver->dd);
-        free(solver->om2);
         sstFree(solver->sst);
-        free(solver->dQodr);
-        free(solver->dQodrk);        
-        free(solver->dQodro);
-        free(solver->dQkdr);
-        free(solver->dQkdrk);        
-        free(solver->dQkdro);
     }    
     
     inputFree(solver->input);
@@ -2082,11 +2061,11 @@ void solverWriteSolution2(SOLVER* solver)
                 yp = solver->mesh->p[p][1];
                 L = sqrt((xp-xc)*(xp-xc) + (yp-yc)*(yp-yc));
                
-                Q[3][p] += solver->miTe[ii]/L;
-                Q[4][p] += solver->F1[ii]/L;
-                Q[5][p] += solver->F2[ii]/L;
-                Q[6][p] += solver->dd[ii]/L;
-                Q[7][p] += solver->om2[ii]/L;
+                Q[3][p] += solver->sst->miTe[ii]/L;
+                Q[4][p] += solver->sst->F1[ii]/L;
+                Q[5][p] += solver->sst->F2[ii]/L;
+                Q[6][p] += solver->sst->dd[ii]/L;
+                Q[7][p] += solver->sst->om2[ii]/L;
                 den[p] += 1/L;
             }        
             

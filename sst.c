@@ -33,12 +33,41 @@ SST* sstInit()
     sst->g2 = sst->b2/sst->bs - sst->so2*k*k/sqrt(sst->bs);
         
     sst->trans = sstTransInit();
-    
+        
     return sst;
 }
 
+
+void sstMalloc(SST* sst, int Nelem)
+{    
+    sst->miTe = malloc(Nelem*sizeof(double));
+    sst->F1 = malloc(Nelem*sizeof(double));
+    sst->F2 = malloc(Nelem*sizeof(double));                
+    sst->dd = malloc(Nelem*sizeof(double));
+    sst->om2 = malloc(Nelem*sizeof(double));
+    sst->dQodro = malloc(Nelem*sizeof(double));
+    sst->dQodrk = malloc(Nelem*sizeof(double));
+    sst->dQodr = malloc(Nelem*sizeof(double));                        
+    sst->dQkdro = malloc(Nelem*sizeof(double));                
+    sst->dQkdrk = malloc(Nelem*sizeof(double));
+    sst->dQkdr = malloc(Nelem*sizeof(double));
+}
+
+
 void sstFree(SST* sst)
 {
+    free(sst->miTe);
+    free(sst->F1);
+    free(sst->F2);
+    free(sst->dd);
+    free(sst->om2);        
+    free(sst->dQodr);
+    free(sst->dQodrk);        
+    free(sst->dQodro);
+    free(sst->dQkdr);
+    free(sst->dQkdrk);        
+    free(sst->dQkdro);
+
     sstTransFree(sst->trans);
     free(sst);
 }
@@ -628,13 +657,13 @@ void sstInterSource(SOLVER* solver)
 
         if(var.om == solver->omLim)
         {
-            solver->dQkdr[ii] = 0;
-            solver->dQkdrk[ii] = 0;
-            solver->dQkdro[ii] = 0;
+            solver->sst->dQkdr[ii] = 0;
+            solver->sst->dQkdrk[ii] = 0;
+            solver->sst->dQkdro[ii] = 0;
 
-            solver->dQodr[ii] = 0;
-            solver->dQodrk[ii] = 0;
-            solver->dQodro[ii] = 0;
+            solver->sst->dQodr[ii] = 0;
+            solver->sst->dQodrk[ii] = 0;
+            solver->sst->dQodro[ii] = 0;
         }
         else
         {
@@ -680,13 +709,13 @@ void sstInterSource(SOLVER* solver)
 
             double omega = solver->mesh->omega[ii];
 
-            solver->dQkdr[ii] = (dQkdr - dQkdk*var.k/var.r - dQkdo*var.om/var.r)*omega;//var.dQkdr*E0->omega;
-            solver->dQkdrk[ii] = dQkdk*omega/var.r;//dQkdk*E0->omega/var.r;//var.dQkdrk*E0->omega;        
-            solver->dQkdro[ii] = dQkdo*solver->mesh->omega[ii]/var.r;//var.dQkdro*E0->omega;
+            solver->sst->dQkdr[ii] = (dQkdr - dQkdk*var.k/var.r - dQkdo*var.om/var.r)*omega;//var.dQkdr*E0->omega;
+            solver->sst->dQkdrk[ii] = dQkdk*omega/var.r;//dQkdk*E0->omega/var.r;//var.dQkdrk*E0->omega;        
+            solver->sst->dQkdro[ii] = dQkdo*solver->mesh->omega[ii]/var.r;//var.dQkdro*E0->omega;
 
-            solver->dQodr[ii] = (dQodr - dQodk*var.k/var.r - dQodo*var.om/var.r)*omega;//var.dQodr*E0->omega;
-            solver->dQodrk[ii] = dQodk*omega/var.r;//var.dQodrk*E0->omega;        
-            solver->dQodro[ii] = dQodo*omega/var.r;//var.dQodro*E0->omega;
+            solver->sst->dQodr[ii] = (dQodr - dQodk*var.k/var.r - dQodo*var.om/var.r)*omega;//var.dQodr*E0->omega;
+            solver->sst->dQodrk[ii] = dQodk*omega/var.r;//var.dQodrk*E0->omega;        
+            solver->sst->dQodro[ii] = dQodo*omega/var.r;//var.dQodro*E0->omega;
         }
     }
 }
@@ -999,11 +1028,11 @@ void sstInterMiT(SOLVER* solver)
 
         elementCenter(E0, solver->mesh, &x0, &y0);
 
-        solver->miTe[ii] = var.mi_t;
-        solver->F1[ii] = var.F1;
-        solver->F2[ii] = var.F2;
-        solver->dd[ii] = var.d;
-        solver->om2[ii] = var.om;
+        solver->sst->miTe[ii] = var.mi_t;
+        solver->sst->F1[ii] = var.F1;
+        solver->sst->F2[ii] = var.F2;
+        solver->sst->dd[ii] = var.d;
+        solver->sst->om2[ii] = var.om;
                
     }
 }

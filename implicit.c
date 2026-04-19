@@ -11,6 +11,7 @@
 #include"solver.h"
 #include"boundary.h"
 #include"sa.h"
+#include"sst.h"
 #include"implicit.h"
 #include"gasprop.h"
 
@@ -226,12 +227,12 @@ void implicitLUSGS_L(SOLVER* solver)
                 solver->dW0[kk][ii] /= solver->D[ii];            
             }
             
-            double A = solver->dW0[4][ii] + solver->dQkdr[ii]*solver->dW0[0][ii];
-            double B = solver->dW0[5][ii] + solver->dQodr[ii]*solver->dW0[0][ii];
-            double a = solver->D[ii] - solver->dQkdrk[ii];
-            double b = -solver->dQkdro[ii];
-            double c = -solver->dQodrk[ii];
-            double d = solver->D[ii] - solver->dQodro[ii];
+            double A = solver->dW0[4][ii] + solver->sst->dQkdr[ii]*solver->dW0[0][ii];
+            double B = solver->dW0[5][ii] + solver->sst->dQodr[ii]*solver->dW0[0][ii];
+            double a = solver->D[ii] - solver->sst->dQkdrk[ii];
+            double b = -solver->sst->dQkdro[ii];
+            double c = -solver->sst->dQodrk[ii];
+            double d = solver->D[ii] - solver->sst->dQodro[ii];
             
             long double det = a*d - b*c;
             
@@ -271,10 +272,10 @@ void implicitLUSGS_U(SOLVER* solver)
             {
                 solver->dW1[kk][ii] = solver->D[ii]*solver->dW0[kk][ii];
             }
-            double a = solver->D[ii] - solver->dQkdrk[ii];
-            double b = -solver->dQkdro[ii];
-            double c = -solver->dQodrk[ii];
-            double d = solver->D[ii] - solver->dQodro[ii];            
+            double a = solver->D[ii] - solver->sst->dQkdrk[ii];
+            double b = -solver->sst->dQkdro[ii];
+            double c = -solver->sst->dQodrk[ii];
+            double d = solver->D[ii] - solver->sst->dQodro[ii];            
             
             long double det = a*d - b*c;
             if(fabs(det) < 1e-14)
@@ -284,8 +285,8 @@ void implicitLUSGS_U(SOLVER* solver)
             }
             else
             {
-                solver->dW1[4][ii] = a*solver->dW0[4][ii] + b*solver->dW0[5][ii] - solver->dQkdr[ii]*solver->dW0[0][ii];
-                solver->dW1[5][ii] = c*solver->dW0[4][ii] + d*solver->dW0[5][ii] - solver->dQodr[ii]*solver->dW0[0][ii];
+                solver->dW1[4][ii] = a*solver->dW0[4][ii] + b*solver->dW0[5][ii] - solver->sst->dQkdr[ii]*solver->dW0[0][ii];
+                solver->dW1[5][ii] = c*solver->dW0[4][ii] + d*solver->dW0[5][ii] - solver->sst->dQodr[ii]*solver->dW0[0][ii];
             }
         }
         else
@@ -336,12 +337,12 @@ void implicitLUSGS_U(SOLVER* solver)
                 solver->dW1[kk][ii] /= solver->D[ii];            
             }
             
-            double A = solver->dW1[4][ii] + solver->dQkdr[ii]*solver->dW1[0][ii];
-            double B = solver->dW1[5][ii] + solver->dQodr[ii]*solver->dW1[0][ii];
-            double a = solver->D[ii] - solver->dQkdrk[ii];
-            double b = -solver->dQkdro[ii];
-            double c = -solver->dQodrk[ii];
-            double d = solver->D[ii] - solver->dQodro[ii];
+            double A = solver->dW1[4][ii] + solver->sst->dQkdr[ii]*solver->dW1[0][ii];
+            double B = solver->dW1[5][ii] + solver->sst->dQodr[ii]*solver->dW1[0][ii];
+            double a = solver->D[ii] - solver->sst->dQkdrk[ii];
+            double b = -solver->sst->dQkdro[ii];
+            double c = -solver->sst->dQodrk[ii];
+            double d = solver->D[ii] - solver->sst->dQodro[ii];
             
             long double det = a*d - b*c;
             if(fabs(det) < 1e-14)

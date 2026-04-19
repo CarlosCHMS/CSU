@@ -35,6 +35,18 @@ typedef struct SST{
     double bs;
     double a1;
     
+    double *miTe;    
+    double *F1;
+    double *F2;  
+    double *dd;
+    double *om2; 
+    double *dQodr;     
+    double *dQodrk;     
+    double *dQodro; 
+    double *dQkdr;     
+    double *dQkdrk;     
+    double *dQkdro;
+    
     SST_TRANS* trans;
 } SST;
 
@@ -86,6 +98,8 @@ typedef struct{
 
 
 SST* sstInit();
+
+void sstMalloc(SST* sst, int Nelem);
 
 void sstFree(SST* sst);
 

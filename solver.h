@@ -82,17 +82,6 @@ typedef struct SOLVER{
     double *dtL;
     double *D;
     double *miT;
-    double *miTe;
-    double *F1;
-    double *F2;  
-    double *dd;
-    double *om2; 
-    double *dQodr;     
-    double *dQodrk;     
-    double *dQodro; 
-    double *dQkdr;     
-    double *dQkdrk;     
-    double *dQkdro;
             
     double **U;
     double **R;
