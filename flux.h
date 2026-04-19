@@ -15,6 +15,7 @@ typedef struct FLUX
     double Minf;
     
     bool extraVar;
+    bool simpleSound;
     
     void (*func)(struct FLUX*, GASPROP*, double*, double*, double*);
 

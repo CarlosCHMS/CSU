@@ -20,6 +20,15 @@ FLUX* fluxInit(INPUT* input, SOLVER* solver)
     flux->type[0] = '\0';
     strcat(flux->type, inputGetValue(input, "flux"));
     
+    if(inputNameIsInput(input, "fluxSimpleSound"))
+    {
+        flux->simpleSound = atoi(inputGetValue(input, "fluxSimpleSound"));
+    }
+    else
+    {
+        flux->simpleSound = false;
+    }
+    
     flux->Nvar = solver->Nvar;
     
     flux->Minf = solver->inlet->mach;
@@ -448,16 +457,24 @@ void fluxFuncAUSMp(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* f)
 	double U3R = gasprop_T2e(gas, TR)*rR + (uR*uR + vR*vR)*rR/2;
     double HR = (U3R + pR)/rR;
     
-    double astar;
-    
-    astar = gasprop_critic_H2c(gas, HL);
-    double ahL = astar*astar/fmax(astar, fabs(uL));
+    double am;
+    if(flux->simpleSound)
+    {
+        am = sqrt(gasprop_T2c(gas, TL)*gasprop_T2c(gas, TR));
+    }
+    else
+    {
+        double astar;
+        
+        astar = gasprop_critic_H2c(gas, HL);
+        double ahL = astar*astar/fmax(astar, fabs(uL));
 
-    astar = gasprop_critic_H2c(gas, HR);
-    double ahR = astar*astar/fmax(astar, fabs(uR));
+        astar = gasprop_critic_H2c(gas, HR);
+        double ahR = astar*astar/fmax(astar, fabs(uR));
+        
+	    am = fmin(ahL, ahR);
+    }
     
-	double am = fmin(ahL, ahR);
-
 	double ML = uL/am;
 	double MR = uR/am;
 
@@ -567,15 +584,23 @@ void fluxFuncAUSMpup(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* f
 	double U3R = gasprop_T2e(gas, TR)*rR + (uR*uR + vR*vR)*rR/2;
     double HR = (U3R + pR)/rR;
     
-    double astar;
-    
-    astar = gasprop_critic_H2c(gas, HL);
-    double ahL = astar*astar/fmax(astar, fabs(uL));
+    double am;
+    if(flux->simpleSound)
+    {
+        am = sqrt(gasprop_T2c(gas, TL)*gasprop_T2c(gas, TR));
+    }
+    else
+    {
+        double astar;
+        
+        astar = gasprop_critic_H2c(gas, HL);
+        double ahL = astar*astar/fmax(astar, fabs(uL));
 
-    astar = gasprop_critic_H2c(gas, HR);
-    double ahR = astar*astar/fmax(astar, fabs(uR));
-    
-	double am = fmin(ahL, ahR);
+        astar = gasprop_critic_H2c(gas, HR);
+        double ahR = astar*astar/fmax(astar, fabs(uR));
+        
+	    am = fmin(ahL, ahR);
+    }
 
     double Kp = 0.25;
     double Ku = 0.75;
@@ -701,15 +726,23 @@ void fluxFuncAUSMpup2(FLUX* flux, GASPROP* gas, double* PL, double* PR, double* 
 	double U3R = gasprop_T2e(gas, TR)*rR + (uR*uR + vR*vR)*rR/2;
     double HR = (U3R + pR)/rR;
     
-    double astar;
-    
-    astar = gasprop_critic_H2c(gas, HL);
-    double ahL = astar*astar/fmax(astar, fabs(uL));
+    double am;
+    if(flux->simpleSound)
+    {
+        am = sqrt(gasprop_T2c(gas, TL)*gasprop_T2c(gas, TR));
+    }
+    else
+    {
+        double astar;
+        
+        astar = gasprop_critic_H2c(gas, HL);
+        double ahL = astar*astar/fmax(astar, fabs(uL));
 
-    astar = gasprop_critic_H2c(gas, HR);
-    double ahR = astar*astar/fmax(astar, fabs(uR));
-    
-	double am = fmin(ahL, ahR);
+        astar = gasprop_critic_H2c(gas, HR);
+        double ahR = astar*astar/fmax(astar, fabs(uR));
+        
+	    am = fmin(ahL, ahR);
+    }
 
     double Kp = 0.25;
     double sig = 1.0;
