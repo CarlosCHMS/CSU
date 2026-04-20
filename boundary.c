@@ -383,9 +383,8 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
 		
         }
         else if((bc->flagBC == 3) || (bc->flagBC == 4))
-        {
-            
-            if(solver->laminar==1 || solver->sa1->active)
+        {            
+            if(solver->laminar==1 || solver->sa1->active || solver->sst->active)
             {
                 boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
             
