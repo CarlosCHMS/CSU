@@ -208,4 +208,6 @@ void solverPrintConvReader(SOLVER* solver, FILE* convFile);
 
 void inviscidWriteSurf(SOLVER* solver);
 
+void solverFaceRes(SOLVER* solver);
+
 #endif

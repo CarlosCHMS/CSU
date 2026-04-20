@@ -632,7 +632,10 @@ void inter(SOLVER* solver)
             solver->faceFlux[kk][ii] = f[kk]*dS;
         }
     }
-    
+}
+
+void solverFaceRes(SOLVER* solver)
+{   
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
@@ -679,18 +682,8 @@ void solverCalcR(SOLVER* solver, double** U)
     solverCalcPrimitive(solver, U);
     solverUpdateGrad(solver);
 
-    inter(solver); 
-    
-    /*
-    for(int ii=0; ii<10; ii++)
-    {
-        for(int kk=0; kk<solver->Nvar; kk++)
-        {
-            printf(" %e,", solver->R[kk][ii]);
-        }
-        printf("\n");
-    }
-    */ 
+    inter(solver);
+     
     boundary1(solver); 
     
     if(solver->mesh->axi==1)
@@ -726,6 +719,8 @@ void solverCalcR(SOLVER* solver, double** U)
         sstInter(solver);
         sstBoundary(solver);
     }
+    
+    solverFaceRes(solver);
 }
 
 void solverRK(SOLVER* solver, double a)
@@ -1566,7 +1561,7 @@ void solverSetData(SOLVER* solver, INPUT* input)
     }
     else
     {
-        solver->viscBlazek = 0;
+        solver->viscBlazek = 1;
     }
     
     if(inputNameIsInput(input, "Twall"))

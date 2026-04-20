@@ -101,70 +101,75 @@ void sstInterFace(SOLVER* solver)
 
         meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
 
-        /*
-        var.dux = (solver->dPx[1][e0] + solver->dPx[1][e1])*0.5;
-        var.dvx = (solver->dPx[2][e0] + solver->dPx[2][e1])*0.5;
-        double dTx = (solver->dPx[3][e0] + solver->dPx[3][e1])*0.5;
-        var.dkx = (solver->dPx[4][e0] + solver->dPx[4][e1])*0.5;
-        var.dox = (solver->dPx[5][e0] + solver->dPx[5][e1])*0.5;        
+        double dTx, dTy;
 
-        var.duy = (solver->dPy[1][e0] + solver->dPy[1][e1])*0.5;
-        var.dvy = (solver->dPy[2][e0] + solver->dPy[2][e1])*0.5;
-        double dTy = (solver->dPy[3][e0] + solver->dPy[3][e1])*0.5;
-        var.dky = (solver->dPy[4][e0] + solver->dPy[4][e1])*0.5;
-        var.doy = (solver->dPy[5][e0] + solver->dPy[5][e1])*0.5;        
-        */
+        if(solver->viscBlazek)
+        {
+            double x0, x1, y0, y1;
 
-        double x0, x1, y0, y1;
+            elementCenter(E0, solver->mesh, &x0, &y0);
+            elementCenter(E1, solver->mesh, &x1, &y1);        
 
-        elementCenter(E0, solver->mesh, &x0, &y0);
-        elementCenter(E1, solver->mesh, &x1, &y1);        
+            double dx = x1 - x0;
+            double dy = y1 - y0;
+            double L = sqrt(dx*dx + dy*dy);
+            double nx = dx/L;
+            double ny = dy/L;        
 
-        double dx = x1 - x0;
-        double dy = y1 - y0;
-        double L = sqrt(dx*dx + dy*dy);
-        double nx = dx/L;
-        double ny = dy/L;        
+            double dul = (E1->P[1] - E0->P[1])/L;
+            double dvl = (E1->P[2] - E0->P[2])/L;
+            double dTl = (E1->P[4] - E0->P[4])/L;
+            double dkl = (E1->P[5] - E0->P[5])/L;
+            double dol = (E1->P[6] - E0->P[6])/L;        
 
-        double dul = (E1->P[1] - E0->P[1])/L;
-        double dvl = (E1->P[2] - E0->P[2])/L;
-        double dTl = (E1->P[4] - E0->P[4])/L;
-        double dkl = (E1->P[5] - E0->P[5])/L;
-        double dol = (E1->P[6] - E0->P[6])/L;        
+            double duxm = 0.5*(solver->dPx[1][e0] + solver->dPx[1][e1]);
+            double dvxm = 0.5*(solver->dPx[2][e0] + solver->dPx[2][e1]);
+            double dTxm = 0.5*(solver->dPx[3][e0] + solver->dPx[3][e1]);
+            double dkxm = 0.5*(solver->dPx[4][e0] + solver->dPx[4][e1]);
+            double doxm = 0.5*(solver->dPx[5][e0] + solver->dPx[5][e1]);
 
-        double duxm = 0.5*(solver->dPx[1][e0] + solver->dPx[1][e1]);
-        double dvxm = 0.5*(solver->dPx[2][e0] + solver->dPx[2][e1]);
-        double dTxm = 0.5*(solver->dPx[3][e0] + solver->dPx[3][e1]);
-        double dkxm = 0.5*(solver->dPx[4][e0] + solver->dPx[4][e1]);
-        double doxm = 0.5*(solver->dPx[5][e0] + solver->dPx[5][e1]);
+            double duym = 0.5*(solver->dPy[1][e0] + solver->dPy[1][e1]);
+            double dvym = 0.5*(solver->dPy[2][e0] + solver->dPy[2][e1]);
+            double dTym = 0.5*(solver->dPy[3][e0] + solver->dPy[3][e1]);
+            double dkym = 0.5*(solver->dPy[4][e0] + solver->dPy[4][e1]);
+            double doym = 0.5*(solver->dPy[5][e0] + solver->dPy[5][e1]);
 
-        double duym = 0.5*(solver->dPy[1][e0] + solver->dPy[1][e1]);
-        double dvym = 0.5*(solver->dPy[2][e0] + solver->dPy[2][e1]);
-        double dTym = 0.5*(solver->dPy[3][e0] + solver->dPy[3][e1]);
-        double dkym = 0.5*(solver->dPy[4][e0] + solver->dPy[4][e1]);
-        double doym = 0.5*(solver->dPy[5][e0] + solver->dPy[5][e1]);
+            double aux;
 
-        double aux;
+            aux = duxm*nx + duym*ny;
+            var.dux = duxm + (dul - aux)*nx;
+            var.duy = duym + (dul - aux)*ny;
 
-        aux = duxm*nx + duym*ny;
-        var.dux = duxm + (dul - aux)*nx;
-        var.duy = duym + (dul - aux)*ny;
+            aux = dvxm*nx + dvym*ny;
+            var.dvx = dvxm + (dvl - aux)*nx;
+            var.dvy = dvym + (dvl - aux)*ny;
 
-        aux = dvxm*nx + dvym*ny;
-        var.dvx = dvxm + (dvl - aux)*nx;
-        var.dvy = dvym + (dvl - aux)*ny;
+            aux = dTxm*nx + dTym*ny;
+            dTx = dTxm + (dTl - aux)*nx;
+            dTy = dTym + (dTl - aux)*ny;
 
-        aux = dTxm*nx + dTym*ny;
-        double dTx = dTxm + (dTl - aux)*nx;
-        double dTy = dTym + (dTl - aux)*ny;
+            aux = dkxm*nx + dkym*ny;
+            var.dkx = dkxm + (dkl - aux)*nx;
+            var.dky = dkym + (dkl - aux)*ny;
 
-        aux = dkxm*nx + dkym*ny;
-        var.dkx = dkxm + (dkl - aux)*nx;
-        var.dky = dkym + (dkl - aux)*ny;
+            aux = doxm*nx + doym*ny;
+            var.dox = doxm + (dol - aux)*nx;
+            var.doy = doym + (dol - aux)*ny;
+        }
+        else
+        {
+            var.dux = (solver->dPx[1][e0] + solver->dPx[1][e1])*0.5;
+            var.dvx = (solver->dPx[2][e0] + solver->dPx[2][e1])*0.5;
+            dTx = (solver->dPx[3][e0] + solver->dPx[3][e1])*0.5;
+            var.dkx = (solver->dPx[4][e0] + solver->dPx[4][e1])*0.5;
+            var.dox = (solver->dPx[5][e0] + solver->dPx[5][e1])*0.5;        
 
-        aux = doxm*nx + doym*ny;
-        var.dox = doxm + (dol - aux)*nx;
-        var.doy = doym + (dol - aux)*ny;
+            var.duy = (solver->dPy[1][e0] + solver->dPy[1][e1])*0.5;
+            var.dvy = (solver->dPy[2][e0] + solver->dPy[2][e1])*0.5;
+            dTy = (solver->dPy[3][e0] + solver->dPy[3][e1])*0.5;
+            var.dky = (solver->dPy[4][e0] + solver->dPy[4][e1])*0.5;
+            var.doy = (solver->dPy[5][e0] + solver->dPy[5][e1])*0.5;        
+        }
 
         // Flow variables in the face
         var.r = (E1->P[0] + E0->P[0])*0.5;
@@ -188,35 +193,12 @@ void sstInterFace(SOLVER* solver)
 	    double tyy = 2*mi*(var.dvy - (var.dux + var.dvy)/3) - 2.*var.r*var.k/3.;
 	    double txy = mi*(var.duy + var.dvx);
         
-	    solver->faceFlux[1][ii] = txx*dSx + txy*dSy;
-	    solver->faceFlux[2][ii] = txy*dSx + tyy*dSy;
-	    solver->faceFlux[3][ii] = (txx*dSx + txy*dSy)*u + (txy*dSx + tyy*dSy)*v + kk*(dTx*dSx + dTy*dSy);
-	    solver->faceFlux[4][ii] = var.tkx*dSx + var.tky*dSy;
-	    solver->faceFlux[5][ii] = var.tox*dSx + var.toy*dSy;
+	    solver->faceFlux[1][ii] -= txx*dSx + txy*dSy;
+	    solver->faceFlux[2][ii] -= txy*dSx + tyy*dSy;
+	    solver->faceFlux[3][ii] -= (txx*dSx + txy*dSy)*u + (txy*dSx + tyy*dSy)*v + kk*(dTx*dSx + dTy*dSy);
+	    solver->faceFlux[4][ii] -= var.tkx*dSx + var.tky*dSy;
+	    solver->faceFlux[5][ii] -= var.tox*dSx + var.toy*dSy;
      
-    }
-
-    # pragma omp parallel for
-    for(int ii=0; ii<solver->mesh->Nelem; ii++)
-    {
-        for(int jj=0; jj<solver->mesh->elemL[ii]->neiN; jj++)
-        {
-            int face = solver->mesh->elemL[ii]->f[jj];
-            if(face > 0)
-            {
-                for(int kk=1; kk<solver->Nvar; kk++)
-                {
-                    solver->R[kk][ii] -= solver->faceFlux[kk][face-1];
-                }
-            }
-            else if(face < 0)
-            {
-                for(int kk=1; kk<solver->Nvar; kk++)
-                {
-                    solver->R[kk][ii] += solver->faceFlux[kk][-face-1];
-                }
-            }
-        }
     }
 }
 
