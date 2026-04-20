@@ -13,6 +13,8 @@ typedef struct FLUX FLUX;
 
 typedef struct LIMITER LIMITER;
 
+typedef struct SA SA;
+
 typedef struct SST SST;
 
 typedef struct BAUX{
@@ -23,7 +25,7 @@ typedef struct BAUX{
 
 } BLOCK;
 
-typedef struct{
+typedef struct CONDITION{
 
     double p;
     double T;
@@ -46,7 +48,6 @@ typedef struct SOLVER{
     int stages;
     int laminar;
     int restart;
-    int sa;
     int saCC;    
     int dtLocal;
     int turb1order;
@@ -108,6 +109,8 @@ typedef struct SOLVER{
     GASPROP* gas;
     
     LIMITER* limiter;
+
+    SA* sa1;
     
     SST* sst;
 

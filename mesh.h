@@ -16,7 +16,7 @@ typedef struct ELEMENT
     
 } ELEMENT;
 
-typedef struct
+typedef struct MESHBC
 {
 
     int Nelem;

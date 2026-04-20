@@ -74,7 +74,7 @@ void implicitCalcD(SOLVER* solver)
                 Lv += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS*dS;
             }
             
-            if(solver->sa || solver->sstFlag)
+            if(solver->sa1->active || solver->sstFlag)
             {
                 mi = sutherland(T);
                 Lv += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS*dS;
@@ -84,7 +84,7 @@ void implicitCalcD(SOLVER* solver)
         
         solver->dtL[ii] = Lc;
         solver->D[ii] = 0.5*solver->wImp*Lc;        
-        if(solver->laminar || solver->sa || solver->sstFlag)
+        if(solver->laminar || solver->sa1->active || solver->sstFlag)
         {
             solver->D[ii] += Lv/solver->mesh->omega[ii];
         }
@@ -141,7 +141,7 @@ void implicitCalcD(SOLVER* solver)
                 Lv = fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS*dS;
             }
             
-            if(solver->sa || solver->sstFlag)
+            if(solver->sa1->active || solver->sstFlag)
             {
                 mi = sutherland(T);
                 Lv = fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS*dS;
@@ -149,7 +149,7 @@ void implicitCalcD(SOLVER* solver)
 
             solver->dtL[e1] += Lc;
             solver->D[e1] += 0.5*solver->wImp*Lc;        
-            if(solver->laminar || solver->sa || solver->sstFlag)
+            if(solver->laminar || solver->sa1->active || solver->sstFlag)
             {
                 solver->D[e1] += Lv/solver->mesh->omega[e1];
             }
@@ -432,7 +432,7 @@ void implicitCalcDeltaFlux(SOLVER* solver, double* P, double* dW, double nx, dou
     u = U[1]/rho;
     v = U[2]/rho;
 
-    if(solver->sa)
+    if(solver->sa1->active)
     {
         if(U[4] < 0)
         {
@@ -524,7 +524,7 @@ void implicitFunc(SOLVER* solver, int e0, int e1, int p0, int p1, int face1, dou
     double c = gasprop_T2c(solver->gas, T);
     double ra = solver->wImp*(fabs(nx*E1->P[1] + ny*E1->P[2]) + c)*dS;
     
-    if(solver->sa || solver->sstFlag)
+    if(solver->sa1->active || solver->sstFlag)
     {
         double r = E1->P[0];                
 
@@ -951,7 +951,7 @@ double implicitProdInter(SOLVER* solver, double** x, double** y)
 void implicitCalcDPLUR(SOLVER* solver)
 {
     implicitCalcD(solver);
-    if(solver->sa)
+    if(solver->sa1->active)
     {
         implicitUpdateA_sa(solver);
     }

@@ -5,13 +5,42 @@
 #include<sys/time.h>
 #include<omp.h>
 #include <stdbool.h>
+#include"sa.h"
 #include"utils.h"
 #include"input.h"
 #include"mesh.h"
 #include"solver.h"
 #include"boundary.h"
-#include"sa.h"
 #include"gasprop.h"
+
+
+SA* saInit()
+{
+
+    SA* sa = malloc(sizeof(SA));
+    
+    sa->Cv1 = 7.1;
+    sa->Cv1_3 = pow(sa->Cv1, 3);
+    sa->sig = 2.0/3.0;
+    sa->k = 0.41;
+    sa->cv2 = 0.7;
+    sa->cv3 = 0.9;
+    sa->Cb1 = 0.1355;
+    sa->Cb2 = 0.622;
+    sa->Cw1 = sa->Cb1/(sa->k*sa->k) + (1. + sa->Cb2)/sa->sig;
+    sa->Cw2 = 0.3;
+    sa->Cw3 = 2.0;
+    sa->Cw3_6 = pow(sa->Cw3, 6);    
+    
+    return sa;
+}
+
+void saFree(SA* sa)
+{
+
+    free(sa);
+    
+}
 
 void saInitU(SOLVER* solver, CONDITION* inside)
 {
@@ -89,7 +118,7 @@ void saInterFaceB(SOLVER* solver)
         double tx;
         double ty;
 
-        saCalcFace(n, n_L, r, dnx, dny, &fv1, &tx, &ty);
+        saCalcFace(solver->sa1, n, n_L, r, dnx, dny, &fv1, &tx, &ty);
 
         double mi_t = fv1*r*n;
         double mi = mi_L + mi_t;
@@ -176,7 +205,7 @@ void saInterFace(SOLVER* solver)
         double tx;
         double ty;
 
-        saCalcFace(n, n_L, r, dnx, dny, &fv1, &tx, &ty);
+        saCalcFace(solver->sa1, n, n_L, r, dnx, dny, &fv1, &tx, &ty);
 
         double mi_t = fv1*r*n;
         double mi = mi_L + mi_t;
@@ -248,7 +277,7 @@ void saInterSource(SOLVER* solver)
         double S = fabs(duy - dvx);
         double Qt;
 
-        saCalcSource(n, n_L, S, d, rho, drx, dry, dnx, dny, &Qt);
+        saCalcSource(solver->sa1, n, n_L, S, d, rho, drx, dry, dnx, dny, &Qt);
         solver->R[4][ii] -= Qt*solver->mesh->omega[ii];
 
     }
@@ -269,26 +298,22 @@ void saInter(SOLVER* solver)
 }
 
 
-void saCalcFace(double ni, double ni_L, double r, double dnix, double dniy, double* fv1, double* tx, double* ty)
+void saCalcFace(SA* sa, double ni, double ni_L, double r, double dnix, double dniy, double* fv1, double* tx, double* ty)
 {
 
     double aux;
 
-    double Cv1 = 7.1;
     double X = ni/ni_L;
     aux = X*X*X;
-    *fv1 = aux/(aux + Cv1*Cv1*Cv1);
 
-    double sig = 2./3.;
-    *tx = r*(ni_L + ni)*dnix/sig;
-    *ty = r*(ni_L + ni)*dniy/sig;
+    *fv1 = aux/(aux + sa->Cv1_3);
+    *tx = r*(ni_L + ni)*dnix/sa->sig;
+    *ty = r*(ni_L + ni)*dniy/sa->sig;
 
     // Transitional terms not included
-
-
 }
 
-void saCalcSource(double ni, double ni_L, double S, double d, double rho, double drx, double dry, double dnix, double dniy, double* Qt)
+void saCalcSource(SA* sa, double ni, double ni_L, double S, double d, double rho, double drx, double dry, double dnix, double dniy, double* Qt)
 {
 
 /*
@@ -298,25 +323,21 @@ of the Spalart-Allmaras Turbulence Model, 2012
 
     double aux;
 
-    double Cv1 = 7.1;
     double X = ni/ni_L;
     aux = X*X*X;
-    double fv1 = aux/(aux + Cv1*Cv1*Cv1);
+    double fv1 = aux/(aux + sa->Cv1_3);
 
-    double k = 0.41;
     double fv2 = 1. - X/(1. + X*fv1);
-    double Sbar = ni*fv2/(k*k*d*d);
+    double Sbar = ni*fv2/(sa->k*sa->k*d*d);
     double Stil;
 
-    double cv2 = 0.7;
-    double cv3 = 0.9;
-    if(Sbar >= - cv2*S)
+    if(Sbar >= - sa->cv2*S)
     {
         Stil = S + Sbar;
     }
     else
     {
-        Stil = S + S*(cv2*cv2*S + cv3*Sbar)/((cv3 - 2*cv2)*S - Sbar);
+        Stil = S + S*(sa->cv2*sa->cv2*S + sa->cv3*Sbar)/((sa->cv3 - 2*sa->cv2)*S - Sbar);
     }
 
     if(Stil < 0)
@@ -324,26 +345,17 @@ of the Spalart-Allmaras Turbulence Model, 2012
         printf("Stil: %e", Stil);
     }
 
-    double sig = 2./3.;
-    double Cb1 = 0.1355;
-    double Cb2 = 0.622;
-    double Cw1 = Cb1/(k*k) + (1. + Cb2)/sig;
-
-    double Cw2 = 0.3;
-    double r = ni/(Stil*k*k*d*d);
+    double r = ni/(Stil*sa->k*sa->k*d*d);
     r = fmin(r, 10);
     aux = r*r;
     aux = aux*aux*aux;
-    double g = r + Cw2*(aux - r);
+    double g = r + sa->Cw2*(aux - r);
 
-    double Cw3 = 2.;
-    aux = Cw3*Cw3;
-    aux = aux*aux*aux;
-    double fw = g*pow((1. + aux)/(g*g*g*g*g*g + aux), 1./6.);
+    double fw = g*pow((1. + sa->Cw3_6)/(g*g*g*g*g*g + sa->Cw3_6), 1./6.);
 
     // Transitional terms not included
 
-    *Qt = rho*(Cb1*Stil*ni + Cb2*(dnix*dnix + dniy*dniy)/sig - Cw1*fw*(ni*ni/(d*d))) - (ni_L + ni)*(dnix*drx + dniy*dry)/sig;
+    *Qt = rho*(sa->Cb1*Stil*ni + sa->Cb2*(dnix*dnix + dniy*dniy)/sa->sig - sa->Cw1*fw*(ni*ni/(d*d))) - (ni_L + ni)*(dnix*drx + dniy*dry)/sa->sig;
 
 }
 
@@ -416,7 +428,7 @@ void saBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, doubl
         double tx;
         double ty;
 
-        saCalcFace(n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
+        saCalcFace(solver->sa1, n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
 
         double mi_t = fv1*rho*n;
         double mi = mi_L + mi_t;
@@ -489,7 +501,7 @@ void saBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, doubl
         double tx;
         double ty;
 
-        saCalcFace(n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
+        saCalcFace(solver->sa1, n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
 
         double mi_t = fv1*rho*n;
         double mi = mi_L + mi_t;
@@ -554,7 +566,7 @@ void saBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, doubl
         double tx;
         double ty;
 
-        saCalcFace(n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
+        saCalcFace(solver->sa1, n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
 
         double mi = mi_L;
 
@@ -623,7 +635,7 @@ void saBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, doubl
         double tx;
         double ty;
 
-        saCalcFace(n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
+        saCalcFace(solver->sa1, n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
 
         double mi_t = fv1*rho*n;
         double mi = mi_L + mi_t;
@@ -671,7 +683,7 @@ void saBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, doubl
         double tx;
         double ty;
 
-        saCalcFace(n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
+        saCalcFace(solver->sa1, n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
 
         double mi_t = fv1*rho*n;
         double mi = mi_L + mi_t;

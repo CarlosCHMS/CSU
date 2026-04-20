@@ -22,6 +22,128 @@
 #include"sstTrans.h"
 
 
+SOLVER* solverInit(char* wd)
+{
+    SOLVER* solver = malloc(sizeof(SOLVER));
+    char s[50];
+
+    // Work directory
+    solver->wd = wd;
+
+    // Load input   
+    s[0] = '\0';
+    strcat(s, solver->wd);
+    strcat(s, "input.ini");
+    solver->input = inputInit(s);
+    printf("Input data:\n");
+    inputPrint(solver->input);
+
+    // Set number of threads
+    omp_set_num_threads(atoi(inputGetValue(solver->input, "threads")));
+
+    solver->sa1 = saInit();
+
+    // Set turbulence model
+    if(inputNameIsInput(solver->input, "sa"))
+    {
+        solver->sa1->active = atoi(inputGetValue(solver->input, "sa"));
+    }
+    else
+    {
+        solver->sa1->active = 0;
+    }
+
+    if(inputNameIsInput(solver->input, "saCC"))
+    {
+        solver->saCC = atoi(inputGetValue(solver->input, "saCC"));
+    }
+    else
+    {
+        solver->saCC = 0;
+    }
+
+    if(inputNameIsInput(solver->input, "sst"))
+    {
+        solver->sstFlag = atoi(inputGetValue(solver->input, "sst"));
+    }
+    else
+    {
+        solver->sstFlag = 0;
+    }
+
+    if(solver->sstFlag)
+    {
+        solver->sst = sstInit();
+        if(inputNameIsInput(solver->input, "sstTrans"))
+        {
+            solver->sst->trans->flag = atoi(inputGetValue(solver->input, "sstTrans"));
+        }
+        else
+        {
+            solver->sst->trans->flag = 0;
+        }
+    }   
+
+    // Set number of flow variables and dFlag
+    bool dFlag = false;
+    solver->Nvar = 4;
+    if(solver->sa1->active)
+    {
+        solver->Nvar = 5;
+        dFlag = true;
+    }    
+
+    if(solver->sstFlag == 1)
+    {
+        solver->Nvar = 6;
+        dFlag = true;        
+    }
+
+    // Load mesh    
+    s[0] = '\0';
+    strcat(s, solver->wd);
+    strcat(s, "mesh.su2");
+    solver->mesh = meshInit(s, solver->Nvar, atoi(inputGetValue(solver->input, "axisymmetric")), dFlag);
+    
+    // Setting the solver   
+    solverSetData(solver, solver->input);
+  
+    //meshCheckNei(solver->mesh);
+    //solverCheckGrad(solver);
+    //meshPrint(solver->mesh);
+    //meshPrintDStotal(solver->mesh);
+    //meshCheckBorderOrientation(solver->mesh);
+
+    // Memory allocation
+    solverMalloc(solver);
+    
+    // Domain initialization
+    solverInitDomain(solver);
+
+    // Set convective flux functions    
+    solver->flux1 = fluxInit(solver->input, solver);
+    
+    if(solver->timeScheme == 2)
+    {
+        implicitInitDPLUR(solver);
+    }
+  
+    if(solver->laminar)
+    {
+        dFlag = true;
+    }
+  
+    solver->mesh->dFlag = dFlag;
+    if(solver->mesh->dFlag)
+    {
+        printf("mesh: calculating distance.\n");
+        meshCalcD(solver->mesh);
+    }  
+        
+    return solver;
+}
+
+
 CONDITION* conditionInit(double p, double T, double mach, double nx, double ny)
 {
   
@@ -79,7 +201,7 @@ void conditionState(CONDITION* cond, SOLVER* solver)
     cond->Pin[3] = solver->gas->R*cond->T*r;
     cond->Pin[4] = cond->T;
 
-    if(solver->sa == 1)
+    if(solver->sa1->active)
     {
         double n = solver->turbRatio*sutherland(cond->T)/r;
         cond->Uin[4] = r*n;
@@ -130,7 +252,7 @@ void solverMalloc(SOLVER* solver)
         solver->BB = malloc(solver->mesh->Nelem*sizeof(BLOCK*));
     }
 
-    if(solver->sa)
+    if(solver->sa1->active)
     {
         solver->miT = malloc(solver->mesh->Ncon*sizeof(double));
     }
@@ -177,7 +299,7 @@ void solverFree(SOLVER* solver)
         free(solver->dtL);
     }    
 
-    if(solver->sa)
+    if(solver->sa1->active)
     {
         free(solver->miT);
     }
@@ -582,7 +704,7 @@ void solverCalcR(SOLVER* solver, double** U)
         laminarBoundary(solver);
     }
     
-    if(solver->sa==1)
+    if(solver->sa1->active)
     {
         solverGrad_T(solver);
         if(solver->saCC)
@@ -1071,7 +1193,7 @@ void solverCalcPrimitive(SOLVER* solver, double** U)
 
         E->P[3] = solver->gas->R*E->P[4]*E->P[0];
 
-        if(solver->sa == 1)
+        if(solver->sa1->active)
         {
             E->P[5] = U[4][ii]/E->P[0];
             E->P[5] = fmax(E->P[5], 0);
@@ -1148,7 +1270,7 @@ void solverCalcCoeff(SOLVER* solver, double *Cx, double *Cy)
                 *Cx += cp*dSx;   
                 *Cy += cp*dSy;                
                 
-                if(solver->laminar==1 || solver->sa==1 || solver->sstFlag==1)
+                if(solver->laminar==1 || solver->sa1->active || solver->sstFlag==1)
                 {
                     boundaryCalcFrictionWall(solver, bc->elemL[ii], &fx, &fy);
                     *Cx -= fx/q;
@@ -1202,7 +1324,7 @@ void solverCalcCoeff3(SOLVER* solver, FILE* convFile, int Nint)
                 Cx_p += cp*dSx;
                 Cy_p += cp*dSy;                                
                 
-                if(solver->laminar==1 || solver->sa==1 || solver->sstFlag==1)
+                if(solver->laminar==1 || solver->sa1->active || solver->sstFlag==1)
                 {
                     boundaryCalcFrictionWall(solver, bc->elemL[ii], &fx, &fy);
                     Cx_v -= fx/q;
@@ -1558,7 +1680,7 @@ void solverInitDomain(SOLVER* solver)
         {
             // Initialization of U
             solverInitU(solver, solver->inlet);
-            if(solver->sa == 1)
+            if(solver->sa1->active)
             {
                 saInitU(solver, solver->inlet);
             }
@@ -1598,124 +1720,6 @@ void solverInitDomain(SOLVER* solver)
     }
 }
 
-SOLVER* solverInit(char* wd)
-{
-    SOLVER* solver = malloc(sizeof(SOLVER));
-    char s[50];
-
-    // Work directory
-    solver->wd = wd;
-
-    // Load input   
-    s[0] = '\0';
-    strcat(s, solver->wd);
-    strcat(s, "input.ini");
-    solver->input = inputInit(s);
-    printf("Input data:\n");
-    inputPrint(solver->input);
-
-    // Set number of threads
-    omp_set_num_threads(atoi(inputGetValue(solver->input, "threads")));
-
-    // Set turbulence model
-    if(inputNameIsInput(solver->input, "sa"))
-    {
-        solver->sa = atoi(inputGetValue(solver->input, "sa"));
-    }
-    else
-    {
-        solver->sa = 0;
-    }
-
-    if(inputNameIsInput(solver->input, "saCC"))
-    {
-        solver->saCC = atoi(inputGetValue(solver->input, "saCC"));
-    }
-    else
-    {
-        solver->saCC = 0;
-    }
-
-    if(inputNameIsInput(solver->input, "sst"))
-    {
-        solver->sstFlag = atoi(inputGetValue(solver->input, "sst"));
-    }
-    else
-    {
-        solver->sstFlag = 0;
-    }
-
-    if(solver->sstFlag)
-    {
-        solver->sst = sstInit();
-        if(inputNameIsInput(solver->input, "sstTrans"))
-        {
-            solver->sst->trans->flag = atoi(inputGetValue(solver->input, "sstTrans"));
-        }
-        else
-        {
-            solver->sst->trans->flag = 0;
-        }
-    }   
-
-    // Set number of flow variables and dFlag
-    bool dFlag = false;
-    solver->Nvar = 4;
-    if(solver->sa == 1)
-    {
-        solver->Nvar = 5;
-        dFlag = true;
-    }    
-
-    if(solver->sstFlag == 1)
-    {
-        solver->Nvar = 6;
-        dFlag = true;        
-    }
-
-    // Load mesh    
-    s[0] = '\0';
-    strcat(s, solver->wd);
-    strcat(s, "mesh.su2");
-    solver->mesh = meshInit(s, solver->Nvar, atoi(inputGetValue(solver->input, "axisymmetric")), dFlag);
-    
-    // Setting the solver   
-    solverSetData(solver, solver->input);
-  
-    //meshCheckNei(solver->mesh);
-    //solverCheckGrad(solver);
-    //meshPrint(solver->mesh);
-    //meshPrintDStotal(solver->mesh);
-    //meshCheckBorderOrientation(solver->mesh);
-
-    // Memory allocation
-    solverMalloc(solver);
-    
-    // Domain initialization
-    solverInitDomain(solver);
-
-    // Set convective flux functions    
-    solver->flux1 = fluxInit(solver->input, solver);
-    
-    if(solver->timeScheme == 2)
-    {
-        implicitInitDPLUR(solver);
-    }
-  
-    if(solver->laminar)
-    {
-        dFlag = true;
-    }
-  
-    solver->mesh->dFlag = dFlag;
-    if(solver->mesh->dFlag)
-    {
-        printf("mesh: calculating distance.\n");
-        meshCalcD(solver->mesh);
-    }  
-        
-    return solver;
-}
 
 void solverSolve(SOLVER* solver)
 {
@@ -1897,7 +1901,7 @@ void solverWriteSurf(SOLVER* solver)
     {
         laminarWriteSurf(solver);   
     }
-    else if(solver->sa)
+    else if(solver->sa1->active)
     {
         if(solver->saCC)
         {
@@ -1993,7 +1997,7 @@ void solverWriteSolution2(SOLVER* solver)
 
     int p0, p1;
 
-    if(solver->laminar || solver->sa || solver->sstFlag)
+    if(solver->laminar || solver->sa1->active || solver->sstFlag)
     {
         for(int ii=0; ii<solver->mesh->Nmark; ii++)
         {
@@ -2009,7 +2013,7 @@ void solverWriteSolution2(SOLVER* solver)
                     P[1][p1] = 0.0;
                     P[2][p1] = 0.0;
                     
-                    if(solver->sa)
+                    if(solver->sa1->active)
                     {
                         P[5][p0] = 0.0;
                         P[5][p1] = 0.0;
@@ -2088,7 +2092,7 @@ void solverWriteSolution2(SOLVER* solver)
             }
         }
     }
-    else if(solver->sa)
+    else if(solver->sa1->active)
     {
         fprintf(ff, "r,u,v,p,T,n,mach,H,s,\n");
     }
@@ -2133,7 +2137,7 @@ void solverWriteSolution2(SOLVER* solver)
 
 void solverPrintConvReader(SOLVER* solver, FILE* convFile)
 {
-    if(solver->sa == 1)
+    if(solver->sa1->active)
     {
         fprintf(convFile, "iteration,res_r,res_u,res_v,res_E,res_n,Cx_p,Cx_v,Cy_p,Cy_v,\n"); 
     }

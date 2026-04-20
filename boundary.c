@@ -12,6 +12,7 @@
 #include"boundary.h"
 #include"gasprop.h"
 #include"laminar.h"
+#include"sa.h"
 #include"sst.h"
 
 
@@ -384,7 +385,7 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
         else if((bc->flagBC == 3) || (bc->flagBC == 4))
         {
             
-            if(solver->laminar==1 || solver->sa==1)
+            if(solver->laminar==1 || solver->sa1->active)
             {
                 boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
             
@@ -433,7 +434,7 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
             }
         } 
 
-        if(solver->sa == 1)
+        if(solver->sa1->active == 1)
         {
             if(bc->flagBC == 0)
             {
