@@ -222,7 +222,7 @@ void boundary1(SOLVER* solver)
                     Pb[kk] = PL[kk];
                 }
                 Pb[1] *= -1;
-                if(solver->sa || solver->sstFlag)
+                if(solver->sa || solver->sst->active)
                 {
                     Pb[2] *= -1;
                 }
@@ -459,7 +459,7 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
 
         }
         
-        if(solver->sstFlag == 1)
+        if(solver->sst->active)
         {
             if(bc->flagBC == 0)
             {

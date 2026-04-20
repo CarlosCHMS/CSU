@@ -62,18 +62,19 @@ SOLVER* solverInit(char* wd)
         solver->saCC = 0;
     }
 
+    solver->sst = sstInit();
+
     if(inputNameIsInput(solver->input, "sst"))
     {
-        solver->sstFlag = atoi(inputGetValue(solver->input, "sst"));
+        solver->sst->active = atoi(inputGetValue(solver->input, "sst"));
     }
     else
     {
-        solver->sstFlag = 0;
+        solver->sst->active = 0;
     }
 
-    if(solver->sstFlag)
-    {
-        solver->sst = sstInit();
+    if(solver->sst->active)
+    {    
         if(inputNameIsInput(solver->input, "sstTrans"))
         {
             solver->sst->trans->flag = atoi(inputGetValue(solver->input, "sstTrans"));
@@ -93,7 +94,7 @@ SOLVER* solverInit(char* wd)
         dFlag = true;
     }    
 
-    if(solver->sstFlag == 1)
+    if(solver->sst->active)
     {
         solver->Nvar = 6;
         dFlag = true;        
@@ -171,7 +172,7 @@ void conditionState(CONDITION* cond, SOLVER* solver)
     u = cond->nx*cond->mach*c;
     v = cond->ny*cond->mach*c;
     
-    if(solver->sstFlag == 1)
+    if(solver->sst->active)
     {
         double L = solver->sst->L;
         double U = c*cond->mach;
@@ -257,7 +258,7 @@ void solverMalloc(SOLVER* solver)
         solver->miT = malloc(solver->mesh->Ncon*sizeof(double));
     }
     
-    if(solver->sstFlag)
+    if(solver->sst->active)
     {
         solver->miT = malloc(solver->mesh->Ncon*sizeof(double));
         sstMalloc(solver->sst, solver->mesh->Nelem);
@@ -304,7 +305,7 @@ void solverFree(SOLVER* solver)
         free(solver->miT);
     }
     
-    if(solver->sstFlag)
+    if(solver->sst->active)
     {
         free(solver->miT);
         sstFree(solver->sst);
@@ -401,7 +402,7 @@ double solverCalcP(SOLVER* solver, double** U, int ii)
 {
 
     double k = 0.0;
-    if(solver->sstFlag)
+    if(solver->sst->active)
     {
         k = U[4][ii]/U[0][ii];
     }
@@ -420,7 +421,7 @@ void solverCalcVel(SOLVER* solver, double** U, int ii, double* u, double* v, dou
 {
     
     double k = 0;
-    if(solver->sstFlag)
+    if(solver->sst->active)
     {
         k = U[4][ii]/U[0][ii];
     }
@@ -664,7 +665,7 @@ void interAxisPressure(SOLVER* solver)
         double dS;        
         dS = meshCalcDSlateral(solver->mesh, ii);
         solver->R[2][ii] -= solver->mesh->elemL[ii]->P[3]*dS;
-        if(solver->sstFlag)
+        if(solver->sst->active)
         {
             solver->R[2][ii] -= (2./3.)*solver->mesh->elemL[ii]->P[0]*solver->mesh->elemL[ii]->P[5]*dS;
         }
@@ -719,7 +720,7 @@ void solverCalcR(SOLVER* solver, double** U)
         }
     }
     
-    if(solver->sstFlag==1)
+    if(solver->sst->active)
     {
         solverGrad_T(solver);
         sstInter(solver);
@@ -1153,7 +1154,7 @@ void solverCalcPrimitive(SOLVER* solver, double** U)
         U[0][ii] = E->P[0];
 
         double k = 0;
-        if(solver->sstFlag == 1)
+        if(solver->sst->active)
         {
             k = U[4][ii]/E->P[0];
             if(k < 1e-14)
@@ -1270,7 +1271,7 @@ void solverCalcCoeff(SOLVER* solver, double *Cx, double *Cy)
                 *Cx += cp*dSx;   
                 *Cy += cp*dSy;                
                 
-                if(solver->laminar==1 || solver->sa1->active || solver->sstFlag==1)
+                if(solver->laminar==1 || solver->sa1->active || solver->sst->active)
                 {
                     boundaryCalcFrictionWall(solver, bc->elemL[ii], &fx, &fy);
                     *Cx -= fx/q;
@@ -1324,7 +1325,7 @@ void solverCalcCoeff3(SOLVER* solver, FILE* convFile, int Nint)
                 Cx_p += cp*dSx;
                 Cy_p += cp*dSy;                                
                 
-                if(solver->laminar==1 || solver->sa1->active || solver->sstFlag==1)
+                if(solver->laminar==1 || solver->sa1->active || solver->sst->active)
                 {
                     boundaryCalcFrictionWall(solver, bc->elemL[ii], &fx, &fy);
                     Cx_v -= fx/q;
@@ -1610,7 +1611,7 @@ void solverSetData(SOLVER* solver, INPUT* input)
 
     solver->limiter = limiterInit(limType, limK, solver);
 
-    if(solver->sstFlag)
+    if(solver->sst->active)
     {
         if(inputNameIsInput(solver->input, "kFactor"))
         {
@@ -1684,7 +1685,7 @@ void solverInitDomain(SOLVER* solver)
             {
                 saInitU(solver, solver->inlet);
             }
-            else if(solver->sstFlag == 1)
+            else if(solver->sst->active)
             {
                 sstInitU(solver, solver->inlet);
             }
@@ -1912,7 +1913,7 @@ void solverWriteSurf(SOLVER* solver)
             saSolverWriteSurf(solver);
         }
     }
-    else if(solver->sstFlag)
+    else if(solver->sst->active)
     {
         sstSolverWriteSurf(solver);
     }
@@ -1940,7 +1941,7 @@ void solverWriteSolution2(SOLVER* solver)
     
     FILE* ff = fopen(fileName, "w");
     int Naux = 3;
-    if(solver->sstFlag)
+    if(solver->sst->active)
     {
         Naux = 8;
     }
@@ -1997,7 +1998,7 @@ void solverWriteSolution2(SOLVER* solver)
 
     int p0, p1;
 
-    if(solver->laminar || solver->sa1->active || solver->sstFlag)
+    if(solver->laminar || solver->sa1->active || solver->sst->active)
     {
         for(int ii=0; ii<solver->mesh->Nmark; ii++)
         {
@@ -2024,7 +2025,7 @@ void solverWriteSolution2(SOLVER* solver)
                         }
                     }
                     
-                    if(solver->sstFlag)
+                    if(solver->sst->active)
                     {
                         P[5][p0] = 0.0;
                         P[5][p1] = 0.0;
@@ -2042,7 +2043,7 @@ void solverWriteSolution2(SOLVER* solver)
         }
     }
 
-    if(solver->sstFlag)
+    if(solver->sst->active)
     {
         fprintf(ff, "r,u,v,p,T,k,o,mach,H,s,miEddy,F1,F2,d,om2,\n"); 
         sstInterMiT(solver);
@@ -2141,7 +2142,7 @@ void solverPrintConvReader(SOLVER* solver, FILE* convFile)
     {
         fprintf(convFile, "iteration,res_r,res_u,res_v,res_E,res_n,Cx_p,Cx_v,Cy_p,Cy_v,\n"); 
     }
-    else if(solver->sstFlag == 1)
+    else if(solver->sst->active)
     {
         fprintf(convFile, "iteration,res_r,res_u,res_v,res_E,res_k,res_om,Cx_p,Cx_v,Cy_p,Cy_v,\n");
     }

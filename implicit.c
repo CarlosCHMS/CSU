@@ -74,7 +74,7 @@ void implicitCalcD(SOLVER* solver)
                 Lv += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS*dS;
             }
             
-            if(solver->sa1->active || solver->sstFlag)
+            if(solver->sa1->active || solver->sst->active)
             {
                 mi = sutherland(T);
                 Lv += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS*dS;
@@ -84,7 +84,7 @@ void implicitCalcD(SOLVER* solver)
         
         solver->dtL[ii] = Lc;
         solver->D[ii] = 0.5*solver->wImp*Lc;        
-        if(solver->laminar || solver->sa1->active || solver->sstFlag)
+        if(solver->laminar || solver->sa1->active || solver->sst->active)
         {
             solver->D[ii] += Lv/solver->mesh->omega[ii];
         }
@@ -141,7 +141,7 @@ void implicitCalcD(SOLVER* solver)
                 Lv = fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS*dS;
             }
             
-            if(solver->sa1->active || solver->sstFlag)
+            if(solver->sa1->active || solver->sst->active)
             {
                 mi = sutherland(T);
                 Lv = fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS*dS;
@@ -149,7 +149,7 @@ void implicitCalcD(SOLVER* solver)
 
             solver->dtL[e1] += Lc;
             solver->D[e1] += 0.5*solver->wImp*Lc;        
-            if(solver->laminar || solver->sa1->active || solver->sstFlag)
+            if(solver->laminar || solver->sa1->active || solver->sst->active)
             {
                 solver->D[e1] += Lv/solver->mesh->omega[e1];
             }
@@ -220,7 +220,7 @@ void implicitLUSGS_L(SOLVER* solver)
             
         }
     
-        if(solver->sstFlag)
+        if(solver->sst->active)
         {
             for(int kk=0; kk<4; kk++)
             {
@@ -266,7 +266,7 @@ void implicitLUSGS_U(SOLVER* solver)
     #pragma omp parallel for
     for(int ii=0; ii<mesh->Nelem; ii++)
     {
-        if(solver->sstFlag)
+        if(solver->sst->active)
         {
             for(int kk=0; kk<4; kk++)
             {
@@ -330,7 +330,7 @@ void implicitLUSGS_U(SOLVER* solver)
             }
         }
         
-        if(solver->sstFlag)
+        if(solver->sst->active)
         {
             for(int kk=0; kk<4; kk++)
             {
@@ -393,11 +393,10 @@ void implicitCalcDeltaFlux(SOLVER* solver, double* P, double* dW, double nx, dou
     double p = P[3];
     
     double k = 0;
-    if(solver->sstFlag)
+    if(solver->sst->active)
     {
         k = P[4];
     }
-    
     
     double F0[6];
     double F1[6];
@@ -441,7 +440,7 @@ void implicitCalcDeltaFlux(SOLVER* solver, double* P, double* dW, double nx, dou
     }
 
     k = 0;
-    if(solver->sstFlag)
+    if(solver->sst->active)
     {
         k = U[4]/rho;
         if(k < 1e-14)
@@ -524,7 +523,19 @@ void implicitFunc(SOLVER* solver, int e0, int e1, int p0, int p1, int face1, dou
     double c = gasprop_T2c(solver->gas, T);
     double ra = solver->wImp*(fabs(nx*E1->P[1] + ny*E1->P[2]) + c)*dS;
     
-    if(solver->sa1->active || solver->sstFlag)
+    if(solver->laminar)
+    {
+        double r = E1->P[0];                
+
+        double mi = sutherland(T);
+
+        elementCenter(E0, solver->mesh, &x0, &y0);
+        elementCenter(E1, solver->mesh, &x1, &y1);
+        
+        double d = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
+        ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS/d;
+    }    
+    else if(solver->sa1->active || solver->sst->active)
     {
         double r = E1->P[0];                
 

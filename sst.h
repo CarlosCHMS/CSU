@@ -19,7 +19,10 @@ typedef struct{
 } SST_TRANS;
 
 
-typedef struct SST{   
+typedef struct SST{ 
+
+    bool active;
+  
     double L;
     double kFactor;
     double oFactor;

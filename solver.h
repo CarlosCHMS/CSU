@@ -54,7 +54,7 @@ typedef struct SOLVER{
     int timeScheme;
     int Nlinear;
     int viscBlazek;
-    int sstFlag;
+    //int sstFlag;
     int tube;
 
     char* wd;
