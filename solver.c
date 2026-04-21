@@ -31,12 +31,16 @@ SOLVER* solverInit(char* wd)
     solver->wd = wd;
 
     // Load input   
-    s[0] = '\0';
-    strcat(s, solver->wd);
+    strcpy(s, solver->wd);
     strcat(s, "input.ini");
     solver->input = inputInit(s);
+    
+    //Print input data
     printf("Input data:\n");
     inputPrint(solver->input);
+
+    // Setting the solver   
+    solverSetData(solver, solver->input);
 
     // Set number of threads
     omp_set_num_threads(atoi(inputGetValue(solver->input, "threads")));
@@ -67,19 +71,12 @@ SOLVER* solverInit(char* wd)
     }
 
     // Load mesh    
-    s[0] = '\0';
-    strcat(s, solver->wd);
+    strcpy(s, solver->wd);
     strcat(s, "mesh.su2");
     solver->mesh = meshInit(s, solver->Nvar, atoi(inputGetValue(solver->input, "axisymmetric")), dFlag);
     
-    // Setting the solver   
-    solverSetData(solver, solver->input);
-  
-    //meshCheckNei(solver->mesh);
-    //solverCheckGrad(solver);
-    //meshPrint(solver->mesh);
-    //meshPrintDStotal(solver->mesh);
-    //meshCheckBorderOrientation(solver->mesh);
+    // Gas initialization
+    solver->gas = gaspropInit(solver->input);
 
     // Limiter initialization
     solver->limiter = limiterInit(solver->input, solver);
@@ -89,6 +86,10 @@ SOLVER* solverInit(char* wd)
 
     // Memory allocation
     solverMalloc(solver);    
+
+    //Get boundary conditions
+    printf("main: get boundary conditions.\n");
+    boundaryGetBC(solver->mesh, solver->input);
 
     // Domain initialization
     solverInitDomain(solver);
@@ -190,6 +191,176 @@ void solverFree(SOLVER* solver)
 }
 
 
+void solverSetData(SOLVER* solver, INPUT* input)
+{
+    
+    if(inputNameIsInput(input, "order"))
+    {
+        solver->order = atoi(inputGetValue(input, "order"));     
+    }
+    else
+    {
+        solver->order = 2;
+    }
+    
+    if(inputNameIsInput(input, "laminar"))
+    {
+        solver->laminar = atoi(inputGetValue(input, "laminar"));     
+    }
+    else
+    {
+        solver->laminar = 0;
+    }
+
+    if(inputNameIsInput(input, "tube"))
+    {
+        solver->tube = atoi(inputGetValue(input, "tube"));     
+    }
+    else
+    {
+        solver->tube = 0;
+    }
+
+    if(inputNameIsInput(input, "restart"))
+    {
+        solver->restart = atoi(inputGetValue(input, "restart"));     
+    }
+    else
+    {
+        solver->restart = 0;
+    }
+
+    if(inputNameIsInput(input, "Sref"))
+    {
+        solver->Sref = strtod(inputGetValue(input, "Sref"), NULL);     
+    }
+    else
+    {
+        solver->Sref = 1.0;
+    } 
+
+    if(inputNameIsInput(input, "dtLocal"))
+    {
+        solver->dtLocal = atoi(inputGetValue(input, "dtLocal"));
+    }
+    else
+    {
+        solver->dtLocal = 0;
+    }
+
+    if(inputNameIsInput(input, "dtLocalN"))
+    {
+        solver->dtLocalN = atoi(inputGetValue(input, "dtLocalN"));
+    }
+    else
+    {
+        solver->dtLocalN = -1;
+    }
+
+    if(inputNameIsInput(input, "turb1order"))
+    {
+        solver->turb1order = atoi(inputGetValue(input, "turb1order"));
+    }
+    else
+    {
+        solver->turb1order = 0;
+    }
+
+    if(inputNameIsInput(input, "timeScheme"))
+    {
+        solver->timeScheme = solverTimeSchemeChoice(inputGetValue(input, "timeScheme"));
+    }
+    else
+    {
+        solver->timeScheme = 0;
+    }
+
+    if(inputNameIsInput(input, "Nlinear"))
+    {
+        solver->Nlinear = atoi(inputGetValue(input, "Nlinear"));
+    }
+    else
+    {
+        solver->Nlinear = 20;
+    }
+
+    if(inputNameIsInput(input, "rLim"))
+    {
+        solver->rLim = strtod(inputGetValue(input, "rLim"), NULL);
+    }
+    else
+    {
+        solver->rLim = 1e-6;
+    }
+
+    if(inputNameIsInput(input, "pLim"))
+    {
+        solver->pLim = strtod(inputGetValue(input, "pLim"), NULL);
+    }
+    else
+    {
+        solver->pLim = 1.0;
+    }
+
+    if(inputNameIsInput(input, "stages"))
+    {
+        solver->stages = atoi(inputGetValue(input, "stages"));     
+    }
+    else
+    {
+        solver->stages = 5;
+    }
+
+    if(inputNameIsInput(input, "CFL"))
+    {
+        solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);     
+    }
+    else
+    {
+        solver->CFL = 1.0;
+    }
+
+    // Environmental condition
+    if(inputNameIsInput(input, "pout"))
+    {
+        solver->pout = strtod(inputGetValue(input, "pout"), NULL);     
+    }
+    else
+    {
+        solver->pout = 1.0e5;
+    }
+    
+    if(inputNameIsInput(input, "viscBlazek"))
+    {
+        solver->viscBlazek = atoi(inputGetValue(input, "viscBlazek"));
+    }
+    else
+    {
+        solver->viscBlazek = 1;
+    }
+    
+    if(inputNameIsInput(input, "Twall"))
+    {
+        solver->Twall = strtod(inputGetValue(input, "Twall"), NULL);     
+    }
+    else
+    {
+        solver->Twall = 300;
+    }
+    
+    solver->writeSurf[0] = '\0';
+    
+    if(inputNameIsInput(input, "writeSurf"))
+    {
+        strcat(solver->writeSurf, inputGetValue(input, "writeSurf"));
+    }
+    else
+    {
+        strcat(solver->writeSurf, "wall");
+    }    
+}
+
+
 CONDITION* conditionInit(double p, double T, double mach, double nx, double ny)
 {
   
@@ -221,7 +392,7 @@ void conditionState(CONDITION* cond, SOLVER* solver)
     {
         double L = solver->sst->L;
         double U = c*cond->mach;
-        double ReL = (r*U*L)/sutherland(cond->T);
+        double ReL = (r*U*L)/gaspropSutherland(cond->T);
         
         k = solver->sst->kFactor*U*U/ReL;
         double om = solver->sst->oFactor*U/L;
@@ -249,7 +420,7 @@ void conditionState(CONDITION* cond, SOLVER* solver)
 
     if(solver->sa1->active)
     {
-        double n = solver->sa1->turbRatio*sutherland(cond->T)/r;
+        double n = solver->sa1->turbRatio*gaspropSutherland(cond->T)/r;
         cond->Uin[4] = r*n;
         cond->Pin[5] = n;         
     }
@@ -1129,10 +1300,6 @@ void solverCalcPrimitive(SOLVER* solver, double** U)
     
 }
 
-double sutherland(double T)
-{
-    return 1.458e-6*T*sqrt(T)/(T + 110.4);
-}
 
 void solverPrintP(SOLVER* solver)
 {
@@ -1272,215 +1439,6 @@ void solverCalcCoeff3(SOLVER* solver, FILE* convFile, int Nint)
 
 }
 
-void solverSetData(SOLVER* solver, INPUT* input)
-{
-
-    solver->order = atoi(inputGetValue(input, "order"));
-    solver->mesh->order = solver->order;
-
-    //Get boundary conditions
-    printf("main: get boundary conditions.\n");
-    boundaryGetBC(solver->mesh, input);
-
-    int TP;
-
-    if(inputNameIsInput(input, "TP"))
-    {
-        TP = atoi(inputGetValue(input, "TP"));     
-    }
-    else
-    {
-        TP = 0;
-    }
-
-    // Constants    
-    solver->gas = gaspropInit(1.4, 287.0530, TP);
-
-    //printf("\noi%f\n", gasprop_e2T(solver->gas, gasprop_T2e(solver->gas, 3000)));
-    //exit(0);
-
-    //solver->Pr = 0.72;
-    //solver->Pr_t = 0.9;
-    
-    if(inputNameIsInput(input, "Pr"))
-    {
-        solver->Pr = strtod(inputGetValue(input, "Pr"), NULL);     
-    }
-    else
-    {
-        solver->Pr = 0.72;
-    }
-
-    if(inputNameIsInput(input, "Pr_t"))
-    {
-        solver->Pr_t = strtod(inputGetValue(input, "Pr_t"), NULL);     
-    }
-    else
-    {
-        solver->Pr_t = 0.9;
-    }
-    
-    if(inputNameIsInput(input, "laminar"))
-    {
-        solver->laminar = atoi(inputGetValue(input, "laminar"));     
-    }
-    else
-    {
-        solver->laminar = 0;
-    }
-
-    if(inputNameIsInput(input, "tube"))
-    {
-        solver->tube = atoi(inputGetValue(input, "tube"));     
-    }
-    else
-    {
-        solver->tube = 0;
-    }
-
-    if(inputNameIsInput(input, "restart"))
-    {
-        solver->restart = atoi(inputGetValue(input, "restart"));     
-    }
-    else
-    {
-        solver->restart = 0;
-    }
-
-    if(inputNameIsInput(input, "Sref"))
-    {
-        solver->Sref = strtod(inputGetValue(input, "Sref"), NULL);     
-    }
-    else
-    {
-        solver->Sref = 1.0;
-    } 
-
-    if(inputNameIsInput(input, "dtLocal"))
-    {
-        solver->dtLocal = atoi(inputGetValue(input, "dtLocal"));
-    }
-    else
-    {
-        solver->dtLocal = 0;
-    }
-
-    if(inputNameIsInput(input, "dtLocalN"))
-    {
-        solver->dtLocalN = atoi(inputGetValue(input, "dtLocalN"));
-    }
-    else
-    {
-        solver->dtLocalN = -1;
-    }
-
-    if(inputNameIsInput(input, "turb1order"))
-    {
-        solver->turb1order = atoi(inputGetValue(input, "turb1order"));
-    }
-    else
-    {
-        solver->turb1order = 0;
-    }
-
-    if(inputNameIsInput(input, "timeScheme"))
-    {
-        solver->timeScheme = solverTimeSchemeChoice(inputGetValue(input, "timeScheme"));
-    }
-    else
-    {
-        solver->timeScheme = 0;
-    }
-
-    if(inputNameIsInput(input, "Nlinear"))
-    {
-        solver->Nlinear = atoi(inputGetValue(input, "Nlinear"));
-    }
-    else
-    {
-        solver->Nlinear = 20;
-    }
-
-    if(inputNameIsInput(input, "rLim"))
-    {
-        solver->rLim = strtod(inputGetValue(input, "rLim"), NULL);
-    }
-    else
-    {
-        solver->rLim = 1e-6;
-    }
-
-    if(inputNameIsInput(input, "pLim"))
-    {
-        solver->pLim = strtod(inputGetValue(input, "pLim"), NULL);
-    }
-    else
-    {
-        solver->pLim = 1.0;
-    }
-
-
-    // Selection of several variables
-    //solver->stages = atoi(inputGetValue(input, "stages"));
-    //solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);
-
-    if(inputNameIsInput(input, "stages"))
-    {
-        solver->stages = atoi(inputGetValue(input, "stages"));     
-    }
-    else
-    {
-        solver->stages = 5;
-    }
-
-    if(inputNameIsInput(input, "CFL"))
-    {
-        solver->CFL = strtod(inputGetValue(input, "CFL"), NULL);     
-    }
-    else
-    {
-        solver->CFL = 1.0;
-    }
-
-    // Environmental condition
-    if(inputNameIsInput(input, "pout"))
-    {
-        solver->pout = strtod(inputGetValue(input, "pout"), NULL);     
-    }
-    else
-    {
-        solver->pout = 1.0e5;
-    }
-    
-    if(inputNameIsInput(input, "viscBlazek"))
-    {
-        solver->viscBlazek = atoi(inputGetValue(input, "viscBlazek"));
-    }
-    else
-    {
-        solver->viscBlazek = 1;
-    }
-    
-    if(inputNameIsInput(input, "Twall"))
-    {
-        solver->Twall = strtod(inputGetValue(input, "Twall"), NULL);     
-    }
-    else
-    {
-        solver->Twall = 300;
-    }
-    
-    solver->writeSurf[0] = '\0';
-    
-    if(inputNameIsInput(input, "writeSurf"))
-    {
-        strcat(solver->writeSurf, inputGetValue(input, "writeSurf"));
-    }
-    else
-    {
-        strcat(solver->writeSurf, "wall");
-    }    
-}
 
 void solverInitDomain(SOLVER* solver)
 {

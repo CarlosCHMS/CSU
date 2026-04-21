@@ -58,8 +58,6 @@ typedef struct SOLVER{
     double k; 
     double res[6];
     double CFL;
-    double Pr;
-    double Pr_t;
     double Sref;
     double dtLocalN;
     double tol;
@@ -159,8 +157,6 @@ void solverCalcMinMax(SOLVER* solver, ELEMENT* E, int kk, double* Umin, double* 
 void solverCheckGrad(SOLVER* solver);
 
 void solverCalcPrimitive(SOLVER* solver, double** U);
-
-double sutherland(double T);
 
 int solverTimeSchemeChoice(char* s);
 

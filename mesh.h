@@ -41,7 +41,6 @@ typedef struct MESH
     int Nmark;
     int Ncon;
     int axi;
-    int order;
     
     double volMax;
 

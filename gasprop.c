@@ -12,17 +12,59 @@
 #include"solver.h"
 
 
-GASPROP* gaspropInit(double gamma, double R, int TP)
+GASPROP* gaspropInit(INPUT* input)
 {
-
     GASPROP* gas = malloc(sizeof(GASPROP));
-    gas->gamma = gamma;
-    gas->R = R;
+    
+    if(inputNameIsInput(input, "gasR"))
+    {
+        gas->R = strtod(inputGetValue(input, "gasR"), NULL);     
+    }
+    else
+    {
+        gas->R = 287.052874;
+    }
+    
+    if(inputNameIsInput(input, "gasGamma"))
+    {
+        gas->gamma = strtod(inputGetValue(input, "gasGamma"), NULL);     
+    }
+    else
+    {
+        gas->gamma = 1.4;
+    }    
+
+    if(inputNameIsInput(input, "TP"))
+    {
+        gas->TP = atoi(inputGetValue(input, "TP"));     
+    }
+    else
+    {
+        gas->TP = 0;
+    }
+    
+    if(inputNameIsInput(input, "gasPr"))
+    {
+        gas->Pr = strtod(inputGetValue(input, "gasPr"), NULL);     
+    }
+    else
+    {
+        gas->Pr = 0.72;
+    }
+
+    if(inputNameIsInput(input, "gasPr_t"))
+    {
+        gas->Pr_t = strtod(inputGetValue(input, "gasPr_t"), NULL);     
+    }
+    else
+    {
+        gas->Pr_t = 0.9;
+    }
+ 
     gas->Cp = gas->gamma*gas->R/(gas->gamma - 1);
     gas->Cv = gas->Cp - gas->R;
 
     gas->N = 6;
-    gas->TP = TP;
 
     gas->cc = malloc(gas->N*sizeof(double));
 
@@ -242,4 +284,10 @@ double gasprop_critic_H2c(GASPROP* gas, double H)
     }
     
     return ans;
+}
+
+
+double gaspropSutherland(double T)
+{
+    return 1.458e-6*T*sqrt(T)/(T + 110.4);
 }

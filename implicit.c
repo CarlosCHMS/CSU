@@ -128,14 +128,14 @@ void implicitCalcD(SOLVER* solver)
             
             if(solver->laminar)
             {            
-                mi = sutherland(T);
-                Lv += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS*dS;
+                mi = gaspropSutherland(T);
+                Lv += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->gas->Pr)*dS*dS;
             }
             
             if(solver->sa1->active || solver->sst->active)
             {
-                mi = sutherland(T);
-                Lv += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS*dS;
+                mi = gaspropSutherland(T);
+                Lv += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->gas->Pr + solver->miT[face1]/solver->gas->Pr_t)*dS*dS;
             }
             
         }
@@ -195,14 +195,14 @@ void implicitCalcD(SOLVER* solver)
             
             if(solver->laminar)
             {            
-                mi = sutherland(T);
-                Lv = fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS*dS;
+                mi = gaspropSutherland(T);
+                Lv = fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->gas->Pr)*dS*dS;
             }
             
             if(solver->sa1->active || solver->sst->active)
             {
-                mi = sutherland(T);
-                Lv = fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS*dS;
+                mi = gaspropSutherland(T);
+                Lv = fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->gas->Pr)*dS*dS;
             }
 
             implicit->dtL[e1] += Lc;
@@ -590,25 +590,25 @@ void implicitFunc(SOLVER* solver, int e0, int e1, int p0, int p1, int face1, dou
     {
         double r = E1->P[0];                
 
-        double mi = sutherland(T);
+        double mi = gaspropSutherland(T);
 
         elementCenter(E0, solver->mesh, &x0, &y0);
         elementCenter(E1, solver->mesh, &x1, &y1);
         
         double d = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
-        ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS/d;
+        ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->gas->Pr)*dS/d;
     }    
     else if(solver->sa1->active || solver->sst->active)
     {
         double r = E1->P[0];                
 
-        double mi = sutherland(T);
+        double mi = gaspropSutherland(T);
 
         elementCenter(E0, solver->mesh, &x0, &y0);
         elementCenter(E1, solver->mesh, &x1, &y1);
         
         double d = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
-        ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS/d;
+        ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->gas->Pr + solver->miT[face1]/solver->gas->Pr_t)*dS/d;
     }
     
     for(int kk=0; kk<solver->Nvar; kk++)
@@ -829,13 +829,13 @@ void implicitUpdateA(SOLVER* solver)
             {
                 double r = (E0->P[0] + E1->P[0])*0.5;                
                 T = (E0->P[4] + E1->P[4])*0.5;
-                double mi = sutherland(T);
+                double mi = gaspropSutherland(T);
 
                 elementCenter(E0, solver->mesh, &x0, &y0);
                 elementCenter(E1, solver->mesh, &x1, &y1);
                 
                 double d = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
-                ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr)*dS/d;                    
+                ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->gas->Pr)*dS/d;                    
             }
 
             for(int nn=0; nn<4; nn++)
@@ -959,13 +959,13 @@ void implicitUpdateA_sa(SOLVER* solver)
             
             double r = (E0->P[0] + E1->P[0])*0.5;                
             T = (E0->P[4] + E1->P[4])*0.5;
-            double mi = sutherland(T);
+            double mi = gaspropSutherland(T);
 
             elementCenter(E0, solver->mesh, &x0, &y0);
             elementCenter(E1, solver->mesh, &x1, &y1);
             
             double d = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
-            ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->Pr + solver->miT[face1]/solver->Pr_t)*dS/d;
+            ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->gas->Pr + solver->miT[face1]/solver->gas->Pr_t)*dS/d;
     
             for(int nn=0; nn<5; nn++)
             {

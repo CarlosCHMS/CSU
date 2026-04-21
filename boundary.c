@@ -481,7 +481,7 @@ void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc)
             else if((bc->flagBC == 3) || (bc->flagBC == 4))
             {
                 //wall wallT
-                double n = sutherland(bc->elemL[ii]->P[4])/bc->elemL[ii]->P[0];
+                double n = gaspropSutherland(bc->elemL[ii]->P[4])/bc->elemL[ii]->P[0];
                 double d = solver->mesh->d[E0->ii];
                 double owall = solver->sst->oWallFactor*6*n/(solver->sst->b1*d*d);
                 bc->elemL[ii]->P[5] = 1e-14;
@@ -529,7 +529,7 @@ void boundaryCalcFrictionWall(SOLVER* solver, ELEMENT* E, double* fx, double* fy
         double dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
                         
         double T = E0->P[4];
-        double mi = sutherland(T);
+        double mi = gaspropSutherland(T);
         
         //printf("%f\n", E0->P[1]);
             

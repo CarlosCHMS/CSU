@@ -75,8 +75,8 @@ void laminarInter(SOLVER* solver)
         }        
 	    
         double T = (E1->P[4] + E0->P[4])*0.5;
-        double mi = sutherland(T);
-        double k = gasprop_T2Cp(solver->gas, T)*mi/solver->Pr;
+        double mi = gaspropSutherland(T);
+        double k = gasprop_T2Cp(solver->gas, T)*mi/solver->gas->Pr;
 	    		        
 	    double txx = 2*mi*(dux - (dux + dvy)/3);
 	    double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
@@ -154,8 +154,8 @@ void boundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f)
         dTy = dTym - (dTxm*nx + dTym*ny)*ny;        
         
         double T = E0->P[4];
-        double mi = sutherland(T);
-        double k = gasprop_T2Cp(solver->gas, T)*mi/solver->Pr;            
+        double mi = gaspropSutherland(T);
+        double k = gasprop_T2Cp(solver->gas, T)*mi/solver->gas->Pr;            
             
         double txx = 2*mi*(dux - (dux + dvy)/3);
         double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
@@ -205,8 +205,8 @@ void boundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f)
         dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;
         
         double T = E0->P[4];
-        double mi = sutherland(T);
-        double k = gasprop_T2Cp(solver->gas, T)*mi/solver->Pr;            
+        double mi = gaspropSutherland(T);
+        double k = gasprop_T2Cp(solver->gas, T)*mi/solver->gas->Pr;            
             
         double txx = 2*mi*(dux - (dux + dvy)/3);
         double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
@@ -250,7 +250,7 @@ void boundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f)
         dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
                         
         double T = E0->P[4];
-        double mi = sutherland(T);
+        double mi = gaspropSutherland(T);
             
         double txx = 2*mi*(dux - (dux + dvy)/3);
         double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
@@ -296,8 +296,8 @@ void boundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f)
         dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;
                         
         double T = solver->Twall;
-        double mi = sutherland(T);
-        double k = gasprop_T2Cp(solver->gas, T)*mi/solver->Pr;            
+        double mi = gaspropSutherland(T);
+        double k = gasprop_T2Cp(solver->gas, T)*mi/solver->gas->Pr;            
             
         double txx = 2*mi*(dux - (dux + dvy)/3);
         double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
@@ -322,8 +322,8 @@ void boundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f)
         dTy = solver->dPy[3][e0];                
 
         double T = E0->P[4];
-        double mi = sutherland(T);
-        double k = gasprop_T2Cp(solver->gas, T)*mi/solver->Pr;            
+        double mi = gaspropSutherland(T);
+        double k = gasprop_T2Cp(solver->gas, T)*mi/solver->gas->Pr;            
             
         double txx = 2*mi*(dux - (dux + dvy)/3);
         double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
@@ -421,7 +421,7 @@ void laminarWriteSurf(SOLVER* solver)
                     double tau = sqrt(f[1]*f[1] + f[2]*f[2])/dS;
                     double uplus = sqrt(tau/r);
                     int iiaux = bc->elemL[ii]->neiL[0]->ii;
-                    double yplus = fabs(r*uplus*solver->mesh->d[iiaux])/sutherland(T);
+                    double yplus = fabs(r*uplus*solver->mesh->d[iiaux])/gaspropSutherland(T);
                     double c = gasprop_T2c(solver->gas, T);
                     double mach = sqrt(u*u + v*v)/c;
                     

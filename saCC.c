@@ -102,7 +102,7 @@ void saCC_InterFace(SOLVER* solver)
         double T = (E1->P[4] + E0->P[4])*0.5;
         double n = (E1->P[5] + E0->P[5])*0.5;
 
-        double mi_L = sutherland(T);
+        double mi_L = gaspropSutherland(T);
         double n_L = mi_L/r;
 
         double fv1;
@@ -113,7 +113,7 @@ void saCC_InterFace(SOLVER* solver)
 
         double mi_t = fv1*r*n;
         double mi = mi_L + mi_t;
-        double k = gasprop_T2Cp(solver->gas, T)*(mi_L/solver->Pr + mi_t/solver->Pr_t);
+        double k = gasprop_T2Cp(solver->gas, T)*(mi_L/solver->gas->Pr + mi_t/solver->gas->Pr_t);
 
         solver->miT[ii] = mi_t;
 
@@ -153,7 +153,7 @@ void saCC_InterSource(SOLVER* solver)
         double n = E0->P[5];
 
         double d = solver->mesh->d[ii];
-        double mi_L = sutherland(T);
+        double mi_L = gaspropSutherland(T);
         double n_L = mi_L/rho;
         double S = fabs(duy - dvx);
         double Qt;
@@ -319,7 +319,7 @@ void saCC_BoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, do
         double T = E0->P[4];
         double n = E0->P[5];
 
-        double mi_L = sutherland(T);
+        double mi_L = gaspropSutherland(T);
         double n_L = mi_L/rho;
 
         double fv1;
@@ -330,7 +330,7 @@ void saCC_BoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, do
 
         double mi_t = fv1*rho*n;
         double mi = mi_L + mi_t;
-        double k = gasprop_T2Cp(solver->gas, T)*(mi_L/solver->Pr + mi_t/solver->Pr_t);          
+        double k = gasprop_T2Cp(solver->gas, T)*(mi_L/solver->gas->Pr + mi_t/solver->gas->Pr_t);          
             
         double txx = 2*mi*(dux - (dux + dvy)/3);
         double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
@@ -398,7 +398,7 @@ void saCC_BoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, do
         double T = solver->inlet->Pin[4];
         double n = solver->inlet->Pin[5];
 
-        double mi_L = sutherland(T);
+        double mi_L = gaspropSutherland(T);
         double n_L = mi_L/rho;
 
         double fv1;
@@ -409,7 +409,7 @@ void saCC_BoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, do
 
         double mi_t = fv1*rho*n;
         double mi = mi_L + mi_t;
-        double k = gasprop_T2Cp(solver->gas, T)*(mi_L/solver->Pr + mi_t/solver->Pr_t);
+        double k = gasprop_T2Cp(solver->gas, T)*(mi_L/solver->gas->Pr + mi_t/solver->gas->Pr_t);
 
         double txx = 2*mi*(dux - (dux + dvy)/3);
         double tyy = 2*mi*(dvy - (dux + dvy)/3);
@@ -466,7 +466,7 @@ void saCC_BoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, do
         double T = E0->P[4];
         double n = 0.0;
 
-        double mi_L = sutherland(T);
+        double mi_L = gaspropSutherland(T);
         double n_L = mi_L/rho;
 
         double fv1;
@@ -538,7 +538,7 @@ void saCC_BoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, do
         double T = solver->Twall;
         double n = 0.0;        
 
-        double mi_L = sutherland(T);
+        double mi_L = gaspropSutherland(T);
         double n_L = mi_L/rho;
 
         double fv1;
@@ -549,7 +549,7 @@ void saCC_BoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, do
 
         double mi_t = fv1*rho*n;
         double mi = mi_L + mi_t;
-        double k = gasprop_T2Cp(solver->gas, T)*(mi_L/solver->Pr + mi_t/solver->Pr_t);
+        double k = gasprop_T2Cp(solver->gas, T)*(mi_L/solver->gas->Pr + mi_t/solver->gas->Pr_t);
 
         double txx = 2*mi*(dux - (dux + dvy)/3);
         double tyy = 2*mi*(dvy - (dux + dvy)/3);
@@ -588,7 +588,7 @@ void saCC_BoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, do
         double T = E0->P[4];
         double n = E0->P[5];
 
-        double mi_L = sutherland(T);
+        double mi_L = gaspropSutherland(T);
         double n_L = mi_L/rho;
 
         double fv1;
@@ -599,7 +599,7 @@ void saCC_BoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, do
 
         double mi_t = fv1*rho*n;
         double mi = mi_L + mi_t;
-        double k = gasprop_T2Cp(solver->gas, T)*(mi_L/solver->Pr + mi_t/solver->Pr_t);
+        double k = gasprop_T2Cp(solver->gas, T)*(mi_L/solver->gas->Pr + mi_t/solver->gas->Pr_t);
 
         double txx = 2*mi*(dux - (dux + dvy)/3);
         double tyy = 2*mi*(dvy - (dux + dvy)/3);
@@ -706,7 +706,7 @@ void saCC_SolverWriteSurf(SOLVER* solver)
                     double tau = sqrt(f[1]*f[1] + f[2]*f[2])/dS;
                     double uplus = sqrt(tau/r);
                     int iiaux = bc->elemL[ii]->neiL[0]->ii;
-                    double yplus = fabs(r*uplus*solver->mesh->d[iiaux])/sutherland(T);
+                    double yplus = fabs(r*uplus*solver->mesh->d[iiaux])/gaspropSutherland(T);
                     double c = gasprop_T2c(solver->gas, T);
                     double mach = sqrt(u*u + v*v)/c;
                     
