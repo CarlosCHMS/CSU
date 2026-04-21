@@ -22,6 +22,8 @@ typedef struct LIMITER{
 
 LIMITER* limiterInit(INPUT* input, SOLVER* solver);
 
+void limiterMalloc(LIMITER* limiter, SOLVER* solver);
+
 void limiterFree(LIMITER* limiter, SOLVER* solver);
 
 void limiterUpdate(LIMITER* limiter, SOLVER* solver);

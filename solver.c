@@ -81,11 +81,14 @@ SOLVER* solverInit(char* wd)
     //meshPrintDStotal(solver->mesh);
     //meshCheckBorderOrientation(solver->mesh);
 
-    // Memory allocation
-    solverMalloc(solver);
-    
     // Limiter initialization
     solver->limiter = limiterInit(solver->input, solver);
+
+    // Implicit initialization
+    solver->implicit = implicitInit(solver->input, solver);
+
+    // Memory allocation
+    solverMalloc(solver);    
 
     // Domain initialization
     solverInitDomain(solver);
@@ -99,11 +102,91 @@ SOLVER* solverInit(char* wd)
         printf("mesh: calculating distance.\n");
         meshCalcD(solver->mesh);
     }
-
-    // Implicit initialization
-    solver->implicit = implicitInit(solver->input, solver);
-    
+        
     return solver;
+}
+
+
+void solverMalloc(SOLVER* solver)
+{
+    solver->dPx = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
+    solver->dPy = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);    
+
+    limiterMalloc(solver->limiter, solver);
+    
+    solver->faceFlux = tableMallocDouble(solver->Nvar, solver->mesh->Ncon);
+    
+    if(solver->sa1->active)
+    {
+        solver->miT = malloc(solver->mesh->Ncon*sizeof(double));
+    }
+    
+    if(solver->sst->active)
+    {
+        solver->miT = malloc(solver->mesh->Ncon*sizeof(double));
+        sstMalloc(solver->sst, solver->mesh->Nelem);
+    }
+    
+    solver->R = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
+
+    implicitMalloc(solver->implicit, solver);
+
+    solver->U = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
+
+    if(solver->dtLocal == 1)
+    {
+        solver->dtL = malloc(solver->mesh->Nelem*sizeof(double));
+    }
+
+    if(solver->timeScheme == 0)
+    {
+        solver->Uaux = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
+    }
+}
+
+void solverFree(SOLVER* solver)
+{
+
+    if(solver->timeScheme == 0)
+    {
+        tableFreeDouble(solver->Uaux, solver->Nvar);
+    }
+
+    tableFreeDouble(solver->U, solver->Nvar);
+    tableFreeDouble(solver->R, solver->Nvar);        
+    tableFreeDouble(solver->faceFlux, solver->Nvar);
+    tableFreeDouble(solver->dPx, solver->Nvar);
+    tableFreeDouble(solver->dPy, solver->Nvar);
+    meshFree(solver->mesh);
+    
+    if(solver->dtLocal == 1)
+    {
+        free(solver->dtL);
+    }    
+
+    if(solver->sa1->active)
+    {
+        free(solver->miT);
+    }
+    
+    if(solver->sst->active)
+    {
+        free(solver->miT);
+        sstFree(solver->sst);
+    }    
+    
+    inputFree(solver->input);
+    
+    gaspropFree(solver->gas);
+    
+    limiterFree(solver->limiter, solver);
+    
+    fluxFree1(solver->flux1);
+    
+    implicitFree(solver->implicit, solver);
+    
+    free(solver);
+
 }
 
 
@@ -180,81 +263,6 @@ double conditionVref(CONDITION* cond, SOLVER* solver)
     double Vref = (cond->mach+1)*c;
         
     return Vref;
-
-}
-
-void solverMalloc(SOLVER* solver)
-{
-    solver->U = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
-    solver->R = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
-    solver->faceFlux = tableMallocDouble(solver->Nvar, solver->mesh->Ncon);
-    solver->dPx = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
-    solver->dPy = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);    
-
-    if(solver->dtLocal == 1)
-    {
-        solver->dtL = malloc(solver->mesh->Nelem*sizeof(double));
-    }
-
-    if(solver->timeScheme == 0)
-    {
-        solver->Uaux = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
-    }
-
-    if(solver->sa1->active)
-    {
-        solver->miT = malloc(solver->mesh->Ncon*sizeof(double));
-    }
-    
-    if(solver->sst->active)
-    {
-        solver->miT = malloc(solver->mesh->Ncon*sizeof(double));
-        sstMalloc(solver->sst, solver->mesh->Nelem);
-    }
-}
-
-void solverFree(SOLVER* solver)
-{
-
-    if(solver->timeScheme == 0)
-    {
-        tableFreeDouble(solver->Uaux, solver->Nvar);
-    }
-
-    tableFreeDouble(solver->U, solver->Nvar);
-    tableFreeDouble(solver->R, solver->Nvar);        
-    tableFreeDouble(solver->faceFlux, solver->Nvar);
-    tableFreeDouble(solver->dPx, solver->Nvar);
-    tableFreeDouble(solver->dPy, solver->Nvar);
-    meshFree(solver->mesh);
-    
-    if(solver->dtLocal == 1)
-    {
-        free(solver->dtL);
-    }    
-
-    if(solver->sa1->active)
-    {
-        free(solver->miT);
-    }
-    
-    if(solver->sst->active)
-    {
-        free(solver->miT);
-        sstFree(solver->sst);
-    }    
-    
-    inputFree(solver->input);
-    
-    gaspropFree(solver->gas);
-    
-    limiterFree(solver->limiter, solver);
-    
-    fluxFree1(solver->flux1);
-    
-    implicitFree(solver->implicit, solver);
-    
-    free(solver);
 
 }
 

@@ -68,13 +68,10 @@ ELEMENT* meshElementMalloc(int type, int Nvar)
         e->Np = 2;
         e->p = malloc(e->Np*sizeof(int));
         e->neiL = malloc(sizeof(ELEMENT));                
-        e->neiN = 0;                
+        e->neiN = 0;
     }
   
-    e->P = malloc((Nvar+1)*sizeof(double));
-  
     return e;
-
 }
 
 MESHBC* meshBCread(FILE* ff, int Nvar) 
@@ -107,6 +104,11 @@ MESHBC* meshBCread(FILE* ff, int Nvar)
         bc->elemL[jj]->p[1] = atoi(s);        
         meshGetWord(ff, s);
         jj++;
+    }
+
+    for(jj=0; jj<bc->Nelem; jj++)
+    {
+        bc->elemL[jj]->P = malloc((Nvar+1)*sizeof(double));
     }
 
     return bc;
@@ -179,6 +181,11 @@ MESH* meshInit(char* fileName, int Nvar, int axi, bool dFlag)
         ii++;
     }
 
+    for(ii=0; ii<mesh->Nelem; ii++)
+    {
+        mesh->elemL[ii]->P = malloc((Nvar+1)*sizeof(double));
+    }    
+    
     printf("mesh: reading points.\n");
 
     meshGetWord(ff, s);

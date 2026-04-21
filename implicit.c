@@ -30,7 +30,13 @@ IMPLICIT* implicitInit(INPUT* input, SOLVER* solver)
     {
         implicit->wImp = 1.0;
     }
+    
+    return implicit;
+}
 
+
+void implicitMalloc(IMPLICIT* implicit, SOLVER* solver)
+{
     if(implicit->timeScheme == 1 || implicit->timeScheme == 2)
     {
         implicit->dW0 = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
@@ -44,9 +50,6 @@ IMPLICIT* implicitInit(INPUT* input, SOLVER* solver)
         implicit->BB = malloc(solver->mesh->Nelem*sizeof(BLOCK*));
         implicitInitDPLUR(solver);
     }
-    
-    return implicit;
-
 }
 
 

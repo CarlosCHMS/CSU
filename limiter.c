@@ -62,12 +62,14 @@ LIMITER* limiterInit(INPUT* input, SOLVER* solver)
     {
         limiter->K = 1.0;
     }
-        
-    limiter->Pref20 = malloc(solver->Nvar*sizeof(double));
-    
-    limiter->phi = tableMallocDouble(solver->Nvar, solver->mesh->Nelem); 
-    
+
     return limiter;
+}
+
+void limiterMalloc(LIMITER* limiter, SOLVER* solver)
+{
+    limiter->Pref20 = malloc(solver->Nvar*sizeof(double));    
+    limiter->phi = tableMallocDouble(solver->Nvar, solver->mesh->Nelem); 
 }
 
 void limiterFree(LIMITER* limiter, SOLVER* solver)

@@ -29,6 +29,8 @@ typedef struct IMPLICIT
 
 IMPLICIT* implicitInit(INPUT* input, SOLVER* solver);
 
+void implicitMalloc(IMPLICIT* implicit, SOLVER* solver);
+
 void implicitFree(IMPLICIT* implicit, SOLVER* solver);
 
 void implicitCalcD(SOLVER* solver);
