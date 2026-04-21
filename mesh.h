@@ -42,6 +42,8 @@ typedef struct MESH
     int Ncon;
     int axi;
     int order;
+    
+    double volMax;
 
     double* cx;
     double* cy;    
@@ -165,5 +167,7 @@ int meshBandCalc(MESH* mesh);
 void meshCalcD(MESH* mesh);
 
 void meshCalcOmegaCenter(MESH* mesh, int ii, double* omega, double* cx, double* cy);
+
+void meshCalcVolMax(MESH* mesh);
 
 #endif

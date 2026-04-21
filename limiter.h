@@ -9,7 +9,6 @@ typedef struct LIMITER{
 
     int type;
     double K;
-    double volMax;
     
     double* Pref20;
     double* Pref;

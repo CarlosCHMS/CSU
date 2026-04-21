@@ -268,7 +268,9 @@ MESH* meshInit(char* fileName, int Nvar, int axi, bool dFlag)
 
     meshCalcFaces(mesh);   
     
-    meshOmegaCenter(mesh);    
+    meshOmegaCenter(mesh);
+    
+    meshCalcVolMax(mesh);    
 
     return mesh;
 
@@ -1440,3 +1442,12 @@ void meshCalcOmegaCenter(MESH* mesh, int ii, double* omega, double* cx, double* 
     }
 }
 
+
+void meshCalcVolMax(MESH* mesh)
+{
+    mesh->volMax = 0.0;
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        mesh->volMax = fmax(mesh->omega[ii], mesh->volMax);
+    } 
+}
