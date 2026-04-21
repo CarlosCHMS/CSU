@@ -49,6 +49,11 @@ SOLVER* solverInit(char* wd)
     // Set number of flow variables and dFlag
     bool dFlag = false;
     solver->Nvar = 4;
+    if(solver->laminar)
+    {
+        dFlag = true;
+    }
+    
     if(solver->sa1->active)
     {
         solver->Nvar = 5;
@@ -58,7 +63,7 @@ SOLVER* solverInit(char* wd)
     if(solver->sst->active)
     {
         solver->Nvar = 6;
-        dFlag = true;        
+        dFlag = true;
     }
 
     // Load mesh    
@@ -79,31 +84,25 @@ SOLVER* solverInit(char* wd)
     // Memory allocation
     solverMalloc(solver);
     
+    // Limiter initialization
+    solver->limiter = limiterInit(solver->input, solver);
+
     // Domain initialization
     solverInitDomain(solver);
 
     // Set convective flux functions    
     solver->flux1 = fluxInit(solver->input, solver);
     
-    if(solver->timeScheme == 2)
-    {
-        implicitInitDPLUR(solver);
-    }
-  
-    if(solver->laminar)
-    {
-        dFlag = true;
-    }
-  
-    solver->mesh->dFlag = dFlag;
+    // Calculation of cell wall distance
     if(solver->mesh->dFlag)
     {
         printf("mesh: calculating distance.\n");
         meshCalcD(solver->mesh);
     }
+
+    // Implicit initialization
+    solver->implicit = implicitInit(solver->input, solver);
     
-    solver->implicit = implicitInit(solver->input, solver);  
-        
     return solver;
 }
 
@@ -190,8 +189,7 @@ void solverMalloc(SOLVER* solver)
     solver->R = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
     solver->faceFlux = tableMallocDouble(solver->Nvar, solver->mesh->Ncon);
     solver->dPx = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
-    solver->dPy = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
-    solver->phi = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);    
+    solver->dPy = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);    
 
     if(solver->dtLocal == 1)
     {
@@ -228,7 +226,6 @@ void solverFree(SOLVER* solver)
     tableFreeDouble(solver->faceFlux, solver->Nvar);
     tableFreeDouble(solver->dPx, solver->Nvar);
     tableFreeDouble(solver->dPy, solver->Nvar);
-    tableFreeDouble(solver->phi, solver->Nvar);
     meshFree(solver->mesh);
     
     if(solver->dtLocal == 1)
@@ -251,7 +248,7 @@ void solverFree(SOLVER* solver)
     
     gaspropFree(solver->gas);
     
-    limiterFree(solver->limiter);
+    limiterFree(solver->limiter, solver);
     
     fluxFree1(solver->flux1);
     
@@ -431,9 +428,11 @@ void solverGrad_T(SOLVER* solver)
 void inter(SOLVER* solver)
 {
 
+    LIMITER* limiter = solver->limiter;
+
     if(solver->order == 2)
 	{
-	    limiterUpdate(solver->limiter, solver);
+	    limiterUpdate(limiter, solver);
 
         # pragma omp parallel for
         for(int ii=0; ii<solver->mesh->Nelem; ii++)
@@ -468,7 +467,7 @@ void inter(SOLVER* solver)
                     xm = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
                     ym = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;        
                     d2 = (solver->dPx[kk][ii]*(xm - x0) + solver->dPy[kk][ii]*(ym - y0));
-                    phi0 = limiterV2(E->P[mm], Pmin, Pmax, d2, Pref2[kk]);
+                    phi0 = limiter->func(limiter, E->P[mm], Pmin, Pmax, d2, Pref2[kk]);
                     
                     if(jj==0)
                     {
@@ -480,7 +479,7 @@ void inter(SOLVER* solver)
                     }			            
                 }
 
-                solver->phi[kk][ii] = phi;
+                limiter->phi[kk][ii] = phi;
             }   
         }
     }
@@ -525,14 +524,14 @@ void inter(SOLVER* solver)
 		            }
 		            else
 		            {
-		                PL[kk] = E0->P[kk+1] + (solver->dPx[kk][e0]*(xm - x0) + solver->dPy[kk][e0]*(ym - y0))*solver->phi[kk][e0];
-    			        PR[kk] = E1->P[kk+1] + (solver->dPx[kk][e1]*(xm - x1) + solver->dPy[kk][e1]*(ym - y1))*solver->phi[kk][e1];
+		                PL[kk] = E0->P[kk+1] + (solver->dPx[kk][e0]*(xm - x0) + solver->dPy[kk][e0]*(ym - y0))*limiter->phi[kk][e0];
+    			        PR[kk] = E1->P[kk+1] + (solver->dPx[kk][e1]*(xm - x1) + solver->dPy[kk][e1]*(ym - y1))*limiter->phi[kk][e1];
     			    }
 			    }
 			    else
 			    {
-			        PL[kk] = E0->P[kk] + (solver->dPx[kk][e0]*(xm - x0) + solver->dPy[kk][e0]*(ym - y0))*solver->phi[kk][e0];
-    			    PR[kk] = E1->P[kk] + (solver->dPx[kk][e1]*(xm - x1) + solver->dPy[kk][e1]*(ym - y1))*solver->phi[kk][e1];
+			        PL[kk] = E0->P[kk] + (solver->dPx[kk][e0]*(xm - x0) + solver->dPy[kk][e0]*(ym - y0))*limiter->phi[kk][e0];
+    			    PR[kk] = E1->P[kk] + (solver->dPx[kk][e1]*(xm - x1) + solver->dPy[kk][e1]*(ym - y1))*limiter->phi[kk][e1];
 			    }
 		    }
         }
@@ -1052,26 +1051,6 @@ void solverCheckGrad(SOLVER* solver)
     free(xx);
 }
 
-double limiterBJ(double Ui, double Umin, double Umax, double d2)
-{
-
-    double ans;
-    if(d2 == 0)
-    {
-        ans = 1;
-    }
-    else if(d2 > 0)
-    {
-        ans = fmin(1, (Umax - Ui)/d2);
-    }
-    else
-    {
-        ans = fmin(1, (Umin - Ui)/d2);
-    }
-    
-    return ans;
-
-}
 
 void solverCalcPrimitive(SOLVER* solver, double** U)
 {   
@@ -1314,7 +1293,6 @@ void solverSetData(SOLVER* solver, INPUT* input)
 
     //solver->Pr = 0.72;
     //solver->Pr_t = 0.9;
-    solver->eFix = 0.1;
     
     if(inputNameIsInput(input, "Pr"))
     {
@@ -1493,9 +1471,7 @@ void solverSetData(SOLVER* solver, INPUT* input)
     else
     {
         strcat(solver->writeSurf, "wall");
-    }
-
-    solver->limiter = limiterInit(solver->input, solver->Nvar);
+    }    
 }
 
 void solverInitDomain(SOLVER* solver)

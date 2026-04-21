@@ -11,11 +11,39 @@
 #include"solver.h"
 #include"limiter.h"
 
-LIMITER* limiterInit(INPUT* input, int Nvar)
+LIMITER* limiterInit(INPUT* input, SOLVER* solver)
 {
 
     LIMITER* limiter = malloc(sizeof(LIMITER));
+    
+    //Determination of the limiter function
+    limiter->name = malloc(50*sizeof(char));
+    limiter->name[0] = '\0';
+    
+    if(inputNameIsInput(input, "limiterName"))    
+    {
+        strcat(limiter->name, inputGetValue(input, "limiterName"));
+    }
+    else
+    {
+        strcat(limiter->name, "VK");
+    }
+    
+    if(strcmp(limiter->name, "VK") == 0)
+    {        
+        limiter->func = limiterFuncV2;
+    }
+    else if(strcmp(limiter->name, "BJ") == 0)
+    {
+        limiter->func = limiterFuncBJ;
+    }
+    else
+    {
+        printf("\nError: Limiter name incorrect.");
+        exit(0);
+    }    
         
+    // Determination of the limiter factor for Venkatakrishnan limiter    
     if(inputNameIsInput(input, "limiter"))
     {
         limiter->type = atoi(inputGetValue(input, "limiter"));
@@ -25,6 +53,7 @@ LIMITER* limiterInit(INPUT* input, int Nvar)
         limiter->type = 0;
     }
     
+    // Determination of the K parameter for Venkatakrishnan limiter
     if(inputNameIsInput(input, "limK"))
     {
         limiter->K = strtod(inputGetValue(input, "limK"), NULL);     
@@ -34,18 +63,18 @@ LIMITER* limiterInit(INPUT* input, int Nvar)
         limiter->K = 1.0;
     }
         
-    limiter->Pref20 = malloc(Nvar*sizeof(double));
+    limiter->Pref20 = malloc(solver->Nvar*sizeof(double));
+    
+    limiter->phi = tableMallocDouble(solver->Nvar, solver->mesh->Nelem); 
     
     return limiter;
 }
 
-void limiterFree(LIMITER* limiter)
+void limiterFree(LIMITER* limiter, SOLVER* solver)
 {
-
-    free(limiter->Pref20);
-    free(limiter->Pref2);
-    free(limiter);    
-
+    tableFreeDouble(limiter->phi, solver->Nvar);
+    free(limiter->Pref20);    
+    free(limiter);
 }
 
 void limiterUpdate(LIMITER* limiter, SOLVER* solver)
@@ -132,10 +161,12 @@ void limiterCalc(LIMITER* limiter, SOLVER* solver, int ii, double* Pref2)
             Pref2[jj] = limiter->Pref20[jj];
         }    
     }
+    
+    limiter->Pref = Pref2;
 
 }
 
-double limiterV2(double Ui, double Umin, double Umax, double d2, double ee)
+double limiterFuncV2(LIMITER* limiter, double Ui, double Umin, double Umax, double d2, double ee)
 {
 
     double ans;
@@ -157,6 +188,27 @@ double limiterV2(double Ui, double Umin, double Umax, double d2, double ee)
         ans = (d1min*d1min + ee)*d2 + 2*d2*d2*d1min;
         ans /= d1min*d1min + 2*d2*d2 + d1min*d2 + ee;
         ans /= d2;
+    }
+    
+    return ans;
+
+}
+
+double limiterFuncBJ(LIMITER* limiter, double Ui, double Umin, double Umax, double d2, double ee)
+{
+
+    double ans;
+    if(d2 == 0)
+    {
+        ans = 1;
+    }
+    else if(d2 > 0)
+    {
+        ans = fmin(1, (Umax - Ui)/d2);
+    }
+    else
+    {
+        ans = fmin(1, (Umin - Ui)/d2);
     }
     
     return ans;

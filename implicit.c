@@ -42,6 +42,7 @@ IMPLICIT* implicitInit(INPUT* input, SOLVER* solver)
     if(implicit->timeScheme == 2)
     {    
         implicit->BB = malloc(solver->mesh->Nelem*sizeof(BLOCK*));
+        implicitInitDPLUR(solver);
     }
     
     return implicit;

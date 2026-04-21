@@ -122,6 +122,7 @@ MESH* meshInit(char* fileName, int Nvar, int axi, bool dFlag)
     int ii;
     int type;
     mesh->axi = axi;
+    mesh->dFlag = dFlag;
     
     printf("mesh: reading elements.\n");
     

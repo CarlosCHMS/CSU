@@ -54,8 +54,7 @@ typedef struct SOLVER{
 
     double k4;
     double dt;
-    double pout;
-    double eFix; 
+    double pout; 
     double k; 
     double res[6];
     double CFL;
@@ -77,8 +76,7 @@ typedef struct SOLVER{
     double **Uaux;     
     double **faceFlux;       
     double **dPx;
-    double **dPy;  
-    double **phi;
+    double **dPy;
     double **uD;
     double **rD;
     
@@ -159,8 +157,6 @@ void solverCalcGrad3(SOLVER* solver, ELEMENT* E, int kk, double* dUx, double* dU
 void solverCalcMinMax(SOLVER* solver, ELEMENT* E, int kk, double* Umin, double* Umax);
 
 void solverCheckGrad(SOLVER* solver);
-
-double limiterBJ(double Ui, double Umin, double Umax, double d2);
 
 void solverCalcPrimitive(SOLVER* solver, double** U);
 
