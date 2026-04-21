@@ -1,6 +1,36 @@
 #ifndef IMPLICIT_H
 #define IMPLICIT_H
 
+
+typedef struct BLOCK{
+
+    int ii;
+    double** A;
+    struct BLOCK* next;
+
+} BLOCK;
+
+
+typedef struct IMPLICIT
+{
+    int timeScheme;
+
+    double wImp;
+
+    double *D;
+    double *dtL;    
+    
+    double **dW0;
+    double **dW1;
+    
+    BLOCK** BB;
+
+} IMPLICIT;
+
+IMPLICIT* implicitInit(INPUT* input, SOLVER* solver);
+
+void implicitFree(IMPLICIT* implicit, SOLVER* solver);
+
 void implicitCalcD(SOLVER* solver);
 
 void implicitLUSGS_L(SOLVER* solver);
@@ -17,7 +47,7 @@ void implicitTest(SOLVER* solver);
 
 void implicitInitDPLUR(SOLVER* solver);
 
-void implicitFreeDPLUR(SOLVER* solver);
+void implicitFreeDPLUR(IMPLICIT* implicit, SOLVER* solver);
 
 void implicitUpdateA(SOLVER* solver);
 

@@ -100,7 +100,9 @@ SOLVER* solverInit(char* wd)
     {
         printf("mesh: calculating distance.\n");
         meshCalcD(solver->mesh);
-    }  
+    }
+    
+    solver->implicit = implicitInit(solver->input, solver);  
         
     return solver;
 }
@@ -200,19 +202,6 @@ void solverMalloc(SOLVER* solver)
     {
         solver->Uaux = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
     }
-    
-    if(solver->timeScheme == 1 || solver->timeScheme == 2)
-    {
-        solver->dW0 = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
-        solver->dW1 = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
-        solver->D = malloc(solver->mesh->Nelem*sizeof(double));
-        solver->dtL = malloc(solver->mesh->Nelem*sizeof(double));
-    }
-    
-    if(solver->timeScheme == 2)
-    {    
-        solver->BB = malloc(solver->mesh->Nelem*sizeof(BLOCK*));
-    }
 
     if(solver->sa1->active)
     {
@@ -232,20 +221,6 @@ void solverFree(SOLVER* solver)
     if(solver->timeScheme == 0)
     {
         tableFreeDouble(solver->Uaux, solver->Nvar);
-    }
-
-    if(solver->timeScheme == 1 || solver->timeScheme == 2)
-    {
-        tableFreeDouble(solver->dW0, solver->Nvar);
-        tableFreeDouble(solver->dW1, solver->Nvar);
-        free(solver->D);
-        free(solver->dtL);        
-    }
-    
-    if(solver->timeScheme == 2)
-    {    
-        implicitFreeDPLUR(solver);
-        free(solver->BB);
     }
 
     tableFreeDouble(solver->U, solver->Nvar);
@@ -279,6 +254,8 @@ void solverFree(SOLVER* solver)
     limiterFree(solver->limiter);
     
     fluxFree1(solver->flux1);
+    
+    implicitFree(solver->implicit, solver);
     
     free(solver);
 
@@ -1410,15 +1387,6 @@ void solverSetData(SOLVER* solver, INPUT* input)
     {
         solver->dtLocalN = -1;
     }
-    
-    if(inputNameIsInput(input, "wImp"))
-    {
-        solver->wImp = strtod(inputGetValue(input, "wImp"), NULL);
-    }
-    else
-    {
-        solver->wImp = 1.0;
-    }    
 
     if(inputNameIsInput(input, "turb1order"))
     {
@@ -1736,12 +1704,14 @@ void solverSolve(SOLVER* solver)
 
 void solverUpdateUImplicit(SOLVER* solver)
 {
+    IMPLICIT* implicit = solver->implicit;
+    
     # pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
         for(int kk=0; kk<solver->Nvar; kk++)
         {            
-            solver->U[kk][ii] += solver->dW1[kk][ii];
+            solver->U[kk][ii] += implicit->dW1[kk][ii];
         }
     }
 }

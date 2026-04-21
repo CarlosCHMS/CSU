@@ -17,13 +17,7 @@ typedef struct SA SA;
 
 typedef struct SST SST;
 
-typedef struct BAUX{
-
-    int ii;
-    double** A;
-    struct BAUX* next;
-
-} BLOCK;
+typedef struct IMPLICIT IMPLICIT;
 
 typedef struct CONDITION{
 
@@ -69,7 +63,6 @@ typedef struct SOLVER{
     double Pr_t;
     double Sref;
     double dtLocalN;
-    double wImp;
     double tol;
     double rLim;
     double pLim; 
@@ -77,7 +70,6 @@ typedef struct SOLVER{
     double omLim;       
 
     double *dtL;
-    double *D;
     double *miT;
             
     double **U;
@@ -87,12 +79,8 @@ typedef struct SOLVER{
     double **dPx;
     double **dPy;  
     double **phi;
-    double **dW0;
-    double **dW1;
     double **uD;
-    double **rD;    
-    
-    BLOCK** BB;
+    double **rD;
     
     CONDITION* inlet;
         
@@ -109,6 +97,8 @@ typedef struct SOLVER{
     SA* sa1;
     
     SST* sst;
+    
+    IMPLICIT* implicit;
 
 } SOLVER;
 
