@@ -1,6 +1,8 @@
 #ifndef LIMITER_H
 #define LIMITER_H
 
+typedef struct INPUT INPUT;
+
 typedef struct LIMITER{
 
     int type;
@@ -12,7 +14,7 @@ typedef struct LIMITER{
 
 } LIMITER;
 
-LIMITER* limiterInit(int type, double K, SOLVER* solver);
+LIMITER* limiterInit(INPUT* input, int Nvar);
 
 void limiterFree(LIMITER* limiter);
 

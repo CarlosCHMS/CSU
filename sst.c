@@ -14,7 +14,7 @@
 #include"gasprop.h"
 #include"sstTrans.h"
 
-SST* sstInit()
+SST* sstInit(INPUT* input)
 {
     SST* sst = malloc(sizeof(SST));
     sst->sk1 = 0.85;
@@ -33,6 +33,60 @@ SST* sstInit()
     sst->g2 = sst->b2/sst->bs - sst->so2*k*k/sqrt(sst->bs);
         
     sst->trans = sstTransInit();
+      
+    if(inputNameIsInput(input, "sst"))
+    {
+        sst->active = atoi(inputGetValue(input, "sst"));
+    }
+    else
+    {
+        sst->active = 0;
+    }
+        
+    if(inputNameIsInput(input, "sstTrans"))
+    {
+        sst->trans->flag = atoi(inputGetValue(input, "sstTrans"));
+    }
+    else
+    {
+        sst->trans->flag = 0;
+    }      
+
+    if(inputNameIsInput(input, "kFactor"))
+    {
+        sst->kFactor = strtod(inputGetValue(input, "kFactor"), NULL);     
+    }
+    else
+    {
+        sst->kFactor = 1.125;
+    }
+
+    if(inputNameIsInput(input, "oFactor"))
+    {
+        sst->oFactor = strtod(inputGetValue(input, "oFactor"), NULL);     
+    }
+    else
+    {
+        sst->oFactor = 125.0;
+    }
+
+    if(inputNameIsInput(input, "oWallFactor"))
+    {
+        sst->oWallFactor = strtod(inputGetValue(input, "oWallFactor"), NULL);     
+    }
+    else
+    {
+        sst->oWallFactor = 10;
+    }
+
+    if(inputNameIsInput(input, "Lsst"))
+    {
+        sst->L = strtod(inputGetValue(input, "Lsst"), NULL);     
+    }
+    else
+    {
+        sst->L = 1.0;
+    }
         
     return sst;
 }

@@ -33,3 +33,5 @@ if __name__=="__main__":
     s.plotSolution('mach')    
     
     s.plotSurfData('x', 'yplus')
+    
+    s.plotSurfData('x', 'Cp')

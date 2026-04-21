@@ -100,7 +100,7 @@ typedef struct{
 } SSTVAR;
 
 
-SST* sstInit();
+SST* sstInit(INPUT* input);
 
 void sstMalloc(SST* sst, int Nelem);
 

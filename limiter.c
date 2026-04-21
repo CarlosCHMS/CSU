@@ -11,13 +11,30 @@
 #include"solver.h"
 #include"limiter.h"
 
-LIMITER* limiterInit(int type, double K, SOLVER* solver)
+LIMITER* limiterInit(INPUT* input, int Nvar)
 {
 
     LIMITER* limiter = malloc(sizeof(LIMITER));
-    limiter->type = type;
-    limiter->K = K;
-    limiter->Pref20 = malloc(solver->Nvar*sizeof(double));
+        
+    if(inputNameIsInput(input, "limiter"))
+    {
+        limiter->type = atoi(inputGetValue(input, "limiter"));
+    }
+    else
+    {
+        limiter->type = 0;
+    }
+    
+    if(inputNameIsInput(input, "limK"))
+    {
+        limiter->K = strtod(inputGetValue(input, "limK"), NULL);     
+    }
+    else
+    {
+        limiter->K = 1.0;
+    }
+        
+    limiter->Pref20 = malloc(Nvar*sizeof(double));
     
     return limiter;
 }

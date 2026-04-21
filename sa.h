@@ -7,9 +7,12 @@ typedef struct CONDITION CONDITION;
 
 typedef struct MESHBC MESHBC;
 
+typedef struct INPUT INPUT;
+
 typedef struct SA
 {
     bool active;
+    bool cc;
 
     double Cv1;
     double Cv1_3;    
@@ -23,10 +26,11 @@ typedef struct SA
     double Cw2;
     double Cw3;
     double Cw3_6;
+    double turbRatio;
 
 } SA;
 
-SA* saInit();
+SA* saInit(INPUT* input);
 
 void saFree(SA* sa);
 

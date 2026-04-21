@@ -41,49 +41,10 @@ SOLVER* solverInit(char* wd)
     // Set number of threads
     omp_set_num_threads(atoi(inputGetValue(solver->input, "threads")));
 
-    solver->sa1 = saInit();
-
     // Set turbulence model
-    if(inputNameIsInput(solver->input, "sa"))
-    {
-        solver->sa1->active = atoi(inputGetValue(solver->input, "sa"));
-    }
-    else
-    {
-        solver->sa1->active = 0;
-    }
+    solver->sa1 = saInit(solver->input);
 
-    if(inputNameIsInput(solver->input, "saCC"))
-    {
-        solver->saCC = atoi(inputGetValue(solver->input, "saCC"));
-    }
-    else
-    {
-        solver->saCC = 0;
-    }
-
-    solver->sst = sstInit();
-
-    if(inputNameIsInput(solver->input, "sst"))
-    {
-        solver->sst->active = atoi(inputGetValue(solver->input, "sst"));
-    }
-    else
-    {
-        solver->sst->active = 0;
-    }
-
-    if(solver->sst->active)
-    {    
-        if(inputNameIsInput(solver->input, "sstTrans"))
-        {
-            solver->sst->trans->flag = atoi(inputGetValue(solver->input, "sstTrans"));
-        }
-        else
-        {
-            solver->sst->trans->flag = 0;
-        }
-    }   
+    solver->sst = sstInit(solver->input);   
 
     // Set number of flow variables and dFlag
     bool dFlag = false;
@@ -204,7 +165,7 @@ void conditionState(CONDITION* cond, SOLVER* solver)
 
     if(solver->sa1->active)
     {
-        double n = solver->turbRatio*sutherland(cond->T)/r;
+        double n = solver->sa1->turbRatio*sutherland(cond->T)/r;
         cond->Uin[4] = r*n;
         cond->Pin[5] = n;         
     }
@@ -701,7 +662,7 @@ void solverCalcR(SOLVER* solver, double** U)
     if(solver->sa1->active)
     {
         solverGrad_T(solver);
-        if(solver->saCC)
+        if(solver->sa1->cc)
         {
             saCC_Inter(solver);
             saCC_Boundary(solver);
@@ -1430,25 +1391,7 @@ void solverSetData(SOLVER* solver, INPUT* input)
     else
     {
         solver->Sref = 1.0;
-    }
-    
-    if(inputNameIsInput(input, "K3"))
-    {
-        solver->K3 = strtod(inputGetValue(input, "K3"), NULL);     
-    }
-    else
-    {
-        solver->K3 = 0.1;
-    }    
-
-    if(inputNameIsInput(input, "turbRatio"))
-    {
-        solver->turbRatio = strtod(inputGetValue(input, "turbRatio"), NULL);     
-    }
-    else
-    {
-        solver->turbRatio = 10.0;
-    }
+    } 
 
     if(inputNameIsInput(input, "dtLocal"))
     {
@@ -1583,69 +1526,8 @@ void solverSetData(SOLVER* solver, INPUT* input)
     {
         strcat(solver->writeSurf, "wall");
     }
-    
-    int limType;
-    if(inputNameIsInput(solver->input, "limiter"))
-    {
-        limType = atoi(inputGetValue(solver->input, "limiter"));
-    }
-    else
-    {
-        limType = 0;
-    }
-    
-    double limK;
-    if(inputNameIsInput(solver->input, "limK"))
-    {
-        limK = strtod(inputGetValue(solver->input, "limK"), NULL);     
-    }
-    else
-    {
-        limK = 1.0;
-    }
 
-    solver->limiter = limiterInit(limType, limK, solver);
-
-    if(solver->sst->active)
-    {
-        if(inputNameIsInput(solver->input, "kFactor"))
-        {
-            solver->sst->kFactor = strtod(inputGetValue(solver->input, "kFactor"), NULL);     
-        }
-        else
-        {
-            solver->sst->kFactor = 1.125;
-        }
-
-        if(inputNameIsInput(solver->input, "oFactor"))
-        {
-            solver->sst->oFactor = strtod(inputGetValue(solver->input, "oFactor"), NULL);     
-        }
-        else
-        {
-            solver->sst->oFactor = 125.0;
-        }
-
-        if(inputNameIsInput(solver->input, "oWallFactor"))
-        {
-            solver->sst->oWallFactor = strtod(inputGetValue(solver->input, "oWallFactor"), NULL);     
-        }
-        else
-        {
-            solver->sst->oWallFactor = 10;
-        }
-
-        if(inputNameIsInput(solver->input, "Lsst"))
-        {
-            solver->sst->L = strtod(inputGetValue(solver->input, "Lsst"), NULL);     
-        }
-        else
-        {
-            solver->sst->L = 1.0;
-        }
-    
-    }
-
+    solver->limiter = limiterInit(solver->input, solver->Nvar);
 }
 
 void solverInitDomain(SOLVER* solver)
@@ -1899,7 +1781,7 @@ void solverWriteSurf(SOLVER* solver)
     }
     else if(solver->sa1->active)
     {
-        if(solver->saCC)
+        if(solver->sa1->cc)
         {
             saCC_SolverWriteSurf(solver);
         }

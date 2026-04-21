@@ -47,14 +47,12 @@ typedef struct SOLVER{
     int order;
     int stages;
     int laminar;
-    int restart;
-    int saCC;    
+    int restart;   
     int dtLocal;
     int turb1order;
     int timeScheme;
     int Nlinear;
     int viscBlazek;
-    //int sstFlag;
     int tube;
 
     char* wd;
@@ -63,7 +61,6 @@ typedef struct SOLVER{
     double k4;
     double dt;
     double pout;
-    double turbRatio; 
     double eFix; 
     double k; 
     double res[6];
@@ -72,7 +69,6 @@ typedef struct SOLVER{
     double Pr_t;
     double Sref;
     double dtLocalN;
-    double K3;
     double wImp;
     double tol;
     double rLim;

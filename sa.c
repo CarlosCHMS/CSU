@@ -13,8 +13,7 @@
 #include"boundary.h"
 #include"gasprop.h"
 
-
-SA* saInit()
+SA* saInit(INPUT* input)
 {
 
     SA* sa = malloc(sizeof(SA));
@@ -31,6 +30,34 @@ SA* saInit()
     sa->Cw2 = 0.3;
     sa->Cw3 = 2.0;
     sa->Cw3_6 = pow(sa->Cw3, 6);    
+    
+    if(inputNameIsInput(input, "sa"))
+    {
+        sa->active = atoi(inputGetValue(input, "sa"));
+    }
+    else
+    {
+        sa->active = 0;
+    }    
+    
+    if(inputNameIsInput(input, "saCC"))
+    {
+        sa->cc = atoi(inputGetValue(input, "saCC"));
+    }
+    else
+    {
+        sa->cc = 0;
+    }
+    
+    if(inputNameIsInput(input, "turbRatio"))
+    {
+        sa->turbRatio = strtod(inputGetValue(input, "turbRatio"), NULL);     
+    }
+    else
+    {
+        sa->turbRatio = 10.0;
+    }    
+    
     
     return sa;
 }
