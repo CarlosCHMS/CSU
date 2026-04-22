@@ -75,6 +75,10 @@ SOLVER* solverInit(char* wd)
     strcat(s, "mesh.su2");
     solver->mesh = meshInit(s, solver->Nvar, atoi(inputGetValue(solver->input, "axisymmetric")), dFlag);
     
+    // Get boundary conditions
+    printf("main: get boundary conditions.\n");
+    boundaryGetBC(solver->mesh, solver->input);
+    
     // Gas initialization
     solver->gas = gaspropInit(solver->input);
 
@@ -85,11 +89,7 @@ SOLVER* solverInit(char* wd)
     solver->implicit = implicitInit(solver->input, solver);
 
     // Memory allocation
-    solverMalloc(solver);    
-
-    //Get boundary conditions
-    printf("main: get boundary conditions.\n");
-    boundaryGetBC(solver->mesh, solver->input);
+    solverMalloc(solver);
 
     // Domain initialization
     solverInitDomain(solver);

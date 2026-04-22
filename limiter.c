@@ -107,9 +107,9 @@ void limiterUpdate(LIMITER* limiter, SOLVER* solver)
         for(int jj=0; jj<solver->Nvar; jj++)
         {
             mm = jj;
-            if(jj==4)
+            if(jj>3)
             {
-                mm = 5;
+                mm = jj + 1;
             }
             Pmin[jj] = solver->mesh->elemL[0]->P[mm];
             Pmax[jj] = solver->mesh->elemL[0]->P[mm]; 
@@ -120,9 +120,9 @@ void limiterUpdate(LIMITER* limiter, SOLVER* solver)
             for(int jj=0; jj<solver->Nvar; jj++)
             {
                 mm = jj;
-                if(jj==4)
+                if(jj>3)
                 {
-                    mm = 5;
+                    mm = jj+1;
                 }
 
                 Pmin[jj] = fmin(Pmin[jj], solver->mesh->elemL[ii]->P[mm]);
