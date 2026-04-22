@@ -19,6 +19,8 @@ typedef struct SST SST;
 
 typedef struct IMPLICIT IMPLICIT;
 
+typedef struct BOUNDARY BOUNDARY;
+
 typedef struct CONDITION{
 
     double p;
@@ -48,6 +50,7 @@ typedef struct SOLVER{
     int Nlinear;
     int viscBlazek;
     int tube;
+    int Nboundary;
 
     char* wd;
     char writeSurf[50];
@@ -95,6 +98,8 @@ typedef struct SOLVER{
     SST* sst;
     
     IMPLICIT* implicit;
+    
+    BOUNDARY** boundaryL;
 
 } SOLVER;
 

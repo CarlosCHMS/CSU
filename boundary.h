@@ -1,6 +1,18 @@
 #ifndef BOUNDARY_H
 #define BOUNDARY_H
 
+typedef struct BOUNDARY
+{
+
+    MESHBC* bc;
+    char type[50];
+    
+    void (*primitive) (BOUNDARY*, SOLVER*);
+
+} BOUNDARY;
+
+BOUNDARY* boundaryInit(INPUT* input, MESHBC* bc);
+
 void boundaryInlet(SOLVER* solver, double* Pa, double* Pd, double* Pb, double nx, double ny);
 
 void boundaryOutlet(SOLVER* solver, double* Pd, double* Pb, double nx, double ny);
@@ -16,5 +28,15 @@ int boundaryChoice(char* s);
 void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc);
 
 void boundaryCalcFrictionWall(SOLVER* solver, ELEMENT* E, double* fx, double* fy);
+
+void boundaryPrimitiveSymmetry(BOUNDARY* boundary, SOLVER* solver);
+
+void boundaryPrimitiveInlet(BOUNDARY* boundary, SOLVER* solver);
+
+void boundaryPrimitiveOutlet(BOUNDARY* boundary, SOLVER* solver);
+
+void boundaryPrimitiveWall(BOUNDARY* boundary, SOLVER* solver);
+
+void boundaryPrimitiveWallT(BOUNDARY* boundary, SOLVER* solver);
 
 #endif

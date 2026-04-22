@@ -16,6 +16,56 @@
 #include"sst.h"
 
 
+BOUNDARY* boundaryInit(INPUT* input, MESHBC* bc)
+{
+
+    BOUNDARY* boundary = malloc(sizeof(BOUNDARY));
+    boundary->bc = bc;
+    
+    char s[50];
+    strcpy(s, "BC:");
+    strcat(s, boundary->bc->name);
+    if(inputNameIsInput(input, s))
+    {
+        strcpy(boundary->type, inputGetValue(input, s));
+    }
+    else
+    {
+        printf("Error: boundary type %s not available in input file", s);
+        exit(0);
+    }
+    
+    if(strcmp(boundary->type, "symmetry") == 0)
+    {
+        boundary->primitive = boundaryPrimitiveSymmetry;
+    }
+    else if(strcmp(boundary->type, "inlet") == 0)
+    {
+        boundary->primitive = boundaryPrimitiveInlet;
+    }
+    else if(strcmp(boundary->type, "outlet") == 0)
+    {
+        boundary->primitive = boundaryPrimitiveOutlet;
+    }
+    else if(strcmp(boundary->type, "wall") == 0)
+    {
+        boundary->primitive = boundaryPrimitiveWall;
+    }
+    else if(strcmp(boundary->type, "wallT") == 0)
+    {
+        boundary->primitive = boundaryPrimitiveWallT;
+    }
+    else
+    {
+        printf("Error: incorrent input of bc: %s\n", s);
+        exit(0);
+    }
+    
+    return boundary;
+}
+
+
+
 void boundaryInlet(SOLVER* solver, double* Pa, double* Pd, double* Pb, double nx, double ny)
 {
     double rd = Pd[0];
@@ -308,6 +358,261 @@ int boundaryChoice(char* s)
  
     return ans;
 
+}
+
+void boundaryPrimitiveSymmetry(BOUNDARY* boundary, SOLVER* solver)
+{
+    MESHBC* bc = boundary->bc;
+
+    # pragma omp parallel for
+    for(int ii=0; ii<bc->Nelem; ii++)
+    {
+        int kk;
+        double dSx, dSy, dS;
+        double PL[4];
+
+        int p0, p1;
+ 
+        ELEMENT* E0 = bc->elemL[ii]->neiL[0];
+        p0 = bc->elemL[ii]->p[0];
+        p1 = bc->elemL[ii]->p[1];
+ 
+        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+        dS = sqrt(dSx*dSx + dSy*dSy);
+        
+        for(kk=0; kk<4; kk++)
+		{
+			PL[kk] = E0->P[kk];
+		}      		
+        
+        if(dS > 0)
+        {
+            rotation(PL, dSx, dSy, dS);
+            PL[1] = 0.0;
+            rotation(PL, dSx, -dSy, dS);
+        }
+        else
+        {
+            PL[2] = 0.0;                
+        }
+        
+        for(kk=0; kk<solver->Nvar; kk++)
+        {
+            bc->elemL[ii]->P[kk] = PL[kk];
+        }
+    }
+}
+
+void boundaryPrimitiveInlet(BOUNDARY* boundary, SOLVER* solver)
+{
+    MESHBC* bc = boundary->bc;
+
+    # pragma omp parallel for
+    for(int ii=0; ii<bc->Nelem; ii++)
+    {
+        int kk;
+        double dSx, dSy, dS;
+        double PL[4];
+	    double Pb[4];
+        int p0, p1;    
+        
+        ELEMENT* E0 = bc->elemL[ii]->neiL[0];
+        p0 = bc->elemL[ii]->p[0];
+        p1 = bc->elemL[ii]->p[1];
+ 
+        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+        dS = sqrt(dSx*dSx + dSy*dSy);
+        
+        for(kk=0; kk<4; kk++)
+		{
+			PL[kk] = E0->P[kk];
+		}      		
+        
+        boundaryInlet(solver, solver->inlet->Pin, PL, Pb, dSx/dS, dSy/dS);
+
+        for(kk=0; kk<4; kk++)
+        {
+            bc->elemL[ii]->P[kk] = Pb[kk];
+        }
+        
+        bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->gas->R);
+        
+        for(kk=5; kk<solver->Nvar; kk++)
+        {
+            bc->elemL[ii]->P[kk] = solver->inlet->Pin[kk];
+        }
+    }
+}
+
+
+void boundaryPrimitiveOutlet(BOUNDARY* boundary, SOLVER* solver)
+{
+    MESHBC* bc = boundary->bc;
+
+    # pragma omp parallel for
+    for(int ii=0; ii<bc->Nelem; ii++)
+    {
+        int kk;
+        double dSx, dSy, dS;
+        double PL[4];
+	    double Pb[4];
+        int p0, p1;    
+
+        ELEMENT* E0 = bc->elemL[ii]->neiL[0];
+        p0 = bc->elemL[ii]->p[0];
+        p1 = bc->elemL[ii]->p[1];
+ 
+        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+        dS = sqrt(dSx*dSx + dSy*dSy);
+        
+        for(kk=0; kk<4; kk++)
+		{
+			PL[kk] = E0->P[kk];
+		}      		
+        
+        boundaryOutlet(solver, PL, Pb, dSx/dS, dSy/dS);
+
+        for(kk=0; kk<4; kk++)
+        {
+            bc->elemL[ii]->P[kk] = Pb[kk];
+        }
+
+        bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->gas->R);
+        
+        for(kk=5; kk<solver->Nvar; kk++)
+        {
+            bc->elemL[ii]->P[kk] = E0->P[kk];
+        }
+    }
+}
+
+
+void boundaryPrimitiveWall(BOUNDARY* boundary, SOLVER* solver)
+{
+    MESHBC* bc = boundary->bc;
+
+    # pragma omp parallel for
+    for(int ii=0; ii<bc->Nelem; ii++)
+    {
+        int kk;
+        double dSx, dSy, dS;
+        double PL[4];
+	    double Pb[4];
+        int p0, p1;    
+
+        ELEMENT* E0 = bc->elemL[ii]->neiL[0];
+        p0 = bc->elemL[ii]->p[0];
+        p1 = bc->elemL[ii]->p[1];
+ 
+        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+        dS = sqrt(dSx*dSx + dSy*dSy);
+        
+        for(kk=0; kk<4; kk++)
+		{
+			PL[kk] = E0->P[kk];
+		}      		
+        
+        if(solver->laminar==1 || solver->sa1->active || solver->sst->active)
+        {
+            boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
+    
+            bc->elemL[ii]->P[0] = Pb[0];
+            bc->elemL[ii]->P[1] = 0.0;
+            bc->elemL[ii]->P[2] = 0.0;
+            bc->elemL[ii]->P[3] = Pb[3];
+        }
+        else
+        {                        
+            if(dS > 0)
+            {                
+                boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
+                for(kk=0; kk<4; kk++)
+                {
+                    bc->elemL[ii]->P[kk] = Pb[kk];
+                }                    
+            }
+            else
+            {
+                PL[2] = 0.0;                
+                for(kk=0; kk<4; kk++)
+                {
+                    bc->elemL[ii]->P[kk] = PL[kk];
+                }                    
+            }
+
+        }
+
+        bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->gas->R);
+        
+        if(solver->sa1->active)
+        {            
+            bc->elemL[ii]->P[5] = 0.0;
+        }
+        
+        if(solver->sst->active)
+        {
+            double n = gaspropSutherland(bc->elemL[ii]->P[4])/bc->elemL[ii]->P[0];
+            double d = solver->mesh->d[E0->ii];
+            double owall = solver->sst->oWallFactor*6*n/(solver->sst->b1*d*d);
+            bc->elemL[ii]->P[5] = 1e-14;
+            bc->elemL[ii]->P[6] = owall;
+            //printf("\n1,%e, %e, %e, %e", owall, E0->P[6], n, d);
+        } 
+    } 
+}
+
+void boundaryPrimitiveWallT(BOUNDARY* boundary, SOLVER* solver)
+{
+
+    MESHBC* bc = boundary->bc;
+    # pragma omp parallel for
+    for(int ii=0; ii<bc->Nelem; ii++)
+    {
+        int kk;
+        double dSx, dSy, dS;
+        double PL[4];
+	    double Pb[4];
+        int p0, p1;    
+    
+        ELEMENT* E0 = bc->elemL[ii]->neiL[0];
+        p0 = bc->elemL[ii]->p[0];
+        p1 = bc->elemL[ii]->p[1];
+ 
+        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+        dS = sqrt(dSx*dSx + dSy*dSy);
+        
+        for(kk=0; kk<4; kk++)
+		{
+			PL[kk] = E0->P[kk];
+		}      		
+        
+        if(solver->laminar==1 || solver->sa1->active || solver->sst->active)
+        {
+            boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
+    
+            bc->elemL[ii]->P[0] = Pb[3]/(solver->gas->R*solver->Twall);
+            bc->elemL[ii]->P[1] = 0.0;
+            bc->elemL[ii]->P[2] = 0.0;
+            bc->elemL[ii]->P[3] = Pb[3];
+            bc->elemL[ii]->P[4] = solver->Twall;
+
+        }
+        
+        if(solver->sa1->active)
+        {            
+            bc->elemL[ii]->P[5] = 0.0;
+        }
+        
+        if(solver->sst->active)
+        {
+            double n = gaspropSutherland(bc->elemL[ii]->P[4])/bc->elemL[ii]->P[0];
+            double d = solver->mesh->d[E0->ii];
+            double owall = solver->sst->oWallFactor*6*n/(solver->sst->b1*d*d);
+            bc->elemL[ii]->P[5] = 1e-14;
+            bc->elemL[ii]->P[6] = owall;
+            //printf("\n1,%e, %e, %e, %e", owall, E0->P[6], n, d);
+        } 
+    } 
 }
 
 

@@ -75,6 +75,14 @@ SOLVER* solverInit(char* wd)
     strcat(s, "mesh.su2");
     solver->mesh = meshInit(s, solver->Nvar, atoi(inputGetValue(solver->input, "axisymmetric")), dFlag);
     
+    // Boundary initialization
+    solver->Nboundary = solver->mesh->Nmark;
+    solver->boundaryL = malloc(solver->Nboundary*sizeof(BOUNDARY*));
+    for(int ii=0; ii<solver->Nboundary; ii++)
+    {
+        solver->boundaryL[ii] = boundaryInit(solver->input, solver->mesh->bc[ii]);
+    }
+        
     // Get boundary conditions
     printf("main: get boundary conditions.\n");
     boundaryGetBC(solver->mesh, solver->input);
@@ -1293,10 +1301,19 @@ void solverCalcPrimitive(SOLVER* solver, double** U)
         }                        
     }
     
+    /*
     for(int ii=0; ii<solver->mesh->Nmark; ii++)
     {
         boundaryCalcPrimitive(solver, solver->mesh->bc[ii]);
     }
+    */
+    
+    
+    for(int ii=0; ii<solver->Nboundary; ii++)
+    {
+        solver->boundaryL[ii]->primitive(solver->boundaryL[ii], solver);
+    }
+    
     
 }
 
