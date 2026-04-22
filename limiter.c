@@ -133,7 +133,7 @@ void limiterUpdate(LIMITER* limiter, SOLVER* solver)
         for(int jj=0; jj<solver->Nvar; jj++)
         {
             aux = (Pmax[jj] - Pmin[jj])*limiter->K;
-            limiter->Pref20[jj] = aux*aux;
+            limiter->Pref20[jj] = aux*aux + 1e-14;
         }
     }
 }
