@@ -793,14 +793,21 @@ void meshCalcDS2(MESH* mesh, int p0, int p1, double* nx, double* ny, double* dS)
     
     *dS = sqrt(dSx*dSx + dSy*dSy);
     
-    *nx = dSx/(*dS);
-    *ny = dSy/(*dS);
-    
-    if(mesh->axi == 1)
-    {
-        *dS = (*dS)*(y0 + y1)*0.5;
+    if(*dS > 0)
+    {    
+        *nx = dSx/(*dS);
+        *ny = dSy/(*dS);
+        
+        if(mesh->axi == 1)
+        {
+            *dS = (*dS)*(y0 + y1)*0.5;
+        }
     }
-
+    else
+    {
+        *nx = 0;
+        *ny = 1;
+    }
 }
 
 int meshBCIsConnect(ELEMENT* BCe, ELEMENT* e)

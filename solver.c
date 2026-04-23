@@ -80,7 +80,7 @@ SOLVER* solverInit(char* wd)
     solver->boundaryL = malloc(solver->Nboundary*sizeof(BOUNDARY*));
     for(int ii=0; ii<solver->Nboundary; ii++)
     {
-        solver->boundaryL[ii] = boundaryInit(solver->input, solver->mesh->bc[ii]);
+        solver->boundaryL[ii] = boundaryInit(solver->input, solver->mesh->bc[ii], solver);
     }
         
     // Get boundary conditions
@@ -824,7 +824,11 @@ void solverCalcR(SOLVER* solver, double** U)
     {
         solverGrad_T(solver);
         laminarInter(solver);
-        laminarBoundary(solver);
+        
+        for(int ii=0; ii<solver->Nboundary; ii++)
+        {
+            boundaryViscous(solver->boundaryL[ii], solver);
+        }        
     }
     
     if(solver->sa1->active)

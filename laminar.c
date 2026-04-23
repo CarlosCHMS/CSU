@@ -11,6 +11,7 @@
 #include"solver.h"
 #include"gasprop.h"
 #include"laminar.h"
+#include"boundary.h"
 
 void laminarInter(SOLVER* solver)
 {
@@ -117,6 +118,179 @@ void laminarBoundary(SOLVER* solver)
     }
 }
 
+void laminarBoundaryViscousFluxSymmetry(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy)
+{
+    int e0, p0, p1;
+    double dux, duy, dvx, dvy, dTx, dTy;
+
+    MESHBC* bc = boundary->bc;
+
+    p0 = bc->elemL[ii]->p[0];
+    p1 = bc->elemL[ii]->p[1];
+
+    ELEMENT* E0 = bc->elemL[ii]->neiL[0];
+    e0 = E0->ii;
+
+   	double nx, ny, dS;
+    meshCalcDS2(solver->mesh, p0, p1, &nx, &ny, &dS);
+    
+    double duxm = solver->dPx[1][e0];
+    double dvxm = solver->dPx[2][e0];
+    double dTxm = solver->dPx[3][e0];
+    
+    double duym = solver->dPy[1][e0];
+    double dvym = solver->dPy[2][e0];
+    double dTym = solver->dPy[3][e0];
+
+    dux = duxm - (duxm*nx + duym*ny)*nx;
+    duy = duym - (duxm*nx + duym*ny)*ny;        
+
+    dvx = dvxm - (dvxm*nx + dvym*ny)*nx;
+    dvy = dvym - (dvxm*nx + dvym*ny)*ny;        
+    
+    dTx = dTxm - (dTxm*nx + dTym*ny)*nx;
+    dTy = dTym - (dTxm*nx + dTym*ny)*ny;        
+    
+    double T = E0->P[4];
+    double mi = gaspropSutherland(T);
+    double k = gasprop_T2Cp(solver->gas, T)*mi/solver->gas->Pr;            
+        
+    double txx = 2*mi*(dux - (dux + dvy)/3);
+    double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+    double txy = mi*(duy + dvx);  
+    
+    double u = E0->P[1];
+    double v = E0->P[2];		        
+    
+    f[1] = (txx*nx + txy*ny)*dS;
+    f[2] = (txy*nx + tyy*ny)*dS;
+    f[3] = (u*(txx*nx + txy*ny) + v*(txy*nx + tyy*ny) + k*(dTx*nx + dTy*ny))*dS;
+}
+
+
+void laminarBoundaryViscousFluxGeneral(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy)
+{
+    int e0, p0, p1;
+    double x0, x1, y0, y1;
+    double dux, duy, dvx, dvy, dTx, dTy;
+    double aux;
+
+    MESHBC* bc = boundary->bc;
+
+    p0 = bc->elemL[ii]->p[0];
+    p1 = bc->elemL[ii]->p[1];
+
+    ELEMENT* E0 = bc->elemL[ii]->neiL[0];
+    ELEMENT* E1 = bc->elemL[ii];
+    e0 = E0->ii;
+
+   	double nx, ny, dS;
+    meshCalcDS2(solver->mesh, p0, p1, &nx, &ny, &dS);
+    
+    elementCenter(E0, solver->mesh, &x0, &y0);
+
+   	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
+    y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
+
+    double dx = x1 - x0;		    
+    double dy = y1 - y0;
+    double L = sqrt(dx*dx + dy*dy);    
+    
+    double dul = (E1->P[1] - E0->P[1])/L;
+    double dvl = (E1->P[2] - E0->P[2])/L;            
+    double dTl = (E1->P[4] - E0->P[4])/L; 
+
+    double duxm = solver->dPx[1][e0];
+    double dvxm = solver->dPx[2][e0];
+    double dTxm = solver->dPx[3][e0];
+    
+    double duym = solver->dPy[1][e0];
+    double dvym = solver->dPy[2][e0];
+    double dTym = solver->dPy[3][e0];
+
+    aux = (duxm*dx + duym*dy)/L;
+    dux = duxm + (dul - aux)*dx/L;
+    duy = duym + (dul - aux)*dy/L;        
+
+    aux = (dvxm*dx + dvym*dy)/L;
+    dvx = dvxm + (dvl - aux)*dx/L;
+    dvy = dvym + (dvl - aux)*dy/L;  
+    
+    aux = (dTxm*dx + dTym*dy)/L;
+    dTx = dTxm + (dTl - aux)*dx/L;
+    dTy = dTym + (dTl - aux)*dy/L;      
+    
+    double T = E1->P[4];
+    double mi = gaspropSutherland(T);
+    double k = gasprop_T2Cp(solver->gas, T)*mi/solver->gas->Pr;            
+        
+    double txx = 2*mi*(dux - (dux + dvy)/3);
+    double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+    double txy = mi*(duy + dvx);  
+    
+    double u = E1->P[1];
+    double v = E1->P[2];		        
+    
+    f[1] = (txx*nx + txy*ny)*dS;
+    f[2] = (txy*nx + tyy*ny)*dS;
+    f[3] = (u*(txx*nx + txy*ny) + v*(txy*nx + tyy*ny) + k*(dTx*nx + dTy*ny))*dS;
+}
+
+void laminarBoundaryViscousFluxWall(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy)
+{
+    int e0, p0, p1;
+    double x0, x1, y0, y1;
+    double dux, duy, dvx, dvy;
+    double aux;
+
+    MESHBC* bc = boundary->bc;
+
+    p0 = bc->elemL[ii]->p[0];
+    p1 = bc->elemL[ii]->p[1];
+
+    ELEMENT* E0 = bc->elemL[ii]->neiL[0];
+    ELEMENT* E1 = bc->elemL[ii];
+    e0 = E0->ii;
+
+   	double nx, ny, dS;
+    meshCalcDS2(solver->mesh, p0, p1, &nx, &ny, &dS);
+    
+    elementCenter(E0, solver->mesh, &x0, &y0);
+
+   	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
+    y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
+
+    double dx = x1 - x0;		    
+    double dy = y1 - y0;
+    double L = sqrt(dx*dx + dy*dy);        
+    
+    double dul = (E1->P[1] - E0->P[1])/L;
+    double dvl = (E1->P[2] - E0->P[2])/L;
+
+    double duxm = solver->dPx[1][e0];
+    double dvxm = solver->dPx[2][e0];
+    
+    double duym = solver->dPy[1][e0];
+    double dvym = solver->dPy[2][e0];
+
+    aux = (duxm*dx + duym*dy)/L;
+    dux = duxm + (dul - aux)*dx/L;
+    duy = duym + (dul - aux)*dy/L;        
+
+    aux = (dvxm*dx + dvym*dy)/L;
+    dvx = dvxm + (dvl - aux)*dx/L;
+    dvy = dvym + (dvl - aux)*dy/L;      
+    
+    double T = E1->P[4];
+    double mi = gaspropSutherland(T);
+        
+    double txx = 2*mi*(dux - (dux + dvy)/3);
+    double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
+    double txy = mi*(duy + dvx);  
+        
+    f[1] = (txx*nx + txy*ny)*dS;
+    f[2] = (txy*nx + tyy*ny)*dS;
+}
 
 void boundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f)
 {
@@ -341,14 +515,14 @@ void boundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f)
 
 void laminarWriteSurf(SOLVER* solver)
 {
-
-    MESHBC* bc;
     char s[50];
         
     s[0] = '\0';
     strcat(s, solver->wd);
     strcat(s, "surfData.csv");        
-    FILE* ff = fopen(s, "w");   
+    FILE* ff = fopen(s, "w");  
+    
+    double mi; 
 
     double rin = solver->inlet->Pin[0];
     double uin = solver->inlet->Pin[1];
@@ -359,13 +533,14 @@ void laminarWriteSurf(SOLVER* solver)
     
     for(int jj=0; jj<solver->mesh->Nmark; jj++)
     {
-        bc = solver->mesh->bc[jj];
+        BOUNDARY* boundary = solver->boundaryL[jj];
+        MESHBC* bc = boundary->bc;
 
         if(strcmp(bc->name, solver->writeSurf) == 0)
         {
-            fprintf(ff, "x,y,rho,u,v,p,T,n,Cp,Cfx,Cfy,q,yplus,mach,\n");
+            fprintf(ff, "x,y,rho,u,v,p,T,Cp,Cfx,Cfy,q,yplus,mach,\n");
                     
-            int Nvar = 12;
+            int Nvar = 11;
             int Nelem = bc->Nelem;
             double** D = tableMallocDouble(Nvar, Nelem);
             double** Dp = tableMallocDouble(Nvar, Nelem+1);
@@ -397,51 +572,46 @@ void laminarWriteSurf(SOLVER* solver)
         
             for(int ii=0; ii<bc->Nelem; ii++)
             {                                
-                for(int kk=0; kk<Nvar; kk++)
-                {
-                    int p0 = bc->elemL[ii]->p[0];
-                    int p1 = bc->elemL[ii]->p[1];
-                    double dSx, dSy, dS;
-                    meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+                int p0 = bc->elemL[ii]->p[0];
+                int p1 = bc->elemL[ii]->p[1];
+                double dSx, dSy, dS;
+                meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+            
+                dS = sqrt(dSx*dSx + dSy*dSy);
+            
+                double r = bc->elemL[ii]->P[0];
+                double u = bc->elemL[ii]->P[1];
+                double v = bc->elemL[ii]->P[2];                    
+                double p = bc->elemL[ii]->P[3];
+                double T = bc->elemL[ii]->P[4];                    
                 
-                    dS = sqrt(dSx*dSx + dSy*dSy);
-                
-                    double r = bc->elemL[ii]->P[0];
-                    double u = bc->elemL[ii]->P[1];
-                    double v = bc->elemL[ii]->P[2];                    
-                    double p = bc->elemL[ii]->P[3];
-                    double T = bc->elemL[ii]->P[4];                    
-                    
-                    boundaryFaceViscFlux(solver, bc, ii, f);
+                boundary->viscousFlux(boundary, solver, ii, f, &mi);
 
-                    double Cp = (p - pin)/qdin;                
-                    double Cfx = f[1]/(dS*qdin);
-                    double Cfy = f[2]/(dS*qdin);
-                    double q = (f[3] - u*f[1] - v*f[2])/dS;
-                    double tau = sqrt(f[1]*f[1] + f[2]*f[2])/dS;
-                    double uplus = sqrt(tau/r);
-                    int iiaux = bc->elemL[ii]->neiL[0]->ii;
-                    double yplus = fabs(r*uplus*solver->mesh->d[iiaux])/gaspropSutherland(T);
-                    double c = gasprop_T2c(solver->gas, T);
-                    double mach = sqrt(u*u + v*v)/c;
-                    
-                    D[0][ii] = r;
-                    D[1][ii] = u;
-                    D[2][ii] = v;
-                    D[3][ii] = p;
-                    D[4][ii] = T;
-                    
-                    D[5][ii] = bc->elemL[ii]->P[5];
-                    D[6][ii] = Cp;
-                    D[7][ii] = Cfx;
-                    D[8][ii] = Cfy;
-                    D[9][ii] = q;
-                    D[10][ii] = yplus;
-                    D[11][ii] = mach;
-                }
+                double Cp = (p - pin)/qdin;                
+                double Cfx = f[1]/(dS*qdin);
+                double Cfy = f[2]/(dS*qdin);
+                double q = (f[3] - u*f[1] - v*f[2])/dS;
+                double tau = sqrt(f[1]*f[1] + f[2]*f[2])/dS;
+                double uplus = sqrt(tau/r);
+                int iiaux = bc->elemL[ii]->neiL[0]->ii;
+                double yplus = fabs(r*uplus*solver->mesh->d[iiaux])/gaspropSutherland(T);
+                double c = gasprop_T2c(solver->gas, T);
+                double mach = sqrt(u*u + v*v)/c;
+                
+                D[0][ii] = r;
+                D[1][ii] = u;
+                D[2][ii] = v;
+                D[3][ii] = p;
+                D[4][ii] = T;
+                
+                D[5][ii] = Cp;
+                D[6][ii] = Cfx;
+                D[7][ii] = Cfy;
+                D[8][ii] = q;
+                D[9][ii] = yplus;
+                D[10][ii] = mach;
             }
             
-
             
             for(int ii=0; ii<bc->Nelem; ii++)
             {                

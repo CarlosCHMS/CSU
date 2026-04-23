@@ -11,4 +11,10 @@ void laminarBoundary(SOLVER* solver);
 
 void laminarWriteSurf(SOLVER* solver);
 
+void laminarBoundaryViscousFluxSymmetry(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy);
+
+void laminarBoundaryViscousFluxGeneral(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy);
+
+void laminarBoundaryViscousFluxWall(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy);
+
 #endif

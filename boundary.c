@@ -16,7 +16,7 @@
 #include"sst.h"
 
 
-BOUNDARY* boundaryInit(INPUT* input, MESHBC* bc)
+BOUNDARY* boundaryInit(INPUT* input, MESHBC* bc, SOLVER* solver)
 {
 
     BOUNDARY* boundary = malloc(sizeof(BOUNDARY));
@@ -39,26 +39,69 @@ BOUNDARY* boundaryInit(INPUT* input, MESHBC* bc)
     {
         boundary->primitive = boundaryPrimitiveSymmetry;
         boundary->convective = boundaryConvectiveSymmetry;
+        if(solver->laminar)
+        {
+            boundary->viscousFlux = laminarBoundaryViscousFluxSymmetry;
+        }
+        else if(solver->sa1->active)
+        {
+            boundary->viscousFlux = saBoundaryViscousFluxSymmetry;
+        }
     }
     else if(strcmp(boundary->type, "inlet") == 0)
     {
         boundary->primitive = boundaryPrimitiveInlet;
         boundary->convective = boundaryConvectiveGeneral;
+        if(solver->laminar)
+        {
+            boundary->viscousFlux = laminarBoundaryViscousFluxGeneral;
+        }
+        else if(solver->sa1->active)
+        {
+            boundary->viscousFlux = saBoundaryViscousFluxGeneral;
+        }
+
     }
     else if(strcmp(boundary->type, "outlet") == 0)
     {
         boundary->primitive = boundaryPrimitiveOutlet;
         boundary->convective = boundaryConvectiveGeneral;
+        if(solver->laminar)
+        {
+            boundary->viscousFlux = laminarBoundaryViscousFluxGeneral;
+        }
+        else if(solver->sa1->active)
+        {
+            boundary->viscousFlux = saBoundaryViscousFluxGeneral;
+        }
+
     }
     else if(strcmp(boundary->type, "wall") == 0)
     {
         boundary->primitive = boundaryPrimitiveWall;
         boundary->convective = boundaryConvectiveGeneral;
+        if(solver->laminar)
+        {
+            boundary->viscousFlux = laminarBoundaryViscousFluxWall;
+        }
+        else if(solver->sa1->active)
+        {
+            boundary->viscousFlux = saBoundaryViscousFluxWall;
+        }
+
     }
     else if(strcmp(boundary->type, "wallT") == 0)
     {
         boundary->primitive = boundaryPrimitiveWallT;
         boundary->convective = boundaryConvectiveGeneral;
+        if(solver->laminar)
+        {
+            boundary->viscousFlux = laminarBoundaryViscousFluxGeneral;
+        }
+        else if(solver->sa1->active)
+        {
+            boundary->viscousFlux = saBoundaryViscousFluxGeneral;
+        }
     }
     else
     {
@@ -1007,5 +1050,26 @@ void boundaryCalcFrictionWall(SOLVER* solver, ELEMENT* E, double* fx, double* fy
         *fx = txx*dSx + txy*dSy;
 		*fy = txy*dSx + tyy*dSy;
 
+}
+
+void boundaryViscous(BOUNDARY* boundary, SOLVER* solver)
+{
+
+    int e0;
+    double f[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    MESHBC* bc = boundary->bc;
+    double miEddy;
+
+    for(int ii=0; ii<bc->Nelem; ii++)
+    {
+        e0 = bc->elemL[ii]->neiL[0]->ii;
+ 
+        boundary->viscousFlux(boundary, solver, ii, f, &miEddy);
+ 
+        for(int kk=1; kk<solver->Nvar; kk++)
+        {
+            solver->R[kk][e0] -= f[kk];
+        }   
+    }        
 }
 

@@ -9,6 +9,8 @@ typedef struct MESHBC MESHBC;
 
 typedef struct INPUT INPUT;
 
+typedef struct BOUNDARY BOUNDARY;
+
 typedef struct SA
 {
     bool active;
@@ -53,5 +55,11 @@ void saBoundary(SOLVER* solver);
 void saBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, double* miEddy);
 
 void saSolverWriteSurf(SOLVER* solver);
+
+void saBoundaryViscousFluxSymmetry(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy);
+
+void saBoundaryViscousFluxGeneral(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy);
+
+void saBoundaryViscousFluxWall(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy);
 
 #endif
