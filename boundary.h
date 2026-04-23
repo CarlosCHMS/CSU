@@ -8,6 +8,7 @@ typedef struct BOUNDARY
     char type[50];
     
     void (*primitive) (BOUNDARY*, SOLVER*);
+    void (*convective) (BOUNDARY*, SOLVER*);
 
 } BOUNDARY;
 
@@ -38,5 +39,9 @@ void boundaryPrimitiveOutlet(BOUNDARY* boundary, SOLVER* solver);
 void boundaryPrimitiveWall(BOUNDARY* boundary, SOLVER* solver);
 
 void boundaryPrimitiveWallT(BOUNDARY* boundary, SOLVER* solver);
+
+void boundaryConvectiveSymmetry(BOUNDARY* boundary, SOLVER* solver);
+
+void boundaryConvectiveGeneral(BOUNDARY* boundary, SOLVER* solver);
 
 #endif

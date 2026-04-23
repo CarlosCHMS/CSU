@@ -38,22 +38,27 @@ BOUNDARY* boundaryInit(INPUT* input, MESHBC* bc)
     if(strcmp(boundary->type, "symmetry") == 0)
     {
         boundary->primitive = boundaryPrimitiveSymmetry;
+        boundary->convective = boundaryConvectiveSymmetry;
     }
     else if(strcmp(boundary->type, "inlet") == 0)
     {
         boundary->primitive = boundaryPrimitiveInlet;
+        boundary->convective = boundaryConvectiveGeneral;
     }
     else if(strcmp(boundary->type, "outlet") == 0)
     {
         boundary->primitive = boundaryPrimitiveOutlet;
+        boundary->convective = boundaryConvectiveGeneral;
     }
     else if(strcmp(boundary->type, "wall") == 0)
     {
         boundary->primitive = boundaryPrimitiveWall;
+        boundary->convective = boundaryConvectiveGeneral;
     }
     else if(strcmp(boundary->type, "wallT") == 0)
     {
         boundary->primitive = boundaryPrimitiveWallT;
+        boundary->convective = boundaryConvectiveGeneral;
     }
     else
     {
@@ -157,13 +162,132 @@ void boundaryWall(SOLVER* solver, double* Pd, double* Pb, double nx, double ny)
     
 }
 
+void boundaryConvectiveGeneral(BOUNDARY* boundary, SOLVER* solver)
+{
+    
+    MESHBC* bc = boundary->bc;
+    
+    int kk;
+    double dSx, dSy, dS;
+    double aux;
+    double PL[6];
+    double Pb[6];
+    double f[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    int e0, p0, p1;
+
+    for(int ii=0; ii<bc->Nelem; ii++)
+    {
+ 
+        e0 = bc->elemL[ii]->neiL[0]->ii;
+        p0 = bc->elemL[ii]->p[0];
+        p1 = bc->elemL[ii]->p[1];
+ 
+        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+        dS = sqrt(dSx*dSx + dSy*dSy);
+        
+        for(kk=0; kk<solver->Nvar; kk++)
+	    {
+	        if(kk > 3)
+	        {
+		        PL[kk] = solver->mesh->elemL[e0]->P[kk+1];
+		        Pb[kk] = bc->elemL[ii]->P[kk+1];
+		    }
+		    else
+		    {
+		        PL[kk] = solver->mesh->elemL[e0]->P[kk];
+		        Pb[kk] = bc->elemL[ii]->P[kk];
+		    }
+	    }      		
+                
+        // Rotation of the velocity vectors
+        rotation(PL, dSx, dSy, dS);
+        rotation(Pb, dSx, dSy, dS);
+        
+        // Flux calculation
+        solver->flux1->func(solver->flux1, solver->gas, PL, Pb, f);
+
+        // Rotation of the flux
+	    rotation(f, dSx, -dSy, dS);
+        
+        if(dS > 0)
+        {             
+            for(kk=0; kk<solver->Nvar; kk++)
+            {
+                aux = f[kk]*dS;
+                solver->R[kk][e0] += aux;
+            }
+        } 
+    }
+}
+
+
+void boundaryConvectiveSymmetry(BOUNDARY* boundary, SOLVER* solver)
+{
+    
+    MESHBC* bc = boundary->bc;;
+    
+    int kk;
+    double dSx, dSy, dS;
+    double aux;
+    double PL[6];
+    double Pb[6];
+    double f[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    int e0, p0, p1;
+
+    for(int ii=0; ii<bc->Nelem; ii++)
+    {
+ 
+        e0 = bc->elemL[ii]->neiL[0]->ii;
+        p0 = bc->elemL[ii]->p[0];
+        p1 = bc->elemL[ii]->p[1];
+ 
+        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+        dS = sqrt(dSx*dSx + dSy*dSy);
+        
+        for(kk=0; kk<solver->Nvar; kk++)
+	    {
+	        if(kk > 3)
+	        {
+		        PL[kk] = solver->mesh->elemL[e0]->P[kk+1];
+		    }
+		    else
+		    {
+		        PL[kk] = solver->mesh->elemL[e0]->P[kk];			
+		    }
+	    }      		
+        
+        // Rotation of the velocity vectors
+        rotation(PL, dSx, dSy, dS);
+    
+        for(int kk=0; kk<solver->Nvar; kk++)
+        {
+            Pb[kk] = PL[kk];
+        }
+        Pb[1] *= -1;
+    
+        solver->flux1->func(solver->flux1, solver->gas, PL, Pb, f);
+        
+        // Rotation of the flux
+	    rotation(f, dSx, -dSy, dS);
+        
+        if(dS > 0)
+        {             
+            for(kk=0; kk<solver->Nvar; kk++)
+            {
+                aux = f[kk]*dS;
+                solver->R[kk][e0] += aux;
+            }
+        } 
+    }
+}
+
 
 void boundary1(SOLVER* solver)
 {
 
-    for(int ii=0; ii<solver->mesh->Nmark; ii++)
+    for(int jj=0; jj<solver->mesh->Nmark; jj++)
     {
-        MESHBC* bc = solver->mesh->bc[ii];
+        MESHBC* bc = solver->mesh->bc[jj];
         
 	    int kk;
         double dSx, dSy, dS;
@@ -172,6 +296,16 @@ void boundary1(SOLVER* solver)
 	    double Pb[6];
         double f[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         int e0, p0, p1;
+        if(jj==2)
+        {
+            solver->boundaryL[jj]->convective(solver->boundaryL[jj], solver);
+            if(0)//jj==2)
+            {
+                printf("\n%s\n", solver->boundaryL[jj]->type);
+            }
+        }
+        else
+        {
 
         for(int ii=0; ii<bc->Nelem; ii++)
         {
@@ -216,6 +350,18 @@ void boundary1(SOLVER* solver)
                 //Inlet
                 boundaryInlet(solver, solver->inlet->Pin, PL, Pb, dSx/dS, dSy/dS);
 
+                for(kk=0; kk<solver->Nvar; kk++)
+	            {
+	                if(kk > 3)
+	                {
+		                Pb[kk] = bc->elemL[ii]->P[kk+1];
+		            }
+		            else
+		            {
+		                Pb[kk] = bc->elemL[ii]->P[kk];
+		            }
+	            }
+
                 // Rotation of the velocity vectors
                 rotation(PL, dSx, dSy, dS);
 	            rotation(Pb, dSx, dSy, dS);
@@ -233,7 +379,19 @@ void boundary1(SOLVER* solver)
             else if(bc->flagBC == 2)
             {           
                 //Outlet
-                boundaryOutlet(solver, PL, Pb, dSx/dS, dSy/dS);
+                //boundaryOutlet(solver, PL, Pb, dSx/dS, dSy/dS);
+                
+                for(kk=0; kk<solver->Nvar; kk++)
+	            {
+	                if(kk > 3)
+	                {
+		                Pb[kk] = bc->elemL[ii]->P[kk+1];
+		            }
+		            else
+		            {
+		                Pb[kk] = bc->elemL[ii]->P[kk];
+		            }
+	            }
 
                 // Rotation of the velocity vectors
                 rotation(PL, dSx, dSy, dS);
@@ -281,7 +439,20 @@ void boundary1(SOLVER* solver)
                 */
                 
                 // Rotation of the velocity vectors
-                boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
+                //boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
+                
+                for(kk=0; kk<solver->Nvar; kk++)
+	            {
+	                if(kk > 3)
+	                {
+		                Pb[kk] = bc->elemL[ii]->P[kk+1];
+		            }
+		            else
+		            {
+		                Pb[kk] = bc->elemL[ii]->P[kk];
+		            }
+	            }
+	            
                 rotation(PL, dSx, dSy, dS);
 	            rotation(Pb, dSx, dSy, dS);
             
@@ -289,7 +460,8 @@ void boundary1(SOLVER* solver)
                 {
                     for(int kk=4; kk<solver->Nvar; kk++)
                     {
-                        Pb[kk] = PL[kk];
+                        Pb[kk] = bc->elemL[ii]->P[kk+1];                    
+                        //Pb[kk] = PL[kk];
                     }
                 }
                 
@@ -308,6 +480,7 @@ void boundary1(SOLVER* solver)
                     solver->R[kk][e0] += aux;
                 }
             } 
+        }
         }
     }
 }
@@ -396,7 +569,7 @@ void boundaryPrimitiveSymmetry(BOUNDARY* boundary, SOLVER* solver)
             PL[2] = 0.0;                
         }
         
-        for(kk=0; kk<solver->Nvar; kk++)
+        for(kk=0; kk<solver->Nvar+1; kk++)
         {
             bc->elemL[ii]->P[kk] = PL[kk];
         }
@@ -437,7 +610,7 @@ void boundaryPrimitiveInlet(BOUNDARY* boundary, SOLVER* solver)
         
         bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->gas->R);
         
-        for(kk=5; kk<solver->Nvar; kk++)
+        for(kk=5; kk<solver->Nvar+1; kk++)
         {
             bc->elemL[ii]->P[kk] = solver->inlet->Pin[kk];
         }
@@ -479,7 +652,7 @@ void boundaryPrimitiveOutlet(BOUNDARY* boundary, SOLVER* solver)
 
         bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->gas->R);
         
-        for(kk=5; kk<solver->Nvar; kk++)
+        for(kk=5; kk<solver->Nvar+1; kk++)
         {
             bc->elemL[ii]->P[kk] = E0->P[kk];
         }
@@ -522,24 +695,13 @@ void boundaryPrimitiveWall(BOUNDARY* boundary, SOLVER* solver)
             bc->elemL[ii]->P[3] = Pb[3];
         }
         else
-        {                        
-            if(dS > 0)
-            {                
-                boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
-                for(kk=0; kk<4; kk++)
-                {
-                    bc->elemL[ii]->P[kk] = Pb[kk];
-                }                    
-            }
-            else
+        {                              
+            boundaryWall(solver, PL, Pb, dSx/dS, dSy/dS);
+            
+            for(kk=0; kk<4; kk++)
             {
-                PL[2] = 0.0;                
-                for(kk=0; kk<4; kk++)
-                {
-                    bc->elemL[ii]->P[kk] = PL[kk];
-                }                    
-            }
-
+                bc->elemL[ii]->P[kk] = Pb[kk];
+            } 
         }
 
         bc->elemL[ii]->P[4] = bc->elemL[ii]->P[3]/(bc->elemL[ii]->P[0]*solver->gas->R);

@@ -24,10 +24,12 @@ Curve Loop(1) = {2, 3, 4, 5, 1};
 //+
 Plane Surface(1) = {1};
 //+
-Physical Curve("wall1") = {1, 2};
+Physical Curve("sym") = {1};
+//
+Physical Curve("wall1") = {2};
 //+
-Physical Curve("wall2") = {3};
+Physical Curve("out") = {3};
 //+
-Physical Curve("wall3") = {4};
+Physical Curve("wall2") = {4};
 //+
-Physical Curve("wall4") = {5};
+Physical Curve("inlet") = {5};

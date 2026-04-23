@@ -807,8 +807,13 @@ void solverCalcR(SOLVER* solver, double** U)
     solverUpdateGrad(solver);
 
     inter(solver);
-     
-    boundary1(solver); 
+    
+    //boundary1(solver);
+    
+    for(int ii=0; ii<solver->Nboundary; ii++)
+    {
+        solver->boundaryL[ii]->convective(solver->boundaryL[ii], solver);
+    }
     
     if(solver->mesh->axi==1)
     {
