@@ -625,7 +625,7 @@ void boundaryPrimitiveSymmetry(BOUNDARY* boundary, SOLVER* solver)
     {
         int kk;
         double dSx, dSy, dS;
-        double PL[4];
+        double PL[7];
 
         int p0, p1;
  
@@ -636,7 +636,7 @@ void boundaryPrimitiveSymmetry(BOUNDARY* boundary, SOLVER* solver)
         meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
         dS = sqrt(dSx*dSx + dSy*dSy);
         
-        for(kk=0; kk<4; kk++)
+        for(kk=0; kk<solver->Nvar+1; kk++)
 		{
 			PL[kk] = E0->P[kk];
 		}      		
@@ -677,12 +677,12 @@ void boundaryPrimitiveInlet(BOUNDARY* boundary, SOLVER* solver)
         p1 = bc->elemL[ii]->p[1];
  
         meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-        dS = sqrt(dSx*dSx + dSy*dSy);
+        dS = sqrt(dSx*dSx + dSy*dSy);      		
         
         for(kk=0; kk<4; kk++)
-		{
-			PL[kk] = E0->P[kk];
-		}      		
+        {
+            PL[kk] = E0->P[kk];
+        }
         
         boundaryInlet(solver, solver->inlet->Pin, PL, Pb, dSx/dS, dSy/dS);
 

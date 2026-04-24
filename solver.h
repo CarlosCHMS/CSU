@@ -36,6 +36,8 @@ typedef struct CONDITION{
 
 typedef struct SOLVER{
 
+    bool isViscous;
+
     int Nvar;
     int Nrow;
     int Ncol;
@@ -55,7 +57,6 @@ typedef struct SOLVER{
     char* wd;
     char writeSurf[50];
 
-    double k4;
     double dt;
     double pout; 
     double k; 
@@ -78,8 +79,6 @@ typedef struct SOLVER{
     double **faceFlux;       
     double **dPx;
     double **dPy;
-    double **uD;
-    double **rD;
     
     CONDITION* inlet;
         

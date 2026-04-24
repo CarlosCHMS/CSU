@@ -51,23 +51,27 @@ SOLVER* solverInit(char* wd)
     solver->sst = sstInit(solver->input);   
 
     // Set number of flow variables and dFlag
+    solver->isViscous = false;
     bool dFlag = false;
     solver->Nvar = 4;
     if(solver->laminar)
     {
         dFlag = true;
+        solver->isViscous = true;
     }
     
     if(solver->sa1->active)
     {
         solver->Nvar = 5;
         dFlag = true;
+        solver->isViscous = true;        
     }    
 
     if(solver->sst->active)
     {
         solver->Nvar = 6;
         dFlag = true;
+        solver->isViscous = true;        
     }
 
     // Load mesh    
@@ -128,6 +132,7 @@ void solverMalloc(SOLVER* solver)
     if(solver->sa1->active)
     {
         solver->miT = malloc(solver->mesh->Ncon*sizeof(double));
+        solver->sa1->miTe = malloc(solver->mesh->Nelem*sizeof(double));
     }
     
     if(solver->sst->active)
@@ -176,6 +181,7 @@ void solverFree(SOLVER* solver)
     if(solver->sa1->active)
     {
         free(solver->miT);
+        free(solver->sa1->miTe);
     }
     
     if(solver->sst->active)
@@ -816,17 +822,23 @@ void solverCalcR(SOLVER* solver, double** U)
     if(solver->mesh->axi==1)
     {
         interAxisPressure(solver);
-    }    
+    }
+    
+    if(solver->isViscous)
+    {
+        solverGrad_T(solver);
+        for(int ii=0; ii<solver->Nboundary; ii++)
+        {
+            boundaryViscous(solver->boundaryL[ii], solver);
+        }
+    }        
     
     if(solver->laminar==1)
     {
-        solverGrad_T(solver);
         laminarInter(solver);        
     }
-    
-    if(solver->sa1->active)
-    {
-        solverGrad_T(solver);
+    else if(solver->sa1->active)
+    {     
         if(solver->sa1->cc)
         {
             saCC_Inter(solver);
@@ -836,19 +848,9 @@ void solverCalcR(SOLVER* solver, double** U)
             saInter(solver);             
         }
     }
-    
-    if(solver->sst->active)
+    else if(solver->sst->active)
     {
-        solverGrad_T(solver);
         sstInter(solver);
-    }
-    
-    if(solver->laminar == 1 || solver->sa1->active || solver->sst->active || solver->sa1->cc)
-    {
-        for(int ii=0; ii<solver->Nboundary; ii++)
-        {
-            boundaryViscous(solver->boundaryL[ii], solver);
-        }
     }
         
     solverFaceRes(solver);
@@ -1754,6 +1756,12 @@ void solverWriteSolution2(SOLVER* solver)
     
     FILE* ff = fopen(fileName, "w");
     int Naux = 3;
+    
+    if(solver->sa1->active)
+    {
+        Naux = 4;
+    }
+    
     if(solver->sst->active)
     {
         Naux = 8;
@@ -1908,7 +1916,40 @@ void solverWriteSolution2(SOLVER* solver)
     }
     else if(solver->sa1->active)
     {
-        fprintf(ff, "r,u,v,p,T,n,mach,H,s,\n");
+        fprintf(ff, "r,u,v,p,T,n,mach,H,s,miEddy,\n");
+        saInterMiT(solver);
+        
+        for(ii=0; ii<solver->mesh->Np; ii++)
+        {       
+            
+            Q[3][ii] = 0.;
+            den[ii] = 0.;
+        }
+
+        for(ii=0; ii<solver->mesh->Nelem; ii++)
+        {
+            E = solver->mesh->elemL[ii];
+            elementCenter(E, solver->mesh, &xc, &yc);
+            
+            for(jj=0; jj<E->Np; jj++)
+            {
+                p = E->p[jj];
+                xp = solver->mesh->p[p][0];
+                yp = solver->mesh->p[p][1];
+                L = sqrt((xp-xc)*(xp-xc) + (yp-yc)*(yp-yc));
+               
+                Q[3][p] += solver->sa1->miTe[ii]/L;
+                den[p] += 1/L;
+            }
+        }
+
+        for(ii=0; ii<solver->mesh->Np; ii++)
+        {
+            if(den[ii] != 0)
+            {
+                 Q[3][ii] /= den[ii];
+            }
+        }
     }
     else
     {

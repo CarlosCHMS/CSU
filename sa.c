@@ -301,6 +301,7 @@ void saBoundaryViscousFluxSymmetry(BOUNDARY* boundary, SOLVER* solver, int ii, d
     p0 = bc->elemL[ii]->p[0];
     p1 = bc->elemL[ii]->p[1];
 
+    //ELEMENT* E0 = bc->elemL[ii]->neiL[0]; 
     ELEMENT* E1 = bc->elemL[ii]; 
 
     //symmetry
@@ -663,5 +664,29 @@ void saSolverWriteSurf(SOLVER* solver)
     fclose(ff);
 }
 
+void saInterMiT(SOLVER* solver)
+{
+    # pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        ELEMENT* E0 = solver->mesh->elemL[ii];
+
+        double dnx = solver->dPx[4][ii];
+        double dny = solver->dPy[4][ii];
+
+        // Flow variables in the face
+        double r = E0->P[0];
+        double T = E0->P[4];
+        double n = E0->P[5];
+        
+        double n_L = gaspropSutherland(T)/r;
+        
+        double fv1, tx, ty;
+        
+        saCalcFace(solver->sa1, n, n_L, r, dnx, dny, &fv1, &tx, &ty);
+
+        solver->sa1->miTe[ii] = fv1*r*n;;               
+    }
+}
 
 

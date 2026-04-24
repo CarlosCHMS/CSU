@@ -30,6 +30,8 @@ typedef struct SA
     double Cw3_6;
     double turbRatio;
 
+    double *miTe; 
+
 } SA;
 
 SA* saInit(INPUT* input);
@@ -55,5 +57,7 @@ void saBoundaryViscousFluxSymmetry(BOUNDARY* boundary, SOLVER* solver, int ii, d
 void saBoundaryViscousFluxGeneral(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy);
 
 void saBoundaryViscousFluxWall(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy);
+
+void saInterMiT(SOLVER* solver);
 
 #endif
