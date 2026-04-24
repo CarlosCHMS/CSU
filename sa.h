@@ -48,12 +48,6 @@ void saCalcFace(SA* sa, double ni, double ni_L, double r, double dnix, double dn
 
 void saCalcSource(SA* sa, double ni, double ni_L, double S, double d, double rho, double drx, double dry, double dnix, double dniy, double* Qt);
 
-void saBoundaryFace(SOLVER* solver, MESHBC* bc);
-
-void saBoundary(SOLVER* solver);
-
-void saBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, double* miEddy);
-
 void saSolverWriteSurf(SOLVER* solver);
 
 void saBoundaryViscousFluxSymmetry(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy);

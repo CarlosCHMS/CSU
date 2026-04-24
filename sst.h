@@ -112,12 +112,6 @@ void sstInterFace(SOLVER* solver);
 
 void sstInter(SOLVER* solver);
 
-void sstBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, double* miEddy);
-
-void sstBoundaryFace(SOLVER* solver, MESHBC* bc);
-
-void sstBoundary(SOLVER* solver);
-
 double sstBlend(double x1, double x2, double F1);
 
 void sstInterSource(SOLVER* solver);

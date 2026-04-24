@@ -288,30 +288,12 @@ of the Spalart-Allmaras Turbulence Model, 2012
 
 }
 
-void saBoundaryFace(SOLVER* solver, MESHBC* bc)
-{
-    double f[5];
-    double miEddy;
-    int e0;
-
-    for(int ii=0; ii<bc->Nelem; ii++)
-    {
-        e0 = bc->elemL[ii]->neiL[0]->ii;
-
-        saBoundaryFaceViscFlux(solver, bc, ii, f, &miEddy);
-
-        solver->R[1][e0] -= f[1];
-        solver->R[2][e0] -= f[2];
-        solver->R[3][e0] -= f[3];
-        solver->R[4][e0] -= f[4];
-	}
-}
 
 void saBoundaryViscousFluxSymmetry(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy)
 {
 
     int e0, p0, p1;
-    double dux, duy, dvx, dvy, dTx, dTy, dnx, dny;
+    double dux, duy, dvx, dvy, dnx, dny;
 
     MESHBC* bc = boundary->bc;
 
@@ -319,7 +301,7 @@ void saBoundaryViscousFluxSymmetry(BOUNDARY* boundary, SOLVER* solver, int ii, d
     p0 = bc->elemL[ii]->p[0];
     p1 = bc->elemL[ii]->p[1];
 
-    ELEMENT* E0 = bc->elemL[ii]->neiL[0];
+    ELEMENT* E1 = bc->elemL[ii]; 
 
     //symmetry
    	double nx, ny, dS;
@@ -327,12 +309,10 @@ void saBoundaryViscousFluxSymmetry(BOUNDARY* boundary, SOLVER* solver, int ii, d
     
     double duxm = solver->dPx[1][e0];
     double dvxm = solver->dPx[2][e0];
-    double dTxm = solver->dPx[3][e0];
     double dnxm = solver->dPx[4][e0];    
     
     double duym = solver->dPy[1][e0];
     double dvym = solver->dPy[2][e0];
-    double dTym = solver->dPy[3][e0];
     double dnym = solver->dPy[4][e0];    
 
     dux = duxm - (duxm*nx + duym*ny)*nx;
@@ -341,18 +321,15 @@ void saBoundaryViscousFluxSymmetry(BOUNDARY* boundary, SOLVER* solver, int ii, d
     dvx = dvxm - (dvxm*nx + dvym*ny)*nx;
     dvy = dvym - (dvxm*nx + dvym*ny)*ny;        
     
-    dTx = dTxm - (dTxm*nx + dTym*ny)*nx;
-    dTy = dTym - (dTxm*nx + dTym*ny)*ny;        
-
     dnx = dnxm - (dnxm*nx + dnym*ny)*nx;
     dny = dnym - (dnxm*nx + dnym*ny)*ny;
     
     // Flow variables in the face
-    double rho = E0->P[0];
-    double u = E0->P[1];
-    double v = E0->P[2];
-    double T = E0->P[4];
-    double n = E0->P[5];
+    double rho = E1->P[0];
+    double u = E1->P[1];
+    double v = E1->P[2];
+    double T = E1->P[4];
+    double n = E1->P[5];
 
     double mi_L = gaspropSutherland(T);
     double n_L = mi_L/rho;
@@ -365,7 +342,6 @@ void saBoundaryViscousFluxSymmetry(BOUNDARY* boundary, SOLVER* solver, int ii, d
 
     double mi_t = fv1*rho*n;
     double mi = mi_L + mi_t;
-    double k = gasprop_T2Cp(solver->gas, T)*(mi_L/solver->gas->Pr + mi_t/solver->gas->Pr_t);          
         
     double txx = 2*mi*(dux - (dux + dvy)/3);
     double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
@@ -373,7 +349,7 @@ void saBoundaryViscousFluxSymmetry(BOUNDARY* boundary, SOLVER* solver, int ii, d
     
     f[1] = (txx*nx + txy*ny)*dS;
     f[2] = (txy*nx + tyy*ny)*dS;
-    f[3] = (u*(txx*nx + txy*ny) + v*(txy*nx + tyy*ny) + k*(dTx*nx + dTy*ny))*dS;
+    f[3] = (u*(txx*nx + txy*ny) + v*(txy*nx + tyy*ny))*dS;
     *miEddy = mi_t;
 
 }
@@ -542,341 +518,6 @@ void saBoundaryViscousFluxWall(BOUNDARY* boundary, SOLVER* solver, int ii, doubl
     f[3] = 0.0;
     f[4] = tx*dSx + ty*dSy;
     *miEddy = 0.0;
-}
-
-
-
-void saBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, double* miEddy)
-{
-
-    int e0, p0, p1;
-    double x0, x1, y0, y1;
-    double dux, duy, dvx, dvy, dTx, dTy, dnx, dny;
-
-    e0 = bc->elemL[ii]->neiL[0]->ii;
-    p0 = bc->elemL[ii]->p[0];
-    p1 = bc->elemL[ii]->p[1];
-
-    ELEMENT* E0 = bc->elemL[ii]->neiL[0];
-
-    if(bc->flagBC == 0)
-    {
-        //symmetry
-       	double nx, ny, dS;
-        meshCalcDS2(solver->mesh, p0, p1, &nx, &ny, &dS);
-        
-        double duxm = solver->dPx[1][e0];
-        double dvxm = solver->dPx[2][e0];
-        double dTxm = solver->dPx[3][e0];
-        
-        double duym = solver->dPy[1][e0];
-        double dvym = solver->dPy[2][e0];
-        double dTym = solver->dPy[3][e0];
-
-        dux = duxm - (duxm*nx + duym*ny)*nx;
-        duy = duym - (duxm*nx + duym*ny)*ny;        
-
-        dvx = dvxm - (dvxm*nx + dvym*ny)*nx;
-        dvy = dvym - (dvxm*nx + dvym*ny)*ny;        
-        
-        dTx = dTxm - (dTxm*nx + dTym*ny)*nx;
-        dTy = dTym - (dTxm*nx + dTym*ny)*ny;        
-        
-        // Flow variables in the face
-        double rho = E0->P[0];
-        double u = E0->P[1];
-        double v = E0->P[2];
-        double T = E0->P[4];
-        double n = E0->P[5];
-
-        double mi_L = gaspropSutherland(T);
-        double n_L = mi_L/rho;
-
-        double fv1;
-        double tx;
-        double ty;
-
-        saCalcFace(solver->sa1, n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
-
-        double mi_t = fv1*rho*n;
-        double mi = mi_L + mi_t;
-        double k = gasprop_T2Cp(solver->gas, T)*(mi_L/solver->gas->Pr + mi_t/solver->gas->Pr_t);          
-            
-        double txx = 2*mi*(dux - (dux + dvy)/3);
-        double tyy = 2*mi*(dvy - (dux + dvy)/3);		    
-        double txy = mi*(duy + dvx);  
-        
-        f[1] = (txx*nx + txy*ny)*dS;
-        f[2] = (txy*nx + tyy*ny)*dS;
-        f[3] = (u*(txx*nx + txy*ny) + v*(txy*nx + tyy*ny) + k*(dTx*nx + dTy*ny))*dS;
-        f[4] = 0.0;
-        *miEddy = mi_t;
-        
-    }
-    else if(bc->flagBC == 1)
-    {
-        //inlet
-        double dSx, dSy;
-        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-
-        elementCenter(E0, solver->mesh, &x0, &y0);
-
-       	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
-        y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
-
-        double dx = x1 - x0;
-        double dy = y1 - y0;
-        double L = sqrt(dx*dx + dy*dy);
-
-        double dul = (solver->inlet->Pin[1] - E0->P[1])/L;
-        double dvl = (solver->inlet->Pin[2] - E0->P[2])/L;
-        double dTl = (solver->inlet->Pin[4] - E0->P[4])/L;
-        double dnl = (solver->inlet->Pin[5] - E0->P[5])/L;
-
-        double duxm = solver->dPx[1][e0];
-        double dvxm = solver->dPx[2][e0];
-        double dTxm = solver->dPx[3][e0];
-        double dnxm = solver->dPx[4][e0];
-
-        double duym = solver->dPy[1][e0];
-        double dvym = solver->dPy[2][e0];
-        double dTym = solver->dPy[3][e0];
-        double dnym = solver->dPy[4][e0];
-
-        dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
-        duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;
-
-        dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
-        dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
-
-        dTx = dTxm + (dTl - (dTxm*dx + dTym*dy)/L)*dx/L;
-        dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;
-
-        dnx = dnxm + (dnl - (dnxm*dx + dnym*dy)/L)*dx/L;
-        dny = dnym + (dnl - (dnxm*dx + dnym*dy)/L)*dy/L;
-
-        // Flow variables in the face
-        double rho = solver->inlet->Pin[0];
-        double u = solver->inlet->Pin[1];
-        double v = solver->inlet->Pin[2];
-        double T = solver->inlet->Pin[4];
-        double n = solver->inlet->Pin[5];
-
-        double mi_L = gaspropSutherland(T);
-        double n_L = mi_L/rho;
-
-        double fv1;
-        double tx;
-        double ty;
-
-        saCalcFace(solver->sa1, n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
-
-        double mi_t = fv1*rho*n;
-        double mi = mi_L + mi_t;
-        double k = gasprop_T2Cp(solver->gas, T)*(mi_L/solver->gas->Pr + mi_t/solver->gas->Pr_t);
-
-        double txx = 2*mi*(dux - (dux + dvy)/3);
-        double tyy = 2*mi*(dvy - (dux + dvy)/3);
-        double txy = mi*(duy + dvx);
-
-        f[1] = txx*dSx + txy*dSy;
-        f[2] = txy*dSx + tyy*dSy;
-        f[3] = u*(txx*dSx + txy*dSy) + v*(txy*dSx + tyy*dSy) + k*(dTx*dSx + dTy*dSy);
-        f[4] = tx*dSx + ty*dSy;
-        *miEddy = mi_t;
-        
-    }
-    else if(bc->flagBC == 3)
-    {
-        //wall
-        double dSx, dSy;
-        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-
-        elementCenter(E0, solver->mesh, &x0, &y0);
-
-       	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
-        y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
-
-        double dx = x1 - x0;
-        double dy = y1 - y0;
-        double L = sqrt(dx*dx + dy*dy);
-
-        double dul = (0 - E0->P[1])/L;
-        double dvl = (0 - E0->P[2])/L;
-        double dnl = (0 - E0->P[5])/L;
-
-        double duxm = solver->dPx[1][e0];
-        double dvxm = solver->dPx[2][e0];
-        double dnxm = solver->dPx[4][e0];
-
-        double duym = solver->dPy[1][e0];
-        double dvym = solver->dPy[2][e0];
-        double dnym = solver->dPy[4][e0];
-
-        dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
-        duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;
-
-        dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
-        dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
-
-        dnx = dnxm + (dnl - (dnxm*dx + dnym*dy)/L)*dx/L;
-        dny = dnym + (dnl - (dnxm*dx + dnym*dy)/L)*dy/L;
-
-        // Flow variables in the face
-        double rho = E0->P[0];
-        double T = E0->P[4];
-        double n = 0.0;
-
-        double mi_L = gaspropSutherland(T);
-        double n_L = mi_L/rho;
-
-        double fv1;
-        double tx;
-        double ty;
-
-        saCalcFace(solver->sa1, n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
-
-        double mi = mi_L;
-
-        double txx = 2*mi*(dux - (dux + dvy)/3);
-        double tyy = 2*mi*(dvy - (dux + dvy)/3);
-        double txy = mi*(duy + dvx);
-
-        f[1] = txx*dSx + txy*dSy;
-        f[2] = txy*dSx + tyy*dSy;
-        f[3] = 0.0;
-        f[4] = tx*dSx + ty*dSy;
-        *miEddy = 0.0;
-        
-    }
-    else if(bc->flagBC == 4)
-    {
-        //wallT
-        double dSx, dSy;
-        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-
-        elementCenter(E0, solver->mesh, &x0, &y0);
-
-       	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
-        y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
-
-        double dx = x1 - x0;
-        double dy = y1 - y0;
-        double L = sqrt(dx*dx + dy*dy);
-
-        double dul = (0 - E0->P[1])/L;
-        double dvl = (0 - E0->P[2])/L;
-        double dTl = (solver->Twall - E0->P[4])/L;            
-        double dnl = (0 - E0->P[5])/L;
-
-        double duxm = solver->dPx[1][e0];
-        double dvxm = solver->dPx[2][e0];
-        double dTxm = solver->dPx[3][e0];
-        double dnxm = solver->dPx[4][e0];
-
-        double duym = solver->dPy[1][e0];
-        double dvym = solver->dPy[2][e0];
-        double dTym = solver->dPy[3][e0];
-        double dnym = solver->dPy[4][e0];
-
-        dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
-        duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;
-
-        dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
-        dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
-
-        dTx = dTxm + (dTl - (dTxm*dx + dTym*dy)/L)*dx/L;
-        dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;
-
-        dnx = dnxm + (dnl - (dnxm*dx + dnym*dy)/L)*dx/L;
-        dny = dnym + (dnl - (dnxm*dx + dnym*dy)/L)*dy/L;
-
-        // Flow variables in the face
-        double rho = E0->P[0];
-        double T = solver->Twall;
-        double n = 0.0;        
-
-        double mi_L = gaspropSutherland(T);
-        double n_L = mi_L/rho;
-
-        double fv1;
-        double tx;
-        double ty;
-
-        saCalcFace(solver->sa1, n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
-
-        double mi_t = fv1*rho*n;
-        double mi = mi_L + mi_t;
-        double k = gasprop_T2Cp(solver->gas, T)*(mi_L/solver->gas->Pr + mi_t/solver->gas->Pr_t);
-
-        double txx = 2*mi*(dux - (dux + dvy)/3);
-        double tyy = 2*mi*(dvy - (dux + dvy)/3);
-        double txy = mi*(duy + dvx);
-
-        f[1] = txx*dSx + txy*dSy;
-        f[2] = txy*dSx + tyy*dSy;
-        f[3] = k*(dTx*dSx + dTy*dSy);	        
-        f[4] = tx*dSx + ty*dSy;        
-        *miEddy = mi_t;
-        
-    }
-    else
-    {
-
-        //outlet
-        double dSx, dSy;
-        meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
-
-        dux = solver->dPx[1][e0];
-        dvx = solver->dPx[2][e0];
-        dTx = solver->dPx[3][e0];
-        dnx = solver->dPx[4][e0];
-
-        duy = solver->dPy[1][e0];
-        dvy = solver->dPy[2][e0];
-        dTy = solver->dPy[3][e0];
-        dny = solver->dPy[4][e0];
-
-        // Flow variables in the face
-        double rho = E0->P[0];
-        double u = E0->P[1];
-        double v = E0->P[2];
-        double T = E0->P[4];
-        double n = E0->P[5];
-
-        double mi_L = gaspropSutherland(T);
-        double n_L = mi_L/rho;
-
-        double fv1;
-        double tx;
-        double ty;
-
-        saCalcFace(solver->sa1, n, n_L, rho, dnx, dny, &fv1, &tx, &ty);
-
-        double mi_t = fv1*rho*n;
-        double mi = mi_L + mi_t;
-        double k = gasprop_T2Cp(solver->gas, T)*(mi_L/solver->gas->Pr + mi_t/solver->gas->Pr_t);
-
-        double txx = 2*mi*(dux - (dux + dvy)/3);
-        double tyy = 2*mi*(dvy - (dux + dvy)/3);
-        double txy = mi*(duy + dvx);
-
-        f[1] = txx*dSx + txy*dSy;
-        f[2] = txy*dSx + tyy*dSy;
-        f[3] = u*(txx*dSx + txy*dSy) + v*(txy*dSx + tyy*dSy) + k*(dTx*dSx + dTy*dSy);
-        f[4] = tx*dSx + ty*dSy;
-        *miEddy = mi_t;
-        
-    }
-}
-
-
-void saBoundary(SOLVER* solver)
-{
-    for(int ii=0; ii<solver->mesh->Nmark; ii++)
-    {
-        saBoundaryFace(solver, solver->mesh->bc[ii]);
-    }
 }
 
 

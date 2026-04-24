@@ -808,8 +808,6 @@ void solverCalcR(SOLVER* solver, double** U)
 
     inter(solver);
     
-    //boundary1(solver);
-    
     for(int ii=0; ii<solver->Nboundary; ii++)
     {
         solver->boundaryL[ii]->convective(solver->boundaryL[ii], solver);
@@ -823,12 +821,7 @@ void solverCalcR(SOLVER* solver, double** U)
     if(solver->laminar==1)
     {
         solverGrad_T(solver);
-        laminarInter(solver);
-        
-        for(int ii=0; ii<solver->Nboundary; ii++)
-        {
-            boundaryViscous(solver->boundaryL[ii], solver);
-        }        
+        laminarInter(solver);        
     }
     
     if(solver->sa1->active)
@@ -837,18 +830,10 @@ void solverCalcR(SOLVER* solver, double** U)
         if(solver->sa1->cc)
         {
             saCC_Inter(solver);
-            for(int ii=0; ii<solver->Nboundary; ii++)
-            {
-                boundaryViscous(solver->boundaryL[ii], solver);
-            }
         }
         else
         {
-            saInter(solver);
-            for(int ii=0; ii<solver->Nboundary; ii++)
-            {
-                boundaryViscous(solver->boundaryL[ii], solver);
-            } 
+            saInter(solver);             
         }
     }
     
@@ -856,13 +841,16 @@ void solverCalcR(SOLVER* solver, double** U)
     {
         solverGrad_T(solver);
         sstInter(solver);
-
+    }
+    
+    if(solver->laminar == 1 || solver->sa1->active || solver->sst->active || solver->sa1->cc)
+    {
         for(int ii=0; ii<solver->Nboundary; ii++)
         {
             boundaryViscous(solver->boundaryL[ii], solver);
-        } 
+        }
     }
-    
+        
     solverFaceRes(solver);
 }
 
