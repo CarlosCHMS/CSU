@@ -837,12 +837,18 @@ void solverCalcR(SOLVER* solver, double** U)
         if(solver->sa1->cc)
         {
             saCC_Inter(solver);
-            saCC_Boundary(solver);
+            for(int ii=0; ii<solver->Nboundary; ii++)
+            {
+                boundaryViscous(solver->boundaryL[ii], solver);
+            }
         }
         else
         {
             saInter(solver);
-            saBoundary(solver);
+            for(int ii=0; ii<solver->Nboundary; ii++)
+            {
+                boundaryViscous(solver->boundaryL[ii], solver);
+            } 
         }
     }
     
@@ -850,7 +856,11 @@ void solverCalcR(SOLVER* solver, double** U)
     {
         solverGrad_T(solver);
         sstInter(solver);
-        sstBoundary(solver);
+
+        for(int ii=0; ii<solver->Nboundary; ii++)
+        {
+            boundaryViscous(solver->boundaryL[ii], solver);
+        } 
     }
     
     solverFaceRes(solver);

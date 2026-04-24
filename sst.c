@@ -264,6 +264,249 @@ void sstInter(SOLVER* solver)
     sstInterSource(solver);
 }
 
+
+void sstBoundaryViscousFluxSymmetry(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy)
+{
+
+    int e0, p0, p1;
+
+    MESHBC* bc = boundary->bc;
+
+    SSTVAR var;
+
+    e0 = bc->elemL[ii]->neiL[0]->ii;
+    p0 = bc->elemL[ii]->p[0];
+    p1 = bc->elemL[ii]->p[1];
+
+    ELEMENT* E0 = bc->elemL[ii]->neiL[0];
+
+   	double nx, ny, dS;
+    meshCalcDS2(solver->mesh, p0, p1, &nx, &ny, &dS);
+    
+    double duxm = solver->dPx[1][e0];
+    double dvxm = solver->dPx[2][e0];
+    double dkxm = solver->dPx[4][e0];
+    double doxm = solver->dPx[5][e0];
+    
+    double duym = solver->dPy[1][e0];
+    double dvym = solver->dPy[2][e0];
+    double dkym = solver->dPy[4][e0];
+    double doym = solver->dPy[5][e0];
+
+    var.dux = duxm - (duxm*nx + duym*ny)*nx;
+    var.duy = duym - (duxm*nx + duym*ny)*ny;        
+
+    var.dvx = dvxm - (dvxm*nx + dvym*ny)*nx;
+    var.dvy = dvym - (dvxm*nx + dvym*ny)*ny;            
+
+    var.dkx = dkxm - (dkxm*nx + dkym*ny)*nx;
+    var.dky = dkym - (dkxm*nx + dkym*ny)*ny;        
+
+    var.dox = doxm - (doxm*nx + doym*ny)*nx;
+    var.doy = doym - (doxm*nx + doym*ny)*ny;        
+
+    // Flow variables in the face
+    var.r = E0->P[0];
+    double u = E0->P[1];
+    double v = E0->P[2];
+    var.T = E0->P[4];
+    var.k = E0->P[5];
+    var.om = E0->P[6];
+    var.d = solver->mesh->d[e0];
+
+    var.mi_L = gaspropSutherland(var.T);
+
+    sstFlux(solver->sst, &var);
+            
+    double mi = var.mi_L + var.mi_t;
+
+    double txx = 2*mi*(var.dux - (var.dux + var.dvy)/3) - 2.*var.r*var.k/3.;
+    double tyy = 2*mi*(var.dvy - (var.dux + var.dvy)/3) - 2.*var.r*var.k/3.;
+    double txy = mi*(var.duy + var.dvx);
+    
+    f[1] = (txx*nx + txy*ny)*dS;
+    f[2] = (txy*nx + tyy*ny)*dS;
+    f[3] = (u*(txx*nx + txy*ny) + v*(txy*nx + tyy*ny))*dS;
+    f[4] = 0;
+    f[5] = 0;
+    *miEddy = var.mi_t;
+}
+
+
+void sstBoundaryViscousFluxGeneral(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy)
+{
+
+    int e0, p0, p1;
+    double x0, x1, y0, y1;
+    double dTx, dTy;
+
+    MESHBC* bc = boundary->bc;
+
+    SSTVAR var;
+
+    e0 = bc->elemL[ii]->neiL[0]->ii;
+    p0 = bc->elemL[ii]->p[0];
+    p1 = bc->elemL[ii]->p[1];
+
+    ELEMENT* E0 = bc->elemL[ii]->neiL[0];
+    ELEMENT* E1 = bc->elemL[ii];    
+
+    double dSx, dSy;
+    meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+
+    elementCenter(E0, solver->mesh, &x0, &y0);
+
+   	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
+    y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
+
+    double dx = x1 - x0;
+    double dy = y1 - y0;
+    double L = sqrt(dx*dx + dy*dy);
+
+    double dul = (E1->P[1] - E0->P[1])/L;
+    double dvl = (E1->P[2] - E0->P[2])/L;
+    double dTl = (E1->P[4] - E0->P[4])/L;
+    double dkl = (E1->P[5] - E0->P[5])/L;
+    double dol = (E1->P[6] - E0->P[6])/L;        
+
+    double duxm = solver->dPx[1][e0];
+    double dvxm = solver->dPx[2][e0];
+    double dTxm = solver->dPx[3][e0];
+    double dkxm = solver->dPx[4][e0];
+    double doxm = solver->dPx[5][e0];
+
+    double duym = solver->dPy[1][e0];
+    double dvym = solver->dPy[2][e0];
+    double dTym = solver->dPy[3][e0];
+    double dkym = solver->dPy[4][e0];
+    double doym = solver->dPy[5][e0];        
+
+    var.dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
+    var.duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;
+
+    var.dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
+    var.dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
+
+    dTx = dTxm + (dTl - (dTxm*dx + dTym*dy)/L)*dx/L;
+    dTy = dTym + (dTl - (dTxm*dx + dTym*dy)/L)*dy/L;
+
+    var.dkx = dkxm + (dkl - (dkxm*dx + dkym*dy)/L)*dx/L;
+    var.dky = dkym + (dkl - (dkxm*dx + dkym*dy)/L)*dy/L;
+
+    var.dox = doxm + (dol - (doxm*dx + doym*dy)/L)*dx/L;
+    var.doy = doym + (dol - (doxm*dx + doym*dy)/L)*dy/L;
+
+
+    // Flow variables in the face
+    var.r = solver->inlet->Pin[0];
+    double u = solver->inlet->Pin[1];
+    double v = solver->inlet->Pin[2];
+    var.T = solver->inlet->Pin[4];
+    var.k = solver->inlet->Pin[5];
+    var.om = solver->inlet->Pin[6];
+
+    var.d = solver->mesh->d[e0];
+    var.mi_L = gaspropSutherland(var.T);
+
+    sstFlux(solver->sst, &var);
+    
+    double mi = var.mi_L + var.mi_t;
+    double kk = gasprop_T2Cp(solver->gas, var.T)*(var.mi_L/solver->gas->Pr + var.mi_t/solver->gas->Pr_t);
+
+    double txx = 2*mi*(var.dux - (var.dux + var.dvy)/3) - 2.*var.r*var.k/3.;
+    double tyy = 2*mi*(var.dvy - (var.dux + var.dvy)/3) - 2.*var.r*var.k/3.;
+    double txy = mi*(var.duy + var.dvx);
+
+    f[1] = txx*dSx + txy*dSy;
+    f[2] = txy*dSx + tyy*dSy;
+    f[3] = u*(txx*dSx + txy*dSy) + v*(txy*dSx + tyy*dSy) + kk*(dTx*dSx + dTy*dSy);
+    f[4] = var.tkx*dSx + var.tky*dSy;
+    f[5] = var.tox*dSx + var.toy*dSy;        
+    *miEddy = var.mi_t;
+}
+        
+        
+void sstBoundaryViscousFluxWall(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy)
+{
+
+    int e0, p0, p1;
+    double x0, x1, y0, y1;
+
+    MESHBC* bc = boundary->bc;
+
+    SSTVAR var;
+
+    e0 = bc->elemL[ii]->neiL[0]->ii;
+    p0 = bc->elemL[ii]->p[0];
+    p1 = bc->elemL[ii]->p[1];
+
+    ELEMENT* E0 = bc->elemL[ii]->neiL[0];
+    ELEMENT* E1 = bc->elemL[ii];
+
+    double dSx, dSy;
+    meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
+
+    elementCenter(E0, solver->mesh, &x0, &y0);
+
+   	x1 = (solver->mesh->p[p0][0] + solver->mesh->p[p1][0])*0.5;
+    y1 = (solver->mesh->p[p0][1] + solver->mesh->p[p1][1])*0.5;
+
+    double dx = x1 - x0;
+    double dy = y1 - y0;
+    double L = sqrt(dx*dx + dy*dy);
+
+    // Flow variables in the face
+    var.r = E0->P[0];
+    var.T = E0->P[4];        
+    var.k = E0->P[5];
+    var.om = E0->P[6];        
+    var.d = solver->mesh->d[e0];
+
+    var.mi_L = gaspropSutherland(var.T);
+
+    double dul = (E1->P[1] - E0->P[1])/L;
+    double dvl = (E1->P[2] - E0->P[2])/L;
+    double dkl = (E1->P[5] - E0->P[5])/L;
+    double dol = (E1->P[6] - E0->P[6])/L;        
+
+    double duxm = solver->dPx[1][e0];
+    double dvxm = solver->dPx[2][e0];
+    double dkxm = solver->dPx[4][e0];
+    double doxm = solver->dPx[5][e0];
+
+    double duym = solver->dPy[1][e0];
+    double dvym = solver->dPy[2][e0];
+    double dkym = solver->dPy[4][e0];
+    double doym = solver->dPy[5][e0];
+
+    var.dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
+    var.duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;
+
+    var.dvx = dvxm + (dvl - (dvxm*dx + dvym*dy)/L)*dx/L;
+    var.dvy = dvym + (dvl - (dvxm*dx + dvym*dy)/L)*dy/L;
+
+    var.dkx = dkxm + (dkl - (dkxm*dx + dkym*dy)/L)*dx/L;
+    var.dky = dkym + (dkl - (dkxm*dx + dkym*dy)/L)*dy/L;
+
+    var.dox = doxm + (dol - (doxm*dx + doym*dy)/L)*dx/L;
+    var.doy = doym + (dol - (doxm*dx + doym*dy)/L)*dy/L;        
+
+    sstFlux(solver->sst, &var);
+    
+    double mi = var.mi_L + var.mi_t;
+
+    double txx = 2*mi*(var.dux - (var.dux + var.dvy)/3) - 2.*var.r*var.k/3.;
+    double tyy = 2*mi*(var.dvy - (var.dux + var.dvy)/3) - 2.*var.r*var.k/3.;
+    double txy = mi*(var.duy + var.dvx);
+
+    f[1] = txx*dSx + txy*dSy;
+    f[2] = txy*dSx + tyy*dSy;
+    f[3] = 0.0;
+    f[4] = var.tkx*dSx + var.tky*dSy;
+    f[5] = var.tox*dSx + var.toy*dSy;        
+    *miEddy = var.mi_t;
+}
+
 void sstBoundaryFaceViscFlux(SOLVER* solver, MESHBC* bc, int ii, double* f, double* miEddy)
 {
 

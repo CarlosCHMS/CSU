@@ -134,4 +134,10 @@ void sstSolverWriteSurf(SOLVER* solver);
 
 void sstInterMiT(SOLVER* solver);
 
+void sstBoundaryViscousFluxSymmetry(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy);
+
+void sstBoundaryViscousFluxGeneral(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy);
+
+void sstBoundaryViscousFluxWall(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy);
+
 #endif

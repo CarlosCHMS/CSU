@@ -482,6 +482,7 @@ void saBoundaryViscousFluxWall(BOUNDARY* boundary, SOLVER* solver, int ii, doubl
     p1 = bc->elemL[ii]->p[1];
 
     ELEMENT* E0 = bc->elemL[ii]->neiL[0];
+    ELEMENT* E1 = bc->elemL[ii];    
 
     double dSx, dSy;
     meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
@@ -495,9 +496,9 @@ void saBoundaryViscousFluxWall(BOUNDARY* boundary, SOLVER* solver, int ii, doubl
     double dy = y1 - y0;
     double L = sqrt(dx*dx + dy*dy);
 
-    double dul = (0 - E0->P[1])/L;
-    double dvl = (0 - E0->P[2])/L;
-    double dnl = (0 - E0->P[5])/L;
+    double dul = (E1->P[1] - E0->P[1])/L;
+    double dvl = (E1->P[2] - E0->P[2])/L;
+    double dnl = (E1->P[5] - E0->P[5])/L;
 
     double duxm = solver->dPx[1][e0];
     double dvxm = solver->dPx[2][e0];

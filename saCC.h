@@ -19,4 +19,10 @@ void saCC_Boundary(SOLVER* solver);
 
 void saCC_SolverWriteSurf(SOLVER* solver);
 
+void saCC_BoundaryViscousFluxSymmetry(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy);
+
+void saCC_BoundaryViscousFluxGeneral(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy);
+
+void saCC_BoundaryViscousFluxWall(BOUNDARY* boundary, SOLVER* solver, int ii, double* f, double* miEddy);
+
 #endif
