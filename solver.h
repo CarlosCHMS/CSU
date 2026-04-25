@@ -21,6 +21,8 @@ typedef struct IMPLICIT IMPLICIT;
 
 typedef struct BOUNDARY BOUNDARY;
 
+typedef struct SHOCKTUBE SHOCKTUBE;
+
 typedef struct CONDITION{
 
     double p;
@@ -51,7 +53,6 @@ typedef struct SOLVER{
     int timeScheme;
     int Nlinear;
     int viscBlazek;
-    int tube;
     int Nboundary;
 
     char* wd;
@@ -101,6 +102,8 @@ typedef struct SOLVER{
     IMPLICIT* implicit;
     
     BOUNDARY** boundaryL;
+    
+    SHOCKTUBE* shockTube;
 
 } SOLVER;
 

@@ -20,6 +20,7 @@
 #include"laminar.h"
 #include"sst.h"
 #include"sstTrans.h"
+#include"shockTube.h"
 
 
 SOLVER* solverInit(char* wd)
@@ -103,6 +104,9 @@ SOLVER* solverInit(char* wd)
     // Implicit initialization
     solver->implicit = implicitInit(solver->input, solver);
 
+    // ShockTube initialization
+    solver->shockTube = shockTubeInit(solver->input);
+
     // Memory allocation
     solverMalloc(solver);
 
@@ -118,7 +122,7 @@ SOLVER* solverInit(char* wd)
         printf("mesh: calculating distance.\n");
         meshCalcD(solver->mesh, solver);
     }
-        
+    
     return solver;
 }
 
@@ -203,6 +207,8 @@ void solverFree(SOLVER* solver)
     
     implicitFree(solver->implicit, solver);
     
+    free(solver->shockTube);
+    
     free(solver);
 
 }
@@ -227,15 +233,6 @@ void solverSetData(SOLVER* solver, INPUT* input)
     else
     {
         solver->laminar = 0;
-    }
-
-    if(inputNameIsInput(input, "tube"))
-    {
-        solver->tube = atoi(inputGetValue(input, "tube"));     
-    }
-    else
-    {
-        solver->tube = 0;
     }
 
     if(inputNameIsInput(input, "restart"))
@@ -1051,30 +1048,6 @@ void solverCalcDt(SOLVER* solver)
     }
 }
 
-void solverInitUTube(SOLVER* solver, CONDITION* inside1, CONDITION* inside2, double xm)
-{
-
-    double x, y;
-
-    conditionState(inside1, solver);
-    conditionState(inside2, solver);
-
-    for(int kk=0; kk<4; kk++)
-    {
-        for(int ii=0; ii<solver->mesh->Nelem; ii++)
-        {
-    	    elementCenter(solver->mesh->elemL[ii], solver->mesh, &x, &y);
-            if(x<xm)
-            {
-                solver->U[kk][ii] = inside1->Uin[kk];
-            }
-            else
-            {
-                solver->U[kk][ii] = inside2->Uin[kk];
-            }
-        }
-    }
-}
 
 void solverCalcGrad2(SOLVER* solver, ELEMENT* E, int kk, double* dUx, double* dUy, double* Umin, double* Umax)
 {
@@ -1458,28 +1431,38 @@ void solverInitDomain(SOLVER* solver)
 {
     char s[50];
 
-    printf("main: initialize U.\n");       
-    if(solver->tube == 0)
+    printf("main: initialize U.\n"); 
+    
+    if(solver->restart)                                              
     {
-
-
         solver->inlet = conditionInit(strtod(inputGetValue(solver->input, "pressure"), NULL), 
+                                  strtod(inputGetValue(solver->input, "temperature"), NULL), 
+                                  strtod(inputGetValue(solver->input, "mach"), NULL), 
+                                  strtod(inputGetValue(solver->input, "nx"), NULL),
+                                  strtod(inputGetValue(solver->input, "ny"), NULL));
+
+        conditionState(solver->inlet, solver);
+        
+        strcpy(s, solver->wd);
+        strcat(s, "restart.csv");        
+        solverLoadRestart(solver, s);
+    }
+    else
+    {
+        if(solver->shockTube->active)
+        {
+            shockTubeInitU(solver);
+        }
+        else
+        {        
+            solver->inlet = conditionInit(strtod(inputGetValue(solver->input, "pressure"), NULL), 
                                       strtod(inputGetValue(solver->input, "temperature"), NULL), 
                                       strtod(inputGetValue(solver->input, "mach"), NULL), 
                                       strtod(inputGetValue(solver->input, "nx"), NULL),
                                       strtod(inputGetValue(solver->input, "ny"), NULL));
 
-        conditionState(solver->inlet, solver);
-
-        if(solver->restart)                                              
-        {
-            s[0] = '\0';
-            strcat(s, solver->wd);
-            strcat(s, "restart.csv");        
-            solverLoadRestart(solver, s);
-        }
-        else
-        {
+            conditionState(solver->inlet, solver);
+        
             // Initialization of U
             solverInitU(solver, solver->inlet);
             if(solver->sa1->active)
@@ -1490,47 +1473,22 @@ void solverInitDomain(SOLVER* solver)
             {
                 sstInitU(solver, solver->inlet);
             }
-        }   
-    }
-    else
-    {
-        if(solver->restart)                                              
-        {
-            s[0] = '\0';
-            strcat(s, solver->wd);
-            strcat(s, "restart.csv");        
-            solverLoadRestart(solver, s);
         }
-        else
-        {        
-            CONDITION* inside1 = conditionInit(strtod(inputGetValue(solver->input, "pressure1"), NULL), 
-                                               strtod(inputGetValue(solver->input, "temperature1"), NULL), 
-                                               strtod(inputGetValue(solver->input, "mach1"), NULL), 
-                                               strtod(inputGetValue(solver->input, "nx1"), NULL),
-                                               strtod(inputGetValue(solver->input, "ny1"), NULL));
-
-            CONDITION* inside2 = conditionInit(strtod(inputGetValue(solver->input, "pressure2"), NULL), 
-                                               strtod(inputGetValue(solver->input, "temperature2"), NULL), 
-                                               strtod(inputGetValue(solver->input, "mach2"), NULL), 
-                                               strtod(inputGetValue(solver->input, "nx2"), NULL),
-                                               strtod(inputGetValue(solver->input, "ny2"), NULL));      
-        
-            solverInitUTube(solver, inside1, inside2, strtod(inputGetValue(solver->input, "xm"), NULL));
-            solver->inlet = inside1;
-            free(inside2);
-        }   
-    }
+    }              
 }
 
 
 void solverSolve(SOLVER* solver)
 {
-
-    char s[50];
-    double Cx, Cy;
-       
-    if(solver->tube == 0)
+   
+    if(solver->shockTube->active)
+    {   
+        shockTubeSolve(solver);
+    }
+    else
     {                
+        char s[50];
+        double Cx, Cy;
         // Calculate time step        
         int Nmax = atoi(inputGetValue(solver->input, "Nmax"));
 
@@ -1596,64 +1554,6 @@ void solverSolve(SOLVER* solver)
                 fprintf(convFile, "\n");
             }            
         }        
-        fclose(convFile);
-    }
-    else
-    {   
-        double tmax = strtod(inputGetValue(solver->input, "tmax"), NULL);                
-
-        // Convergence history file
-        s[0] = '\0';
-        strcat(s, solver->wd);
-        strcat(s, "convergence.csv"); 
-        FILE* convFile;
-        
-        if(solver->restart)
-        {
-            convFile = fopen(s, "a");
-        }
-        else
-        {
-            convFile = fopen(s, "w");
-            solverPrintConvReader(solver, convFile);
-        }
-
-        // Run the solver
-        double t = 0.0;
-        printf("\nmain: running solution:\n");
-        int stopLoop = 0;
-        int ii = 0;
-        while(stopLoop == 0)
-        {
-            solverCalcDt(solver);
-            
-            if(t + solver->dt>tmax)
-            {
-                solver->dt = (tmax-t);
-                stopLoop = 1;
-            }
-
-            solverStepRK(solver);
-            t += solver->dt*solver->stages/2.0;
-            ii++;
-
-            if(ii%1 == 0)
-            {
-                printf("%i, ", ii);
-                solverCalcRes(solver);
-                
-                // Write convergence file
-                fprintf(convFile, "%i,", ii);
-                for(int kk=0; kk<solver->Nvar; kk++)
-                {
-                    fprintf(convFile, " %+.4e,", solver->res[kk]);        
-                }                
-                solverCalcCoeff3(solver, convFile, ii);
-                fprintf(convFile, "\n");
-            }
-        }
-        printf("time %f s\n", t);        
-        
         fclose(convFile);
     }
 }
