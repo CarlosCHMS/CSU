@@ -170,13 +170,13 @@ void implicitCalcD(SOLVER* solver)
             meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
             dS = sqrt(dSx*dSx + dSy*dSy);
 
-            //ELEMENT* E0 = bc->elemL[ii];
-            ELEMENT* E1 = mesh->elemL[e1];
+            ELEMENT* E0 = bc->elemL[ii];
+            //ELEMENT* E1 = mesh->elemL[e1];
 
-            double r = E1->P[0];
-            double u = E1->P[1];
-            double v = E1->P[2];
-            double T = E1->P[4];
+            double r = E0->P[0];
+            double u = E0->P[1];
+            double v = E0->P[2];
+            double T = E0->P[4];
 
             double c = gasprop_T2c(solver->gas, T);
             
