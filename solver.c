@@ -50,34 +50,41 @@ SOLVER* solverInit(char* wd)
 
     solver->sst = sstInit(solver->input);   
 
-    // Set number of flow variables and dFlag
+    // Set viscous models
     solver->isViscous = false;
-    bool dFlag = false;
     solver->Nvar = 4;
     if(solver->laminar)
     {
-        dFlag = true;
         solver->isViscous = true;
+        solver->viscousInter = laminarInter;
     }
     
     if(solver->sa1->active)
     {
         solver->Nvar = 5;
-        dFlag = true;
         solver->isViscous = true;        
+        if(solver->sa1->cc)
+        {
+            solver->viscousInter = saCC_Inter;
+        }
+        else
+        {
+            solver->viscousInter = saInter;             
+        }
+
     }    
 
     if(solver->sst->active)
     {
         solver->Nvar = 6;
-        dFlag = true;
         solver->isViscous = true;        
+        solver->viscousInter = sstInter;
     }
 
     // Load mesh    
     strcpy(s, solver->wd);
     strcat(s, "mesh.su2");
-    solver->mesh = meshInit(s, solver->Nvar, atoi(inputGetValue(solver->input, "axisymmetric")), dFlag);
+    solver->mesh = meshInit(s, solver->Nvar, atoi(inputGetValue(solver->input, "axisymmetric")), solver->isViscous);
     
     // Boundary initialization
     solver->Nboundary = solver->mesh->Nmark;
@@ -86,10 +93,6 @@ SOLVER* solverInit(char* wd)
     {
         solver->boundaryL[ii] = boundaryInit(solver->input, solver->mesh->bc[ii], solver);
     }
-        
-    // Get boundary conditions
-    printf("main: get boundary conditions.\n");
-    boundaryGetBC(solver->mesh, solver->input);
     
     // Gas initialization
     solver->gas = gaspropInit(solver->input);
@@ -110,10 +113,10 @@ SOLVER* solverInit(char* wd)
     solver->flux1 = fluxInit(solver->input, solver);
     
     // Calculation of cell wall distance
-    if(solver->mesh->dFlag)
+    if(solver->isViscous)
     {
         printf("mesh: calculating distance.\n");
-        meshCalcD(solver->mesh);
+        meshCalcD(solver->mesh, solver);
     }
         
     return solver;
@@ -819,7 +822,7 @@ void solverCalcR(SOLVER* solver, double** U)
         solver->boundaryL[ii]->convective(solver->boundaryL[ii], solver);
     }
     
-    if(solver->mesh->axi==1)
+    if(solver->mesh->axi)
     {
         interAxisPressure(solver);
     }
@@ -827,30 +830,11 @@ void solverCalcR(SOLVER* solver, double** U)
     if(solver->isViscous)
     {
         solverGrad_T(solver);
+        solver->viscousInter(solver);
         for(int ii=0; ii<solver->Nboundary; ii++)
         {
             boundaryViscous(solver->boundaryL[ii], solver);
         }
-    }        
-    
-    if(solver->laminar==1)
-    {
-        laminarInter(solver);        
-    }
-    else if(solver->sa1->active)
-    {     
-        if(solver->sa1->cc)
-        {
-            saCC_Inter(solver);
-        }
-        else
-        {
-            saInter(solver);             
-        }
-    }
-    else if(solver->sst->active)
-    {
-        sstInter(solver);
     }
         
     solverFaceRes(solver);
@@ -1368,10 +1352,12 @@ void solverCalcCoeff(SOLVER* solver, double *Cx, double *Cy)
     double P = solver->inlet->Pin[3];
     double q = 0.5*r*(u*u + v*v);   
         
-    for(int jj=0; jj<solver->mesh->Nmark; jj++)
+    for(int jj=0; jj<solver->Nboundary; jj++)
     {
-        bc = solver->mesh->bc[jj];
-        if(bc->flagBC == 3 || bc->flagBC == 4)
+    
+        bc = solver->boundaryL[jj]->bc;
+        
+        if(solver->boundaryL[jj]->isWall)
         {
             for(int ii=0; ii<bc->Nelem; ii++)
             {
@@ -1384,7 +1370,7 @@ void solverCalcCoeff(SOLVER* solver, double *Cx, double *Cy)
                 *Cx += cp*dSx;   
                 *Cy += cp*dSy;                
                 
-                if(solver->laminar==1 || solver->sa1->active || solver->sst->active)
+                if(solver->isViscous)
                 {
                     boundaryCalcFrictionWall(solver, bc->elemL[ii], &fx, &fy);
                     *Cx -= fx/q;
@@ -1422,10 +1408,12 @@ void solverCalcCoeff3(SOLVER* solver, FILE* convFile, int Nint)
     double Cy_p = 0;
     double Cy_v = 0;               
         
-    for(int jj=0; jj<solver->mesh->Nmark; jj++)
+    for(int jj=0; jj<solver->Nboundary; jj++)
     {
-        bc = solver->mesh->bc[jj];
-        if(bc->flagBC == 3 || bc->flagBC == 4)
+    
+        bc = solver->boundaryL[jj]->bc;
+        
+        if(solver->boundaryL[jj]->isWall)
         {
             for(int ii=0; ii<bc->Nelem; ii++)
             {
@@ -1438,7 +1426,7 @@ void solverCalcCoeff3(SOLVER* solver, FILE* convFile, int Nint)
                 Cx_p += cp*dSx;
                 Cy_p += cp*dSy;                                
                 
-                if(solver->laminar==1 || solver->sa1->active || solver->sst->active)
+                if(solver->isViscous)
                 {
                     boundaryCalcFrictionWall(solver, bc->elemL[ii], &fx, &fy);
                     Cx_v -= fx/q;
@@ -1819,16 +1807,23 @@ void solverWriteSolution2(SOLVER* solver)
 
     int p0, p1;
 
-    if(solver->laminar || solver->sa1->active || solver->sst->active)
+    if(solver->isViscous)
     {
-        for(int ii=0; ii<solver->mesh->Nmark; ii++)
+        for(int ii=0; ii<solver->Nboundary; ii++)
         {
-            if(solver->mesh->bc[ii]->flagBC == 3 || solver->mesh->bc[ii]->flagBC == 4)
+            bool isWallT = false;
+            BOUNDARY* boundary = solver->boundaryL[ii];
+            if(strcmp(boundary->type, "wallT") == 0)
             {
-                for(int jj=0; jj<solver->mesh->bc[ii]->Nelem; jj++)
+                isWallT = true;
+            }
+            
+            if(boundary->isWall)
+            {
+                for(int jj=0; jj<boundary->bc->Nelem; jj++)
                 {
-                    p0 = solver->mesh->bc[ii]->elemL[jj]->p[0];
-                    p1 = solver->mesh->bc[ii]->elemL[jj]->p[1];
+                    p0 = boundary->bc->elemL[jj]->p[0];
+                    p1 = boundary->bc->elemL[jj]->p[1];
 
                     P[1][p0] = 0.0;
                     P[2][p0] = 0.0;
@@ -1839,7 +1834,7 @@ void solverWriteSolution2(SOLVER* solver)
                     {
                         P[5][p0] = 0.0;
                         P[5][p1] = 0.0;
-                        if(solver->mesh->bc[ii]->flagBC == 4)
+                        if(isWallT)
                         {
                             P[4][p0] = solver->Twall;
                             P[4][p1] = solver->Twall;
@@ -1853,7 +1848,7 @@ void solverWriteSolution2(SOLVER* solver)
                         //P[6][p0] = 0.0;
                         //P[6][p1] = 0.0;
 
-                        if(solver->mesh->bc[ii]->flagBC == 4)
+                        if(isWallT)
                         {
                             P[4][p0] = solver->Twall;
                             P[4][p1] = solver->Twall;

@@ -1,6 +1,8 @@
 #ifndef MESH_H
 #define MESH_H
 
+typedef struct SOLVER SOLVER;
+
 typedef struct ELEMENT
 {
     int ii;
@@ -22,8 +24,6 @@ typedef struct MESHBC
     int Nelem;
     
     char name[50];
-
-    int flagBC;
 
     ELEMENT** elemL;
 
@@ -163,7 +163,7 @@ void meshCheckHashTable(HASHTABLE* ht);
 
 int meshBandCalc(MESH* mesh);
 
-void meshCalcD(MESH* mesh);
+void meshCalcD(MESH* mesh, SOLVER* solver);
 
 void meshCalcOmegaCenter(MESH* mesh, int ii, double* omega, double* cx, double* cy);
 

@@ -6,6 +6,8 @@
 #include<math.h>
 #include"utils.h"
 #include"mesh.h"
+#include"solver.h"
+#include"boundary.h"
 
 
 char meshGetWord(FILE* ff, char* s)
@@ -1275,7 +1277,7 @@ int meshBandCalc(MESH* mesh)
     return K;
 }
 
-void meshCalcD(MESH* mesh)
+void meshCalcD(MESH* mesh, SOLVER* solver)
 {
     double x, y, xMin, xMax, yMin, yMax;
 
@@ -1317,10 +1319,10 @@ void meshCalcD(MESH* mesh)
         ELEMENT* Evol = mesh->elemL[ii];
         elementCenter(Evol, mesh, &xVol, &yVol);
         
-        for(int jj=0; jj<mesh->Nmark; jj++)
+        for(int jj=0; jj<solver->Nboundary; jj++)
         {
             //printf("%i\n", mesh->bc[jj]->flagBC);
-            if(mesh->bc[jj]->flagBC==3 || mesh->bc[jj]->flagBC==4)
+            if(solver->boundaryL[jj]->isWall)
             {            
                 for(int kk=0; kk<mesh->bc[jj]->Nelem; kk++)
                 {

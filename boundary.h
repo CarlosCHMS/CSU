@@ -5,7 +5,10 @@ typedef struct BOUNDARY
 {
 
     MESHBC* bc;
+    
     char type[50];
+    
+    bool isWall;
     
     void (*primitive) (BOUNDARY*, SOLVER*);
     void (*convective) (BOUNDARY*, SOLVER*);
@@ -20,14 +23,6 @@ void boundaryInlet(SOLVER* solver, double* Pa, double* Pd, double* Pb, double nx
 void boundaryOutlet(SOLVER* solver, double* Pd, double* Pb, double nx, double ny);
 
 void boundaryWall(SOLVER* solver, double* Pd, double* Pb, double nx, double ny);
-
-void boundary1(SOLVER* solver);
-
-void boundaryGetBC(MESH* mesh, INPUT* input);
-
-int boundaryChoice(char* s);
-
-void boundaryCalcPrimitive(SOLVER* solver, MESHBC* bc);
 
 void boundaryCalcFrictionWall(SOLVER* solver, ELEMENT* E, double* fx, double* fy);
 

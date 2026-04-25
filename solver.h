@@ -80,6 +80,8 @@ typedef struct SOLVER{
     double **dPx;
     double **dPy;
     
+    void (*viscousInter) (struct SOLVER*);
+    
     CONDITION* inlet;
         
     MESH* mesh;
