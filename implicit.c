@@ -1252,7 +1252,6 @@ void implicitCopy(SOLVER* solver, double** x0, double** x1)
 
 void implicitGMRES(SOLVER* solver) 
 {
-
     IMPLICIT* implicit = solver->implicit;
 
     int m = solver->Nlinear;
@@ -1272,7 +1271,6 @@ void implicitGMRES(SOLVER* solver)
     implicitCopy(solver, solver->U, implicit->U0);
     implicitCopy(solver, implicit->dW1, implicit->dW10);
     
-    // r0 = b - A*x0
     implicitMultA2(solver, implicit->U0, implicit->R0, implicit->dW10, implicit->w);
 
     #pragma omp parallel for
@@ -1299,14 +1297,10 @@ void implicitGMRES(SOLVER* solver)
     
     for (j=0; j<m; j++) {
 
-
-        //matvec(n, v[j], w);
         implicitMultA2(solver, implicit->U0, implicit->R0, implicit->v[j], implicit->w);
 
         for (int i=0; i<=j; i++) {
             H[i][j] = implicitProdInter(solver, implicit->w, implicit->v[i]);
-            //for (int k=0;k<n;k++)
-            //    w[k] -= H[i][j]*v[i][k];
             
             #pragma omp parallel for
             for(int ii=0; ii<solver->mesh->Nelem; ii++)
@@ -1337,8 +1331,6 @@ void implicitGMRES(SOLVER* solver)
     }
 
     implicitQR(j, beta, H, y);
-
-    // x = x0 + V*y
     
     #pragma omp parallel for
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
@@ -1365,17 +1357,14 @@ void implicitQR(int dim, double beta, double **H, double *y)
 {
     int m = dim + 1;
 
-    /* Alocar Q e R */
     double **Q = malloc(m * sizeof(double*));
     for (int i=0;i<m;i++) Q[i] = calloc(dim,sizeof(double));
 
     double **R = malloc(dim * sizeof(double*));
     for (int i=0;i<dim;i++) R[i] = calloc(dim,sizeof(double));
 
-    /* Gram-Schmidt */
     for (int j=0;j<dim;j++) {
 
-        /* copiar coluna j de H para Q */
         for (int i=0;i<m;i++)
             Q[i][j] = H[i][j];
 
@@ -1401,18 +1390,15 @@ void implicitQR(int dim, double beta, double **H, double *y)
             Q[i][j] /= rjj;
     }
 
-    /* g = beta * e1 */
     double *g = calloc(m,sizeof(double));
     g[0] = beta;
 
-    /* calcular Q^T g */
     double *rhs = calloc(dim,sizeof(double));
     for (int j=0;j<dim;j++) {
         for (int i=0;i<m;i++)
             rhs[j] += Q[i][j]*g[i];
     }
 
-    /* resolver R*y = rhs (substituição reversa) */
     for (int i=dim-1;i>=0;i--) {
         y[i] = rhs[i];
         for (int j=i+1;j<dim;j++)
