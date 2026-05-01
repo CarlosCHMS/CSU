@@ -54,6 +54,8 @@ typedef struct SOLVER{
     int Nlinear;
     int viscBlazek;
     int Nboundary;
+    int iteration;
+    int Ninit;
 
     char* wd;
     char writeSurf[50];

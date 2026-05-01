@@ -178,7 +178,6 @@ void solverFree(SOLVER* solver)
     tableFreeDouble(solver->faceFlux, solver->Nvar);
     tableFreeDouble(solver->dPx, solver->Nvar);
     tableFreeDouble(solver->dPy, solver->Nvar);
-    meshFree(solver->mesh);
     
     if(solver->dtLocal == 1)
     {
@@ -195,9 +194,7 @@ void solverFree(SOLVER* solver)
     {
         free(solver->miT);
         sstFree(solver->sst);
-    }    
-    
-    inputFree(solver->input);
+    }        
     
     gaspropFree(solver->gas);
     
@@ -208,6 +205,10 @@ void solverFree(SOLVER* solver)
     implicitFree(solver->implicit, solver);
     
     free(solver->shockTube);
+    
+    meshFree(solver->mesh);
+    
+    inputFree(solver->input);
     
     free(solver);
 
@@ -295,7 +296,16 @@ void solverSetData(SOLVER* solver, INPUT* input)
     }
     else
     {
-        solver->Nlinear = 20;
+        solver->Nlinear = 3;
+    }
+
+    if(inputNameIsInput(input, "Ninit"))
+    {
+        solver->Ninit = atoi(inputGetValue(input, "Ninit"));
+    }
+    else
+    {
+        solver->Ninit = 10;
     }
 
     if(inputNameIsInput(input, "rLim"))
@@ -1512,6 +1522,7 @@ void solverSolve(SOLVER* solver)
         printf("\nmain: running solution:\n");
         for(int ii=0; ii<Nmax; ii++)
         {
+            solver->iteration = ii;
             if(solver->timeScheme == 0)
             {
                 solverCalcDt(solver);
@@ -1527,9 +1538,18 @@ void solverSolve(SOLVER* solver)
             }
             else if(solver->timeScheme == 2)
             {
-                solverCalcR(solver, solver->U);
-                implicitCalcDPLUR(solver);
-                solverUpdateUImplicit(solver);
+                if(solver->iteration < solver->Ninit)
+                {
+                    solverCalcR(solver, solver->U);
+                    implicitCalcD(solver);
+                    implicitUpdateA(solver);
+                    implicitLUSGS_matrix(solver, solver->R, solver->implicit->dW1, -1);
+                    solverUpdateUImplicit(solver);
+                }
+                else
+                {
+                    implicitDPLUR(solver); 
+                }
             }
                     
             if(ii == solver->dtLocalN)
@@ -1919,7 +1939,6 @@ void inviscidWriteSurf(SOLVER* solver)
     double pin = solver->inlet->Pin[3];
     double qdin = 0.5*rin*(uin*uin + vin*vin);
 
-    
     for(int jj=0; jj<solver->mesh->Nmark; jj++)
     {
         bc = solver->mesh->bc[jj];

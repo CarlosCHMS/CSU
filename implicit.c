@@ -37,16 +37,25 @@ IMPLICIT* implicitInit(INPUT* input, SOLVER* solver)
 
 void implicitMalloc(IMPLICIT* implicit, SOLVER* solver)
 {
-    if(implicit->timeScheme == 1 || implicit->timeScheme == 2)
+    if(implicit->timeScheme == 1)
     {
         implicit->dW0 = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
         implicit->dW1 = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
         implicit->D = malloc(solver->mesh->Nelem*sizeof(double));
         implicit->dtL = malloc(solver->mesh->Nelem*sizeof(double));
     }
+    else if(implicit->timeScheme == 2)
+    {   
+        implicit->dW1 = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
+        implicit->D = malloc(solver->mesh->Nelem*sizeof(double));
+        implicit->dtL = malloc(solver->mesh->Nelem*sizeof(double));
     
-    if(implicit->timeScheme == 2)
-    {    
+        implicit->U0 = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
+        implicit->dW10 = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
+        implicit->R0 = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);    
+        implicit->r = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);   
+        implicit->w = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);  
+
         implicit->BB = malloc(solver->mesh->Nelem*sizeof(BLOCK*));
         implicitInitDPLUR(solver);
     }
@@ -55,16 +64,25 @@ void implicitMalloc(IMPLICIT* implicit, SOLVER* solver)
 
 void implicitFree(IMPLICIT* implicit, SOLVER* solver)
 {
-    if(implicit->timeScheme == 1 || implicit->timeScheme == 2)
+    if(implicit->timeScheme == 1)
     {
-        free(implicit->dW0);
-        free(implicit->dW1);
+        tableFreeDouble(implicit->dW0, solver->Nvar);
+        tableFreeDouble(implicit->dW1, solver->Nvar);
         free(implicit->D);
         free(implicit->dtL);
     }
-    
-    if(implicit->timeScheme == 2)
+    else if(implicit->timeScheme == 2)
     {    
+        tableFreeDouble(implicit->dW1, solver->Nvar);
+        free(implicit->D);
+        free(implicit->dtL);
+
+        tableFreeDouble(implicit->U0, solver->Nvar);
+        tableFreeDouble(implicit->dW10, solver->Nvar);
+        tableFreeDouble(implicit->R0, solver->Nvar);
+        tableFreeDouble(implicit->r, solver->Nvar);
+        tableFreeDouble(implicit->w, solver->Nvar);;
+        
         implicitFreeDPLUR(implicit, solver);
         free(implicit->BB);
     }
@@ -228,6 +246,7 @@ void implicitCalcD(SOLVER* solver)
     }
 
     dt *= solver->CFL;
+    solver->dt = dt;
 
     #pragma omp parallel for
     for(int ii=0; ii<mesh->Nelem; ii++)
@@ -790,9 +809,9 @@ void implicitUpdateA(SOLVER* solver)
 
             double ee0 = E - 0.5*(u*u + v*v);
 
-            for(int mm=0; mm<4; mm++)
+            for(int mm=0; mm<solver->Nvar; mm++)
             {            
-                for(int nn=0; nn<4; nn++)
+                for(int nn=0; nn<solver->Nvar; nn++)
                 {   
                     if(mm == nn)
                     {
@@ -816,7 +835,7 @@ void implicitUpdateA(SOLVER* solver)
 
                 implicitAuxCalcFlux(solver, U, p, nx, ny, F);
                 
-                for(int nn=0; nn<4; nn++)
+                for(int nn=0; nn<solver->Nvar; nn++)
                 {
                     B->A[nn][mm] = 0.5*(F[nn] - F0[nn])*dS/h;
                 }
@@ -838,7 +857,7 @@ void implicitUpdateA(SOLVER* solver)
                 ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->gas->Pr)*dS/d;                    
             }
 
-            for(int nn=0; nn<4; nn++)
+            for(int nn=0; nn<solver->Nvar; nn++)
             {
                 B->A[nn][nn] -= 0.5*ra;
             }              
@@ -1016,6 +1035,8 @@ void implicitMultA(SOLVER* solver, double** x, double** y)
 double implicitProdInter(SOLVER* solver, double** x, double** y)
 {
     double ans = 0;
+    
+    #pragma omp parallel for reduction(+:ans)
     for(int ii=0; ii<solver->mesh->Nelem; ii++)
     {
         for(int kk=0; kk<solver->Nvar; kk++)
@@ -1028,51 +1049,281 @@ double implicitProdInter(SOLVER* solver, double** x, double** y)
 }
 
 
-void implicitCalcDPLUR(SOLVER* solver)
+void implicitMultA2(SOLVER* solver, double** U0, double** R0, double** x, double** y)
 {
+    double d = implicitProdInter(solver, x, U0);
+    double mod2 = implicitProdInter(solver, x, x);
+    
+    double h = 1e-7*d/mod2;
+    
+    #pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        for(int kk=0; kk<solver->Nvar; kk++)
+        {            
+            solver->U[kk][ii] = U0[kk][ii] + h*x[kk][ii];
+        }
+    }
+
+    solverCalcR(solver, solver->U);
+    
+    #pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        for(int kk=0; kk<solver->Nvar; kk++)
+        {            
+            y[kk][ii] = (solver->R[kk][ii] - R0[kk][ii])/h + x[kk][ii]*solver->mesh->omega[ii]/solver->dt;
+        }
+    }
+
+    implicitLUSGS_matrix(solver, y, solver->implicit->dW1, 1);
+
+    implicitCopy(solver, solver->implicit->dW1, y);    
+}
+
+void implicitLUSGS_matrix(SOLVER* solver, double** b, double** dW1, double sig)
+{
+    MESH* mesh = solver->mesh;
     IMPLICIT* implicit = solver->implicit;
     
-    implicitCalcD(solver);
-
-    if(solver->sa1->active)
+    BLOCK* B;
+    
+    for(int ii=0; ii<mesh->Nelem; ii++)
     {
-        implicitUpdateA_sa(solver);
-    }
-    else
-    {
-        implicitUpdateA(solver);
-    }
-
-    double w = 2./3.;
-    double** aux;
-    int mm;
-
-    for(mm=0; mm<solver->Nlinear; mm++)
-    {
-        aux = implicit->dW1;
-        implicit->dW1 = implicit->dW0;
-        implicit->dW0 = aux;    
+        for(int kk=0; kk<solver->Nvar; kk++)
+        {
+            dW1[kk][ii] = sig*b[kk][ii];
+        }
         
-        implicitMultA(solver, implicit->dW0, implicit->dW1);
+        ELEMENT* E = solver->mesh->elemL[ii];
+                
+        for(int jj=0; jj<E->neiN; jj++)
+        {
+            if(jj == 0)
+            {
+                B = implicit->BB[ii];
+            }
+            else
+            {
+                B = B->next;
+            }
             
+            int e0 = ii;
+            int e1 = B->ii;
+            
+            if(e1 < e0)
+            {   
+                for(int kk=0; kk<solver->Nvar; kk++)
+                {
+                    for(int nn=0; nn<solver->Nvar; nn++)
+                    {
+                        dW1[kk][e0] -= B->A[kk][nn]*dW1[nn][e1];
+                    }
+                }
+            }    
+        }
+    
+        if(solver->sst->active)
+        {
+            for(int kk=0; kk<4; kk++)
+            {
+                dW1[kk][ii] /= implicit->D[ii];            
+            }
+            
+            double A = dW1[4][ii] + solver->sst->dQkdr[ii]*dW1[0][ii];
+            double B = dW1[5][ii] + solver->sst->dQodr[ii]*dW1[0][ii];
+            double a = implicit->D[ii] - solver->sst->dQkdrk[ii];
+            double b = -solver->sst->dQkdro[ii];
+            double c = -solver->sst->dQodrk[ii];
+            double d = implicit->D[ii] - solver->sst->dQodro[ii];
+            
+            long double det = a*d - b*c;
+            
+            if(fabs(det) < 1e-14)
+            {
+                dW1[4][ii] /= implicit->D[ii];
+                dW1[5][ii] /= implicit->D[ii];
+            }
+            else
+            {
+                dW1[4][ii] = (A*d - B*b)/det;
+                dW1[5][ii] = (-A*c + B*a)/det;   
+            }
+            
+        }
+        else
+        {
+            for(int kk=0; kk<solver->Nvar; kk++)
+            {
+                dW1[kk][ii] /= implicit->D[ii];
+            } 
+        }        
+    }
+    
+    #pragma omp parallel for
+    for(int ii=0; ii<mesh->Nelem; ii++)
+    {
+        if(solver->sst->active)
+        {
+            double dW[6];
+            for(int kk=0; kk<solver->Nvar; kk++)
+            {
+                dW[kk] = dW1[kk][ii];
+            }            
+            
+            for(int kk=0; kk<4; kk++)
+            {
+                dW1[kk][ii] = implicit->D[ii]*dW[kk];
+            }
+            double a = implicit->D[ii] - solver->sst->dQkdrk[ii];
+            double b = -solver->sst->dQkdro[ii];
+            double c = -solver->sst->dQodrk[ii];
+            double d = implicit->D[ii] - solver->sst->dQodro[ii];            
+            
+            long double det = a*d - b*c;
+            if(fabs(det) < 1e-14)
+            {
+                dW1[4][ii] = implicit->D[ii]*dW[4];
+                dW1[5][ii] = implicit->D[ii]*dW[5];
+            }
+            else
+            {
+                dW1[4][ii] = a*dW[4] + b*dW[5] - solver->sst->dQkdr[ii]*dW[0];
+                dW1[5][ii] = c*dW[4] + d*dW[5] - solver->sst->dQodr[ii]*dW[0];
+            }
+        }
+        else
+        {
+            for(int kk=0; kk<solver->Nvar; kk++)
+            {
+                dW1[kk][ii] *= implicit->D[ii];
+            }
+        }
+    }
+    
+    for(int ii=mesh->Nelem-1; ii>=0; ii--)
+    {  
+        ELEMENT* E = solver->mesh->elemL[ii];
+                     
+        for(int jj=0; jj<E->neiN; jj++)
+        {        
+            if(jj == 0)
+            {
+                B = implicit->BB[ii];
+            }
+            else
+            {
+                B = B->next;
+            }
+            
+            int e0 = ii;
+            int e1 = B->ii;
+            
+            if(e1 > e0)
+            {   
+                for(int kk=0; kk<solver->Nvar; kk++)
+                {
+                    for(int nn=0; nn<solver->Nvar; nn++)
+                    {
+                        dW1[kk][e0] -= B->A[kk][nn]*dW1[nn][e1];
+                    }
+                }
+            }    
+        }
+        
+        if(solver->sst->active)
+        {
+            for(int kk=0; kk<4; kk++)
+            {
+                dW1[kk][ii] /= implicit->D[ii];            
+            }
+            
+            double A = dW1[4][ii] + solver->sst->dQkdr[ii]*dW1[0][ii];
+            double B = dW1[5][ii] + solver->sst->dQodr[ii]*dW1[0][ii];
+            double a = implicit->D[ii] - solver->sst->dQkdrk[ii];
+            double b = -solver->sst->dQkdro[ii];
+            double c = -solver->sst->dQodrk[ii];
+            double d = implicit->D[ii] - solver->sst->dQodro[ii];
+            
+            long double det = a*d - b*c;
+            if(fabs(det) < 1e-14)
+            {
+                dW1[4][ii] /= implicit->D[ii];
+                dW1[5][ii] /= implicit->D[ii];
+            }
+            else
+            {
+                dW1[4][ii] = (A*d - B*b)/det;
+                dW1[5][ii] = (-A*c + B*a)/det;   
+            }
+
+        }
+        else
+        {
+            for(int kk=0; kk<solver->Nvar; kk++)
+            {
+                dW1[kk][ii] /= implicit->D[ii];
+            }        
+        }
+    }
+}
+
+
+void implicitDPLUR(SOLVER* solver) 
+{
+
+    //DPLUR preconditioned with LUSGS
+
+    IMPLICIT* implicit = solver->implicit;
+
+    solverCalcR(solver, solver->U);
+    implicitCopy(solver, solver->R, implicit->R0);      
+    
+    implicitCalcD(solver);
+    implicitUpdateA(solver);
+    implicitLUSGS_matrix(solver, solver->R, solver->implicit->dW1, -1);
+
+    implicitCopy(solver, solver->U, implicit->U0);
+    implicitCopy(solver, solver->implicit->dW1, implicit->dW10);
+    implicitCopy(solver, solver->implicit->dW1, implicit->w);
+            
+    double fw = 1.0;//2.0/3.0;
+
+    for (int jj=0; jj<solver->Nlinear; jj++) {
+
+        implicitMultA2(solver, implicit->U0, implicit->R0, implicit->w, implicit->r);
+
         #pragma omp parallel for
         for(int ii=0; ii<solver->mesh->Nelem; ii++)
         {
             for(int kk=0; kk<solver->Nvar; kk++)
-            {
-                implicit->dW1[kk][ii] = w*(-solver->R[kk][ii] - implicit->dW1[kk][ii])/implicit->D[ii] + implicit->dW0[kk][ii];
+            {           
+                implicit->w[kk][ii] += fw*(implicit->dW10[kk][ii] - implicit->r[kk][ii]);
             }
         }
-        
-        double ans = fabs(implicit->dW1[0][0] - implicit->dW0[0][0]);
-        for(int ii=1; ii<solver->mesh->Nelem; ii++)
-        {
-            ans = fmax(ans, fabs(implicit->dW1[0][ii] - implicit->dW0[0][ii]));
+    }
+
+    #pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        for(int kk=0; kk<solver->Nvar; kk++)
+        {   
+            solver->U[kk][ii] = implicit->U0[kk][ii] + implicit->w[kk][ii];
         }
-        
-        if(ans<1e-14)
-        {
-            break;
+    }
+
+    implicitCopy(solver, implicit->R0, solver->R);
+}
+
+
+void implicitCopy(SOLVER* solver, double** x0, double** x1)
+{
+    #pragma omp parallel for
+    for(int ii=0; ii<solver->mesh->Nelem; ii++)
+    {
+        for(int kk=0; kk<solver->Nvar; kk++)
+        {            
+            x1[kk][ii] = x0[kk][ii];
         }
     }
 }

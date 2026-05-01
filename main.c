@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 
     struct timeval start, stop;
     
-    gettimeofday(&start,NULL);
+    gettimeofday(&start, NULL);
    
     SOLVER* solver = solverInit(argv[1]);
     
@@ -33,7 +33,7 @@ int main(int argc, char **argv)
       
     solverFree(solver); 
 
-    gettimeofday(&stop,NULL);
+    gettimeofday(&stop, NULL);
     
     printf("\nDuration %f s\n", duration(start, stop));
 
