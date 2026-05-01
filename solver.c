@@ -167,18 +167,18 @@ void solverMalloc(SOLVER* solver)
 
 void solverFree(SOLVER* solver)
 {
-
+    
     if(solver->timeScheme == 0)
     {
         tableFreeDouble(solver->Uaux, solver->Nvar);
     }
-
+    
     tableFreeDouble(solver->U, solver->Nvar);
     tableFreeDouble(solver->R, solver->Nvar);        
     tableFreeDouble(solver->faceFlux, solver->Nvar);
     tableFreeDouble(solver->dPx, solver->Nvar);
     tableFreeDouble(solver->dPy, solver->Nvar);
-    
+   
     if(solver->dtLocal == 1)
     {
         free(solver->dtL);
@@ -211,7 +211,7 @@ void solverFree(SOLVER* solver)
     inputFree(solver->input);
     
     free(solver);
-
+    
 }
 
 
@@ -1551,6 +1551,22 @@ void solverSolve(SOLVER* solver)
                     implicitDPLUR(solver); 
                 }
             }
+            else if(solver->timeScheme == 3)
+            {
+                if(solver->iteration < solver->Ninit)
+                {
+                    solverCalcR(solver, solver->U);
+                    implicitCalcD(solver);
+                    implicitUpdateA(solver);
+                    implicitLUSGS_matrix(solver, solver->R, solver->implicit->dW1, -1);
+                    solverUpdateUImplicit(solver);
+                }
+                else
+                {
+                    implicitGMRES(solver); 
+                }
+            }
+            
                     
             if(ii == solver->dtLocalN)
             {
@@ -1607,6 +1623,10 @@ int solverTimeSchemeChoice(char* s)
     else if(strcmp(s, "DPLUR") == 0)
     {
         ans = 2;
+    }
+    else if(strcmp(s, "GMRES") == 0)
+    {
+        ans = 3;
     }
     else
     {

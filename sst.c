@@ -17,6 +17,9 @@
 SST* sstInit(INPUT* input)
 {
     SST* sst = malloc(sizeof(SST));
+    
+    sst->update_dQ = true;
+    
     sst->sk1 = 0.85;
     sst->so1 = 0.5;
     sst->b1 = 0.075;
@@ -562,13 +565,16 @@ void sstInterSource(SOLVER* solver)
 
         if(var.om == solver->omLim)
         {
-            solver->sst->dQkdr[ii] = 0;
-            solver->sst->dQkdrk[ii] = 0;
-            solver->sst->dQkdro[ii] = 0;
+            if(solver->sst->update_dQ)
+            {
+                solver->sst->dQkdr[ii] = 0;
+                solver->sst->dQkdrk[ii] = 0;
+                solver->sst->dQkdro[ii] = 0;
 
-            solver->sst->dQodr[ii] = 0;
-            solver->sst->dQodrk[ii] = 0;
-            solver->sst->dQodro[ii] = 0;
+                solver->sst->dQodr[ii] = 0;
+                solver->sst->dQodrk[ii] = 0;
+                solver->sst->dQodro[ii] = 0;
+            }
         }
         else
         {
@@ -577,50 +583,55 @@ void sstInterSource(SOLVER* solver)
             solver->R[4][ii] -= var.Qtk*solver->mesh->omega[ii];
             solver->R[5][ii] -= var.Qto*solver->mesh->omega[ii];
 
-            double dQkdr = var.Qtk;
-            double dQkdo = var.Qtk;
-            double dQkdk = var.Qtk;        
-            double dQodr = var.Qto;        
-            double dQodo = var.Qto;
-            double dQodk = var.Qto;
-            
-            double h = 1e-6;
-            double dh = 1e-6;
-            double hh;
-            
-            hh = fabs(var.om*h);
-            hh = fmax(hh, dh);
-            var.om += hh;
-            sstSources(solver->sst, &var);
-            dQkdo = (var.Qtk - dQkdo)/hh;    
-            dQodo = (var.Qto - dQodo)/hh;
-            var.om = E0->P[6];
-            
-            hh = fabs(var.k*h);
-            hh = fmax(hh, dh);
-            var.k += hh;
-            sstSources(solver->sst, &var);
-            dQkdk = (var.Qtk - dQkdk)/hh; 
-            dQodk = (var.Qto - dQodk)/hh;
-            var.k = E0->P[5];
-            
-            hh = fabs(var.r*h);
-            hh = fmax(hh, dh);        
-            var.r += hh;
-            sstSources(solver->sst, &var);
-            dQkdr = (var.Qtk - dQkdr)/hh;        
-            dQodr = (var.Qto - dQodr)/hh;
-            var.r = E0->P[0];
+            if(solver->sst->update_dQ)
+            {
 
-            double omega = solver->mesh->omega[ii];
+                double dQkdr = var.Qtk;
+                double dQkdo = var.Qtk;
+                double dQkdk = var.Qtk;        
+                double dQodr = var.Qto;        
+                double dQodo = var.Qto;
+                double dQodk = var.Qto;
+                
+                double h = 1e-6;
+                double dh = 1e-6;
+                double hh;
+                
+                hh = fabs(var.om*h);
+                hh = fmax(hh, dh);
+                var.om += hh;
+                sstSources(solver->sst, &var);
+                dQkdo = (var.Qtk - dQkdo)/hh;    
+                dQodo = (var.Qto - dQodo)/hh;
+                var.om = E0->P[6];
+                
+                hh = fabs(var.k*h);
+                hh = fmax(hh, dh);
+                var.k += hh;
+                sstSources(solver->sst, &var);
+                dQkdk = (var.Qtk - dQkdk)/hh; 
+                dQodk = (var.Qto - dQodk)/hh;
+                var.k = E0->P[5];
+                
+                hh = fabs(var.r*h);
+                hh = fmax(hh, dh);        
+                var.r += hh;
+                sstSources(solver->sst, &var);
+                dQkdr = (var.Qtk - dQkdr)/hh;        
+                dQodr = (var.Qto - dQodr)/hh;
+                var.r = E0->P[0];
 
-            solver->sst->dQkdr[ii] = (dQkdr - dQkdk*var.k/var.r - dQkdo*var.om/var.r)*omega;//var.dQkdr*E0->omega;
-            solver->sst->dQkdrk[ii] = dQkdk*omega/var.r;//dQkdk*E0->omega/var.r;//var.dQkdrk*E0->omega;        
-            solver->sst->dQkdro[ii] = dQkdo*solver->mesh->omega[ii]/var.r;//var.dQkdro*E0->omega;
+                double omega = solver->mesh->omega[ii];
 
-            solver->sst->dQodr[ii] = (dQodr - dQodk*var.k/var.r - dQodo*var.om/var.r)*omega;//var.dQodr*E0->omega;
-            solver->sst->dQodrk[ii] = dQodk*omega/var.r;//var.dQodrk*E0->omega;        
-            solver->sst->dQodro[ii] = dQodo*omega/var.r;//var.dQodro*E0->omega;
+                solver->sst->dQkdr[ii] = (dQkdr - dQkdk*var.k/var.r - dQkdo*var.om/var.r)*omega;//var.dQkdr*E0->omega;
+                solver->sst->dQkdrk[ii] = dQkdk*omega/var.r;//dQkdk*E0->omega/var.r;//var.dQkdrk*E0->omega;        
+                solver->sst->dQkdro[ii] = dQkdo*solver->mesh->omega[ii]/var.r;//var.dQkdro*E0->omega;
+
+                solver->sst->dQodr[ii] = (dQodr - dQodk*var.k/var.r - dQodo*var.om/var.r)*omega;//var.dQodr*E0->omega;
+                solver->sst->dQodrk[ii] = dQodk*omega/var.r;//var.dQodrk*E0->omega;        
+                solver->sst->dQodro[ii] = dQodo*omega/var.r;//var.dQodro*E0->omega;
+            
+            }
         }
     }
 }

@@ -22,6 +22,7 @@ typedef struct{
 typedef struct SST{ 
 
     bool active;
+    bool update_dQ;
   
     double L;
     double kFactor;

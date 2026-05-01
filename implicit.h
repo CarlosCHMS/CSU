@@ -18,7 +18,7 @@ typedef struct IMPLICIT
     double wImp;
 
     double *D;
-    double *dtL;    
+    double *dtL;
     
     double **dW0;
     double **dW1;
@@ -27,6 +27,8 @@ typedef struct IMPLICIT
     double **R0;
     double **r;
     double **w;
+    
+    double ***v;
     
     BLOCK** BB;
 
@@ -58,8 +60,6 @@ void implicitFreeDPLUR(IMPLICIT* implicit, SOLVER* solver);
 
 void implicitUpdateA(SOLVER* solver);
 
-void implicitUpdateA_sa(SOLVER* solver);
-
 void implicitMultA(SOLVER* solver, double** x, double** y);
 
 void implicitMultA2(SOLVER* solver, double** U0, double** R0, double** x, double** y);
@@ -69,5 +69,9 @@ void implicitLUSGS_matrix(SOLVER* solver, double** b, double** dW1, double sig);
 void implicitDPLUR(SOLVER* solver);
 
 void implicitCopy(SOLVER* solver, double** x0, double** x1);
+
+void implicitGMRES(SOLVER* solver);
+
+void implicitQR(int dim, double beta, double **H, double *y);
 
 #endif
