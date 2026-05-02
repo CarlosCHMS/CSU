@@ -71,7 +71,8 @@ typedef struct SOLVER{
     double rLim;
     double pLim; 
     double Twall;
-    double omLim;       
+    double omLim; 
+    double resRhoLim;      
 
     double *dtL;
     double *miT;

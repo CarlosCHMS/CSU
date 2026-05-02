@@ -218,6 +218,15 @@ void solverFree(SOLVER* solver)
 void solverSetData(SOLVER* solver, INPUT* input)
 {
     
+    if(inputNameIsInput(input, "resRhoLim"))
+    {
+        solver->resRhoLim = strtod(inputGetValue(input, "resRhoLim"), NULL);
+    }
+    else
+    {
+        solver->resRhoLim = 1e-10;
+    }
+    
     if(inputNameIsInput(input, "order"))
     {
         solver->order = atoi(inputGetValue(input, "order"));     
@@ -980,19 +989,19 @@ void solverCalcRes(SOLVER* solver)
         solver->res[kk] = 0.0;
     }
     
-    for(int ii=0; ii<solver->mesh->Nelem; ii++)
-    {
-        for(int kk=0; kk<solver->Nvar; kk++)
-        {         
-            solver->res[kk] += solver->R[kk][ii]*solver->R[kk][ii];         
-        }
-    }
-
     for(int kk=0; kk<solver->Nvar; kk++)
-    {
-        solver->res[kk] = sqrt(solver->res[kk]/solver->mesh->Nelem);
-    }
-    
+    {   
+        double ans = 0;
+          
+        #pragma omp parallel for reduction(+:ans)
+        for(int ii=0; ii<solver->mesh->Nelem; ii++)
+        {    
+            ans += solver->R[kk][ii]*solver->R[kk][ii];         
+        }
+        
+        solver->res[kk] = sqrt(ans/solver->mesh->Nelem);
+    }    
+        
     for(int kk=0; kk<solver->Nvar; kk++)
     {
         printf(" %+.4e,", solver->res[kk]);        
@@ -1588,7 +1597,19 @@ void solverSolve(SOLVER* solver)
                 }                
                 solverCalcCoeff3(solver, convFile, ii);
                 fprintf(convFile, "\n");
+            } 
+            
+            if(isnan(solver->res[0]))
+            {
+                printf("\nsolver: solution diverged.\n");  
+                break;                
             }            
+            else if(solver->res[0] < solver->resRhoLim && ii > 10)
+            {
+                printf("\nsolver: solution converged.\n");
+                break;                
+            }
+                       
         }        
         fclose(convFile);
     }

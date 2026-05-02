@@ -72,6 +72,6 @@ void implicitCopy(SOLVER* solver, double** x0, double** x1);
 
 void implicitGMRES(SOLVER* solver);
 
-void implicitQR(int dim, double beta, double **H, double *y);
+void implicitGMRES_solveMinimization(int dim, double beta, double** H, double* y);
 
 #endif
