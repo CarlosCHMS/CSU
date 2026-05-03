@@ -305,7 +305,7 @@ void solverSetData(SOLVER* solver, INPUT* input)
     }
     else
     {
-        solver->Nlinear = 3;
+        solver->Nlinear = 10;
     }
 
     if(inputNameIsInput(input, "Ninit"))

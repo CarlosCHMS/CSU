@@ -223,8 +223,8 @@ void implicitCalcD(SOLVER* solver)
             meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
             dS = sqrt(dSx*dSx + dSy*dSy);
 
-            ELEMENT* E0 = bc->elemL[ii];
-            //ELEMENT* E1 = mesh->elemL[e1];
+            //ELEMENT* E0 = bc->elemL[ii];
+            ELEMENT* E0 = mesh->elemL[e1];
 
             double r = E0->P[0];
             double u = E0->P[1];
