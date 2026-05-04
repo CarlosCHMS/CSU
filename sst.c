@@ -18,7 +18,7 @@ SST* sstInit(INPUT* input)
 {
     SST* sst = malloc(sizeof(SST));
     
-    sst->update_dQ = true;
+    sst->dQ_allocated = false;
     
     sst->sk1 = 0.85;
     sst->so1 = 0.5;
@@ -95,15 +95,21 @@ SST* sstInit(INPUT* input)
 }
 
 
-void sstMalloc(SST* sst, int Nelem)
+void sstMalloc(SST* sst, int Nelem, int timeScheme)
 {   
-    sst->dQodro = malloc(Nelem*sizeof(double));
-    sst->dQodrk = malloc(Nelem*sizeof(double));
-    sst->dQodr = malloc(Nelem*sizeof(double));                        
-    sst->dQkdro = malloc(Nelem*sizeof(double));                
-    sst->dQkdrk = malloc(Nelem*sizeof(double));
-    sst->dQkdr = malloc(Nelem*sizeof(double)); 
-    
+
+    if(timeScheme == 1)
+    {
+        sst->dQodro = malloc(Nelem*sizeof(double));
+        sst->dQodrk = malloc(Nelem*sizeof(double));
+        sst->dQodr = malloc(Nelem*sizeof(double));                        
+        sst->dQkdro = malloc(Nelem*sizeof(double));                
+        sst->dQkdrk = malloc(Nelem*sizeof(double));
+        sst->dQkdr = malloc(Nelem*sizeof(double)); 
+
+        sst->dQ_allocated = true;
+    }
+        
     sst->miTe = malloc(Nelem*sizeof(double));
     sst->F1 = malloc(Nelem*sizeof(double));
     sst->F2 = malloc(Nelem*sizeof(double));                
@@ -118,13 +124,17 @@ void sstFree(SST* sst)
     free(sst->F1);
     free(sst->F2);
     free(sst->dd);
-    free(sst->om2);        
-    free(sst->dQodr);
-    free(sst->dQodrk);        
-    free(sst->dQodro);
-    free(sst->dQkdr);
-    free(sst->dQkdrk);        
-    free(sst->dQkdro);
+    free(sst->om2);
+    
+    if(sst->dQ_allocated)
+    {
+        free(sst->dQodr);
+        free(sst->dQodrk);        
+        free(sst->dQodro);
+        free(sst->dQkdr);
+        free(sst->dQkdrk);        
+        free(sst->dQkdro);
+    }
 
     sstTransFree(sst->trans);
     free(sst);
@@ -565,7 +575,7 @@ void sstInterSource(SOLVER* solver)
 
         if(var.om == solver->omLim)
         {
-            if(solver->sst->update_dQ)
+            if(solver->sst->dQ_allocated)
             {
                 solver->sst->dQkdr[ii] = 0;
                 solver->sst->dQkdrk[ii] = 0;
@@ -583,7 +593,7 @@ void sstInterSource(SOLVER* solver)
             solver->R[4][ii] -= var.Qtk*solver->mesh->omega[ii];
             solver->R[5][ii] -= var.Qto*solver->mesh->omega[ii];
 
-            if(solver->sst->update_dQ)
+            if(solver->sst->dQ_allocated)
             {
 
                 double dQkdr = var.Qtk;

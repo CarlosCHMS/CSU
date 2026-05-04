@@ -145,7 +145,7 @@ void solverMalloc(SOLVER* solver)
     if(solver->sst->active)
     {
         solver->miT = malloc(solver->mesh->Ncon*sizeof(double));
-        sstMalloc(solver->sst, solver->mesh->Nelem);
+        sstMalloc(solver->sst, solver->mesh->Nelem, solver->timeScheme);
     }
     
     solver->R = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
@@ -1285,14 +1285,6 @@ void solverCalcPrimitive(SOLVER* solver, double** U)
             U[4][ii] = E->P[5]*E->P[0];
         }                        
     }
-    
-    /*
-    for(int ii=0; ii<solver->mesh->Nmark; ii++)
-    {
-        boundaryCalcPrimitive(solver, solver->mesh->bc[ii]);
-    }
-    */
-    
     
     for(int ii=0; ii<solver->Nboundary; ii++)
     {

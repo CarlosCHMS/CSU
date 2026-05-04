@@ -22,7 +22,7 @@ typedef struct{
 typedef struct SST{ 
 
     bool active;
-    bool update_dQ;
+    bool dQ_allocated;    
   
     double L;
     double kFactor;
@@ -103,7 +103,7 @@ typedef struct{
 
 SST* sstInit(INPUT* input);
 
-void sstMalloc(SST* sst, int Nelem);
+void sstMalloc(SST* sst, int Nelem, int timeScheme);
 
 void sstFree(SST* sst);
 

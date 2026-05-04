@@ -74,4 +74,6 @@ void implicitGMRES(SOLVER* solver);
 
 void implicitGMRES_solveMinimization(int dim, double beta, double** H, double* y);
 
+void implicitCalcPartJacobi(SOLVER* solver, double* U, double** A, double nx, double ny, double p, double* dp);
+
 #endif
