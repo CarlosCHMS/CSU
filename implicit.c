@@ -817,70 +817,26 @@ void implicitUpdateA(SOLVER* solver)
             
             ELEMENT* E0 = solver->mesh->elemL[e0];
             ELEMENT* E1 = solver->mesh->elemL[e1];        
-
+          
             meshCalcDS(solver->mesh, p0, p1, &dSx, &dSy);
             dS = sqrt(dSx*dSx + dSy*dSy);
                 
             nx = dSx/dS;
             ny = dSy/dS;
-            
-            double F0[6];
-            double F[6];
+
             double U[6];
-
-            double rho, u, v, E, p, T, k;           
-            
-            rho = solver->U[0][e1];
-            u = solver->U[1][e1]/rho;
-            v = solver->U[2][e1]/rho;
-            E = solver->U[3][e1]/rho;
-            k = 0;
-            if(solver->sst->active)
-            {
-                k = solver->U[4][e1]/rho;
-            }
-
             for(int kk=0; kk<solver->Nvar; kk++)
             {
                 U[kk] = solver->U[kk][e1];
-            } 
+            }
 
-            implicitAuxCalcFlux(solver, U, E1->P[3], nx, ny, F0);
-
-            double ee0 = E - 0.5*(u*u + v*v) - k;
+            implicitCalcJacobi(solver, U, B->A, nx, ny, E1->P[4]);
 
             for(int mm=0; mm<solver->Nvar; mm++)
-            {            
-                for(int nn=0; nn<solver->Nvar; nn++)
-                {   
-                    U[nn] = solver->U[nn][e1];
-                } 
-                
-                double dU = 1e-6;
-                
-                U[mm] += dU;
-                
-                rho = U[0];
-                u = U[1]/rho;
-                v = U[2]/rho;
-                E = U[3]/rho;
-                k = 0;
-                if(solver->sst->active)
-                {
-                    k = U[4]/rho;
-                }
-                
-                double ee1 = E - 0.5*(u*u + v*v) - k;
-
-                T = gasprop_e2Taprox(solver->gas, ee0, E1->P[4], ee1);
-                //T = gasprop_e2T(solver->gas, ee1);
-                p = solver->gas->R*rho*T;            
-
-                implicitAuxCalcFlux(solver, U, p, nx, ny, F);
-                
+            {                            
                 for(int nn=0; nn<solver->Nvar; nn++)
                 {
-                    B->A[nn][mm] = 0.5*(F[nn] - F0[nn])*dS/dU;
+                    B->A[nn][mm] = 0.5*B->A[nn][mm]*dS;
                 }
             }
 
@@ -890,7 +846,7 @@ void implicitUpdateA(SOLVER* solver)
             if(solver->laminar)
             {
                 double r = (E0->P[0] + E1->P[0])*0.5;                
-                T = (E0->P[4] + E1->P[4])*0.5;
+                double T = (E0->P[4] + E1->P[4])*0.5;
                 double mi = gaspropSutherland(T);
 
                 elementCenter(E0, solver->mesh, &x0, &y0);
@@ -902,7 +858,7 @@ void implicitUpdateA(SOLVER* solver)
             else if(solver->sa1->active || solver->sst->active)
             {
                 double r = (E0->P[0] + E1->P[0])*0.5;                
-                T = (E0->P[4] + E1->P[4])*0.5;
+                double T = (E0->P[4] + E1->P[4])*0.5;
                 double mi = gaspropSutherland(T);
 
                 elementCenter(E0, solver->mesh, &x0, &y0);
@@ -917,6 +873,123 @@ void implicitUpdateA(SOLVER* solver)
                 B->A[nn][nn] -= 0.5*ra;
             }              
         }
+    }
+}
+
+
+void implicitCalcJacobi(SOLVER* solver, double* U, double** A, double nx, double ny, double T)
+{
+
+    double dTde = 1/gasprop_T2Cv(solver->gas, T);
+    double U02 = U[0]*U[0];
+    double dTU[6];
+    double R = solver->gas->R;
+    
+    if(solver->sst->active)
+    {
+        dTU[0] = dTde*(-U[3]/U02 + U[4]/U02 + U[1]*U[1]/(U02*U[0]) + U[2]*U[2]/(U02*U[0])) ;
+        dTU[1] = -U[1]*dTde/U02 ;
+        dTU[2] = -U[2]*dTde/U02 ;
+        dTU[3] = dTde/U[0] ;
+        dTU[4] = -dTde/U[0] ;
+        dTU[5] = 0 ;
+
+        A[0][0] = 0 ;
+        A[0][1] = nx ;
+        A[0][2] = ny ;
+        A[0][3] = 0 ;
+        A[0][4] = 0 ;
+        A[0][5] = 0 ;
+        A[1][0] = R*T*nx + R*U[0]*dTU[0]*nx - U[1]*(U[1]*nx + U[2]*ny)/U02 ;
+        A[1][1] = R*U[0]*dTU[1]*nx + U[1]*nx/U[0] + (U[1]*nx + U[2]*ny)/U[0] ;
+        A[1][2] = R*U[0]*dTU[2]*nx + U[1]*ny/U[0] ;
+        A[1][3] = R*U[0]*dTU[3]*nx ;
+        A[1][4] = R*U[0]*dTU[4]*nx ;
+        A[1][5] = R*U[0]*dTU[5]*nx ;
+        A[2][0] = R*T*ny + R*U[0]*dTU[0]*ny - U[2]*(U[1]*nx + U[2]*ny)/U02 ;
+        A[2][1] = R*U[0]*dTU[1]*ny + U[2]*nx/U[0] ;
+        A[2][2] = R*U[0]*dTU[2]*ny + U[2]*ny/U[0] + (U[1]*nx + U[2]*ny)/U[0] ;
+        A[2][3] = R*U[0]*dTU[3]*ny ;
+        A[2][4] = R*U[0]*dTU[4]*ny ;
+        A[2][5] = R*U[0]*dTU[5]*ny ;
+        A[3][0] = R*dTU[0]*(U[1]*nx + U[2]*ny) - U[3]*(U[1]*nx + U[2]*ny)/U02 ;
+        A[3][1] = R*T*nx + R*dTU[1]*(U[1]*nx + U[2]*ny) + U[3]*nx/U[0] ;
+        A[3][2] = R*T*ny + R*dTU[2]*(U[1]*nx + U[2]*ny) + U[3]*ny/U[0] ;
+        A[3][3] = R*dTU[3]*(U[1]*nx + U[2]*ny) + (U[1]*nx + U[2]*ny)/U[0] ;
+        A[3][4] = R*dTU[4]*(U[1]*nx + U[2]*ny) ;
+        A[3][5] = R*dTU[5]*(U[1]*nx + U[2]*ny) ;
+        A[4][0] = -U[4]*(U[1]*nx + U[2]*ny)/U02 ;
+        A[4][1] = U[4]*nx/U[0] ;
+        A[4][2] = U[4]*ny/U[0] ;
+        A[4][3] = 0 ;
+        A[4][4] = (U[1]*nx + U[2]*ny)/U[0] ;
+        A[4][5] = 0 ;
+        A[5][0] = -U[5]*(U[1]*nx + U[2]*ny)/U02 ;
+        A[5][1] = U[5]*nx/U[0] ;
+        A[5][2] = U[5]*ny/U[0] ;
+        A[5][3] = 0 ;
+        A[5][4] = 0 ;
+        A[5][5] = (U[1]*nx + U[2]*ny)/U[0] ;
+    }
+    else if(solver->sa1->active)
+    {
+        dTU[0] = dTde*(-U[3]/U02 + U[1]*U[1]/(U02*U[0]) + U[2]*U[2]/(U02*U[0])) ;
+        dTU[1] = -U[1]*dTde/U02 ;
+        dTU[2] = -U[2]*dTde/U02 ;
+        dTU[3] = dTde/U[0] ;
+        dTU[4] = 0 ;
+
+        A[0][0] = 0 ;
+        A[0][1] = nx ;
+        A[0][2] = ny ;
+        A[0][3] = 0 ;
+        A[0][4] = 0 ;
+        A[1][0] = R*T*nx + R*U[0]*dTU[0]*nx - U[1]*(U[1]*nx + U[2]*ny)/U02;
+        A[1][1] = R*U[0]*dTU[1]*nx + U[1]*nx/U[0] + (U[1]*nx + U[2]*ny)/U[0] ;
+        A[1][2] = R*U[0]*dTU[2]*nx + U[1]*ny/U[0] ;
+        A[1][3] = R*U[0]*dTU[3]*nx ;
+        A[1][4] = R*U[0]*dTU[4]*nx ;
+        A[2][0] = R*T*ny + R*U[0]*dTU[0]*ny - U[2]*(U[1]*nx + U[2]*ny)/U02;
+        A[2][1] = R*U[0]*dTU[1]*ny + U[2]*nx/U[0] ;
+        A[2][2] = R*U[0]*dTU[2]*ny + U[2]*ny/U[0] + (U[1]*nx + U[2]*ny)/U[0] ;
+        A[2][3] = R*U[0]*dTU[3]*ny ;
+        A[2][4] = R*U[0]*dTU[4]*ny ;
+        A[3][0] = R*dTU[0]*(U[1]*nx + U[2]*ny) - U[3]*(U[1]*nx + U[2]*ny)/U02 ;
+        A[3][1] = R*T*nx + R*dTU[1]*(U[1]*nx + U[2]*ny) + U[3]*nx/U[0] ;
+        A[3][2] = R*T*ny + R*dTU[2]*(U[1]*nx + U[2]*ny) + U[3]*ny/U[0] ;
+        A[3][3] = R*dTU[3]*(U[1]*nx + U[2]*ny) + (U[1]*nx + U[2]*ny)/U[0] ;
+        A[3][4] = R*dTU[4]*(U[1]*nx + U[2]*ny) ;
+        A[4][0] = -U[4]*(U[1]*nx + U[2]*ny)/U02 ;
+        A[4][1] = U[4]*nx/U[0] ;
+        A[4][2] = U[4]*ny/U[0] ;
+        A[4][3] = 0 ;
+        A[4][4] = (U[1]*nx + U[2]*ny)/U[0] ;
+    }
+    else
+    {
+
+        dTU[0] = dTde*(-U[3]/U02 + (U[1]*U[1])/(U02*U[0]) + (U[2]*U[2])/(U02*U[0]));
+        dTU[1] = -U[1]*dTde/(U[0]*U[0]);
+        dTU[2] = -U[2]*dTde/(U[0]*U[0]);
+        dTU[3] = dTde/U[0];
+
+        A[0][0] = 0;
+        A[0][1] = nx;
+        A[0][2] = ny;
+        A[0][3] = 0;
+        A[1][0] = R*T*nx + R*U[0]*dTU[0]*nx - U[1]*(U[1]*nx + U[2]*ny)/U02;
+        A[1][1] = R*U[0]*dTU[1]*nx + U[1]*nx/U[0] + (U[1]*nx + U[2]*ny)/U[0];
+        A[1][2] = R*U[0]*dTU[2]*nx + U[1]*ny/U[0];
+        A[1][3] = R*U[0]*dTU[3]*nx;
+        A[2][0] = R*T*ny + R*U[0]*dTU[0]*ny - U[2]*(U[1]*nx + U[2]*ny)/U02;
+        A[2][1] = R*U[0]*dTU[1]*ny + U[2]*nx/U[0];
+        A[2][2] = R*U[0]*dTU[2]*ny + U[2]*ny/U[0] + (U[1]*nx + U[2]*ny)/U[0];
+        A[2][3] = R*U[0]*dTU[3]*ny;
+        A[3][0] = R*dTU[0]*(U[1]*nx + U[2]*ny) - U[3]*(U[1]*nx + U[2]*ny)/U02;
+        A[3][1] = R*T*nx + R*dTU[1]*(U[1]*nx + U[2]*ny) + U[3]*nx/U[0];
+        A[3][2] = R*T*ny + R*dTU[2]*(U[1]*nx + U[2]*ny) + U[3]*ny/U[0];
+        A[3][3] = R*dTU[3]*(U[1]*nx + U[2]*ny) + (U[1]*nx + U[2]*ny)/U[0];
+   
     }
 }
 
