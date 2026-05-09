@@ -13,6 +13,8 @@ typedef struct BLOCK{
 
 typedef struct IMPLICIT
 {
+    bool isMatrix;
+    
     int timeScheme;
 
     double wImp;
@@ -31,6 +33,8 @@ typedef struct IMPLICIT
     double ***v;
     
     BLOCK** BB;
+    
+    void (*LUSGSinv)(SOLVER*, double**, double**, double);
 
 } IMPLICIT;
 
@@ -42,29 +46,15 @@ void implicitFree(IMPLICIT* implicit, SOLVER* solver);
 
 void implicitCalcD(SOLVER* solver);
 
-void implicitLUSGS_L(SOLVER* solver);
+void implicitInitMatrix(SOLVER* solver);
 
-void implicitLUSGS_U(SOLVER* solver);
-
-void implicitAuxCalcFlux(SOLVER* solver, double* U, double p, double nx, double ny, double* F);
-
-void implicitCalcDeltaFlux(SOLVER* solver, double* P, double* dW, double nx, double ny, double* dF);
-
-void implicitFunc(SOLVER* solver, int e0, int e1, int p0, int p1, int face1, double** dW);
-
-void implicitTest(SOLVER* solver);
-
-void implicitInitDPLUR(SOLVER* solver);
-
-void implicitFreeDPLUR(IMPLICIT* implicit, SOLVER* solver);
+void implicitFreeMatrix(IMPLICIT* implicit, SOLVER* solver);
 
 void implicitUpdateA(SOLVER* solver);
 
-void implicitMultA(SOLVER* solver, double** x, double** y);
-
 void implicitMultA2(SOLVER* solver, double** U0, double** R0, double** x, double** y);
 
-void implicitLUSGS_matrix(SOLVER* solver, double** b, double** dW1, double sig);
+void implicitCalcLUSGS_matrix(SOLVER* solver, double** b, double** dW1, double sig);
 
 void implicitDPLUR(SOLVER* solver);
 
@@ -75,5 +65,9 @@ void implicitGMRES(SOLVER* solver);
 void implicitGMRES_solveMinimization(int dim, double beta, double** H, double* y);
 
 void implicitCalcJacobi(SOLVER* solver, double* U, double** A, double nx, double ny, double T);
+
+void implicitCalcLUSGS_matrixFree(SOLVER* solver, double** b, double** dW1, double sig);
+
+void implicitLUSGS(SOLVER* solver);
 
 #endif

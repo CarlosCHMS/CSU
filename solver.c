@@ -1531,21 +1531,13 @@ void solverSolve(SOLVER* solver)
             }
             else if(solver->timeScheme == 1)
             {
-                solverCalcR(solver, solver->U);
-                implicitCalcD(solver);  
-                implicitLUSGS_L(solver);              
-                implicitLUSGS_U(solver);    
-                solverUpdateUImplicit(solver);        
+                implicitLUSGS(solver);
             }
             else if(solver->timeScheme == 2)
             {
                 if(solver->iteration < solver->Ninit)
                 {
-                    solverCalcR(solver, solver->U);
-                    implicitCalcD(solver);
-                    implicitUpdateA(solver);
-                    implicitLUSGS_matrix(solver, solver->R, solver->implicit->dW1, -1);
-                    solverUpdateUImplicit(solver);
+                    implicitLUSGS(solver);
                 }
                 else
                 {
@@ -1556,11 +1548,7 @@ void solverSolve(SOLVER* solver)
             {
                 if(solver->iteration < solver->Ninit)
                 {
-                    solverCalcR(solver, solver->U);
-                    implicitCalcD(solver);
-                    implicitUpdateA(solver);
-                    implicitLUSGS_matrix(solver, solver->R, solver->implicit->dW1, -1);
-                    solverUpdateUImplicit(solver);
+                    implicitLUSGS(solver);
                 }
                 else
                 {
