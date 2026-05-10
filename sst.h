@@ -21,8 +21,7 @@ typedef struct{
 
 typedef struct SST{ 
 
-    bool active;
-    bool dQ_allocated;    
+    bool active;    
   
     double L;
     double kFactor;
@@ -43,13 +42,7 @@ typedef struct SST{
     double *F1;
     double *F2;  
     double *dd;
-    double *om2; 
-    double *dQodr;     
-    double *dQodrk;     
-    double *dQodro; 
-    double *dQkdr;     
-    double *dQkdrk;     
-    double *dQkdro;
+    double *om2;
     
     SST_TRANS* trans;
 } SST;

@@ -18,8 +18,6 @@ SST* sstInit(INPUT* input)
 {
     SST* sst = malloc(sizeof(SST));
     
-    sst->dQ_allocated = false;
-    
     sst->sk1 = 0.85;
     sst->so1 = 0.5;
     sst->b1 = 0.075;
@@ -97,18 +95,6 @@ SST* sstInit(INPUT* input)
 
 void sstMalloc(SST* sst, int Nelem, int timeScheme)
 {   
-
-    if(timeScheme == 1)
-    {
-        sst->dQodro = malloc(Nelem*sizeof(double));
-        sst->dQodrk = malloc(Nelem*sizeof(double));
-        sst->dQodr = malloc(Nelem*sizeof(double));                        
-        sst->dQkdro = malloc(Nelem*sizeof(double));                
-        sst->dQkdrk = malloc(Nelem*sizeof(double));
-        sst->dQkdr = malloc(Nelem*sizeof(double)); 
-
-        sst->dQ_allocated = true;
-    }
         
     sst->miTe = malloc(Nelem*sizeof(double));
     sst->F1 = malloc(Nelem*sizeof(double));
@@ -125,16 +111,6 @@ void sstFree(SST* sst)
     free(sst->F2);
     free(sst->dd);
     free(sst->om2);
-    
-    if(sst->dQ_allocated)
-    {
-        free(sst->dQodr);
-        free(sst->dQodrk);        
-        free(sst->dQodro);
-        free(sst->dQkdr);
-        free(sst->dQkdrk);        
-        free(sst->dQkdro);
-    }
 
     sstTransFree(sst->trans);
     free(sst);
@@ -573,75 +549,12 @@ void sstInterSource(SOLVER* solver)
 
         var.mi_L = gaspropSutherland(var.T);
 
-        if(var.om == solver->omLim)
-        {
-            if(solver->sst->dQ_allocated)
-            {
-                solver->sst->dQkdr[ii] = 0;
-                solver->sst->dQkdrk[ii] = 0;
-                solver->sst->dQkdro[ii] = 0;
-
-                solver->sst->dQodr[ii] = 0;
-                solver->sst->dQodrk[ii] = 0;
-                solver->sst->dQodro[ii] = 0;
-            }
-        }
-        else
+        if(var.om > solver->omLim)
         {
             sstSources(solver->sst, &var);
 
             solver->R[4][ii] -= var.Qtk*solver->mesh->omega[ii];
             solver->R[5][ii] -= var.Qto*solver->mesh->omega[ii];
-
-            if(solver->sst->dQ_allocated)
-            {
-
-                double dQkdr = var.Qtk;
-                double dQkdo = var.Qtk;
-                double dQkdk = var.Qtk;        
-                double dQodr = var.Qto;        
-                double dQodo = var.Qto;
-                double dQodk = var.Qto;
-                
-                double h = 1e-6;
-                double dh = 1e-6;
-                double hh;
-                
-                hh = fabs(var.om*h);
-                hh = fmax(hh, dh);
-                var.om += hh;
-                sstSources(solver->sst, &var);
-                dQkdo = (var.Qtk - dQkdo)/hh;    
-                dQodo = (var.Qto - dQodo)/hh;
-                var.om = E0->P[6];
-                
-                hh = fabs(var.k*h);
-                hh = fmax(hh, dh);
-                var.k += hh;
-                sstSources(solver->sst, &var);
-                dQkdk = (var.Qtk - dQkdk)/hh; 
-                dQodk = (var.Qto - dQodk)/hh;
-                var.k = E0->P[5];
-                
-                hh = fabs(var.r*h);
-                hh = fmax(hh, dh);        
-                var.r += hh;
-                sstSources(solver->sst, &var);
-                dQkdr = (var.Qtk - dQkdr)/hh;        
-                dQodr = (var.Qto - dQodr)/hh;
-                var.r = E0->P[0];
-
-                double omega = solver->mesh->omega[ii];
-
-                solver->sst->dQkdr[ii] = (dQkdr - dQkdk*var.k/var.r - dQkdo*var.om/var.r)*omega;//var.dQkdr*E0->omega;
-                solver->sst->dQkdrk[ii] = dQkdk*omega/var.r;//dQkdk*E0->omega/var.r;//var.dQkdrk*E0->omega;        
-                solver->sst->dQkdro[ii] = dQkdo*solver->mesh->omega[ii]/var.r;//var.dQkdro*E0->omega;
-
-                solver->sst->dQodr[ii] = (dQodr - dQodk*var.k/var.r - dQodo*var.om/var.r)*omega;//var.dQodr*E0->omega;
-                solver->sst->dQodrk[ii] = dQodk*omega/var.r;//var.dQodrk*E0->omega;        
-                solver->sst->dQodro[ii] = dQodo*omega/var.r;//var.dQodro*E0->omega;
-            
-            }
         }
     }
 }
@@ -672,7 +585,6 @@ void sstSources(SST* sst, SSTVAR* var)
         double F2 = sstF2(sst, var, n_L_term, sqrtk_term);
 
         var->mi_t = var->r*sst->a1*var->k/fmax(sst->a1*var->om, omega*F2);
-        //var->mi_t = fmin(var->mi_t, 1e6*var->mi_L);
         
         double n_t = var->mi_t/var->r;
 
@@ -686,7 +598,6 @@ void sstSources(SST* sst, SSTVAR* var)
         double P = var->dux*txx + var->dvy*tyy + (var->duy + var->dvx)*txy;        
         
         P = fmin(P, 10*sst->bs*var->r*var->om*var->k);
-        //P = fmin(P, var->mi_t*omega*omega);        
                 
         var->F1 = F1;
         var->F2 = F2;
@@ -725,7 +636,6 @@ void sstFlux(SST* sst, SSTVAR* var)
         double F2 = sstF2(sst, var, n_L_term, sqrtk_term);
 
         var->mi_t = var->r*sst->a1*var->k/fmax(sst->a1*var->om, omega*F2);
-        //var->mi_t = fmin(var->mi_t, 1e6*var->mi_L);
 
         double sk = sstBlend(sst->sk1, sst->sk2, F1);
         double so = sstBlend(sst->so1, sst->so2, F1);
