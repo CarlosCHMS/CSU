@@ -51,11 +51,9 @@ typedef struct SOLVER{
     int dtLocal;
     int turb1order;
     int timeScheme;
-    int Nlinear;
     int viscBlazek;
     int Nboundary;
     int iteration;
-    int Ninit;
 
     char* wd;
     char writeSurf[50];

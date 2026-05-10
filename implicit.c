@@ -29,14 +29,7 @@ IMPLICIT* implicitInit(INPUT* input, SOLVER* solver)
     }
     else
     {
-        if(solver->timeScheme == 1)
-        {
-            implicit->isMatrix = false;
-        }
-        else if(solver->timeScheme == 2 || solver->timeScheme == 3)
-        {
-            implicit->isMatrix = true;
-        }
+        implicit->isMatrix = true;
     }
     
     if(inputNameIsInput(input, "wImp"))
@@ -45,7 +38,25 @@ IMPLICIT* implicitInit(INPUT* input, SOLVER* solver)
     }
     else
     {
-        implicit->wImp = 1.0;
+        implicit->wImp = 1.5;
+    }
+    
+    if(inputNameIsInput(input, "Nlinear"))
+    {
+        implicit->Nlinear = atoi(inputGetValue(input, "Nlinear"));
+    }
+    else
+    {
+        implicit->Nlinear = 10;
+    }
+
+    if(inputNameIsInput(input, "Ninit"))
+    {
+        implicit->Ninit = atoi(inputGetValue(input, "Ninit"));
+    }
+    else
+    {
+        implicit->Ninit = 10;
     }
     
     if(implicit->isMatrix)
@@ -104,8 +115,8 @@ void implicitMalloc(IMPLICIT* implicit, SOLVER* solver)
         implicit->r = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);   
         implicit->w = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);  
 
-        implicit->v = malloc((solver->Nlinear+1)*sizeof(double**));
-        for (int i=0;i<solver->Nlinear+1;i++) implicit->v[i] = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
+        implicit->v = malloc((implicit->Nlinear+1)*sizeof(double**));
+        for (int i=0;i<implicit->Nlinear+1;i++) implicit->v[i] = tableMallocDouble(solver->Nvar, solver->mesh->Nelem);
         
         if(implicit->isMatrix)
         {
@@ -157,7 +168,7 @@ void implicitFree(IMPLICIT* implicit, SOLVER* solver)
         tableFreeDouble(implicit->R0, solver->Nvar);
         tableFreeDouble(implicit->w, solver->Nvar);
         
-        for (int i=0;i<solver->Nlinear+1;i++) tableFreeDouble(implicit->v[i], solver->Nvar);
+        for (int i=0;i<implicit->Nlinear+1;i++) tableFreeDouble(implicit->v[i], solver->Nvar);
         free(implicit->v);
         
         if(implicit->isMatrix)
@@ -843,7 +854,7 @@ void implicitDPLUR(SOLVER* solver)
             
     double fw = 1.0;//2.0/3.0;
 
-    for (int jj=0; jj<solver->Nlinear; jj++) {
+    for (int jj=0; jj<implicit->Nlinear; jj++) {
 
         implicitMultA2(solver, implicit->U0, implicit->R0, implicit->w, implicit->r);
 
@@ -887,7 +898,7 @@ void implicitGMRES(SOLVER* solver)
 {
     IMPLICIT* implicit = solver->implicit;
 
-    int m = solver->Nlinear;
+    int m = implicit->Nlinear;
 
     double **H = malloc((m+1)*sizeof(double*));
     for (int i=0;i<m+1;i++) H[i] = calloc(m,sizeof(double));

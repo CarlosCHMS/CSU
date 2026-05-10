@@ -299,24 +299,6 @@ void solverSetData(SOLVER* solver, INPUT* input)
         solver->timeScheme = 0;
     }
 
-    if(inputNameIsInput(input, "Nlinear"))
-    {
-        solver->Nlinear = atoi(inputGetValue(input, "Nlinear"));
-    }
-    else
-    {
-        solver->Nlinear = 10;
-    }
-
-    if(inputNameIsInput(input, "Ninit"))
-    {
-        solver->Ninit = atoi(inputGetValue(input, "Ninit"));
-    }
-    else
-    {
-        solver->Ninit = 10;
-    }
-
     if(inputNameIsInput(input, "rLim"))
     {
         solver->rLim = strtod(inputGetValue(input, "rLim"), NULL);
@@ -1535,7 +1517,7 @@ void solverSolve(SOLVER* solver)
             }
             else if(solver->timeScheme == 2)
             {
-                if(solver->iteration < solver->Ninit)
+                if(solver->iteration < solver->implicit->Ninit)
                 {
                     implicitLUSGS(solver);
                 }
@@ -1546,7 +1528,7 @@ void solverSolve(SOLVER* solver)
             }
             else if(solver->timeScheme == 3)
             {
-                if(solver->iteration < solver->Ninit)
+                if(solver->iteration < solver->implicit->Ninit)
                 {
                     implicitLUSGS(solver);
                 }

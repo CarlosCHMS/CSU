@@ -16,6 +16,8 @@ typedef struct IMPLICIT
     bool isMatrix;
     
     int timeScheme;
+    int Ninit;
+    int Nlinear;    
 
     double wImp;
 
