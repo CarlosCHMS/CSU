@@ -557,6 +557,7 @@ void implicitCalcJacobi(SOLVER* solver, double* U, double** A, double nx, double
     double U02 = U[0]*U[0];
     double dTU[6];
     double R = solver->gas->R;
+    double U12n = U[1]*nx + U[2]*ny;
     
     if(solver->sst->active)
     {
@@ -573,36 +574,36 @@ void implicitCalcJacobi(SOLVER* solver, double* U, double** A, double nx, double
         A[0][3] = 0 ;
         A[0][4] = 0 ;
         A[0][5] = 0 ;
-        A[1][0] = R*T*nx + R*U[0]*dTU[0]*nx - U[1]*(U[1]*nx + U[2]*ny)/U02 ;
-        A[1][1] = R*U[0]*dTU[1]*nx + U[1]*nx/U[0] + (U[1]*nx + U[2]*ny)/U[0] ;
+        A[1][0] = R*T*nx + R*U[0]*dTU[0]*nx - U[1]*U12n/U02 ;
+        A[1][1] = R*U[0]*dTU[1]*nx + U[1]*nx/U[0] + U12n/U[0] ;
         A[1][2] = R*U[0]*dTU[2]*nx + U[1]*ny/U[0] ;
         A[1][3] = R*U[0]*dTU[3]*nx ;
         A[1][4] = R*U[0]*dTU[4]*nx ;
         A[1][5] = R*U[0]*dTU[5]*nx ;
-        A[2][0] = R*T*ny + R*U[0]*dTU[0]*ny - U[2]*(U[1]*nx + U[2]*ny)/U02 ;
+        A[2][0] = R*T*ny + R*U[0]*dTU[0]*ny - U[2]*U12n/U02 ;
         A[2][1] = R*U[0]*dTU[1]*ny + U[2]*nx/U[0] ;
-        A[2][2] = R*U[0]*dTU[2]*ny + U[2]*ny/U[0] + (U[1]*nx + U[2]*ny)/U[0] ;
+        A[2][2] = R*U[0]*dTU[2]*ny + U[2]*ny/U[0] + U12n/U[0] ;
         A[2][3] = R*U[0]*dTU[3]*ny ;
         A[2][4] = R*U[0]*dTU[4]*ny ;
         A[2][5] = R*U[0]*dTU[5]*ny ;
-        A[3][0] = R*dTU[0]*(U[1]*nx + U[2]*ny) - U[3]*(U[1]*nx + U[2]*ny)/U02 ;
-        A[3][1] = R*T*nx + R*dTU[1]*(U[1]*nx + U[2]*ny) + U[3]*nx/U[0] ;
-        A[3][2] = R*T*ny + R*dTU[2]*(U[1]*nx + U[2]*ny) + U[3]*ny/U[0] ;
-        A[3][3] = R*dTU[3]*(U[1]*nx + U[2]*ny) + (U[1]*nx + U[2]*ny)/U[0] ;
-        A[3][4] = R*dTU[4]*(U[1]*nx + U[2]*ny) ;
-        A[3][5] = R*dTU[5]*(U[1]*nx + U[2]*ny) ;
-        A[4][0] = -U[4]*(U[1]*nx + U[2]*ny)/U02 ;
+        A[3][0] = R*dTU[0]*U12n - U[3]*U12n/U02 ;
+        A[3][1] = R*T*nx + R*dTU[1]*U12n + U[3]*nx/U[0] ;
+        A[3][2] = R*T*ny + R*dTU[2]*U12n + U[3]*ny/U[0] ;
+        A[3][3] = R*dTU[3]*U12n + U12n/U[0] ;
+        A[3][4] = R*dTU[4]*U12n ;
+        A[3][5] = R*dTU[5]*U12n ;
+        A[4][0] = -U[4]*U12n/U02 ;
         A[4][1] = U[4]*nx/U[0] ;
         A[4][2] = U[4]*ny/U[0] ;
         A[4][3] = 0 ;
-        A[4][4] = (U[1]*nx + U[2]*ny)/U[0] ;
+        A[4][4] = U12n/U[0] ;
         A[4][5] = 0 ;
-        A[5][0] = -U[5]*(U[1]*nx + U[2]*ny)/U02 ;
+        A[5][0] = -U[5]*U12n/U02 ;
         A[5][1] = U[5]*nx/U[0] ;
         A[5][2] = U[5]*ny/U[0] ;
         A[5][3] = 0 ;
         A[5][4] = 0 ;
-        A[5][5] = (U[1]*nx + U[2]*ny)/U[0] ;
+        A[5][5] = U12n/U[0] ;
     }
     else if(solver->sa1->active)
     {
@@ -617,52 +618,50 @@ void implicitCalcJacobi(SOLVER* solver, double* U, double** A, double nx, double
         A[0][2] = ny ;
         A[0][3] = 0 ;
         A[0][4] = 0 ;
-        A[1][0] = R*T*nx + R*U[0]*dTU[0]*nx - U[1]*(U[1]*nx + U[2]*ny)/U02;
-        A[1][1] = R*U[0]*dTU[1]*nx + U[1]*nx/U[0] + (U[1]*nx + U[2]*ny)/U[0] ;
+        A[1][0] = R*T*nx + R*U[0]*dTU[0]*nx - U[1]*U12n/U02;
+        A[1][1] = R*U[0]*dTU[1]*nx + U[1]*nx/U[0] + U12n/U[0] ;
         A[1][2] = R*U[0]*dTU[2]*nx + U[1]*ny/U[0] ;
         A[1][3] = R*U[0]*dTU[3]*nx ;
         A[1][4] = R*U[0]*dTU[4]*nx ;
-        A[2][0] = R*T*ny + R*U[0]*dTU[0]*ny - U[2]*(U[1]*nx + U[2]*ny)/U02;
+        A[2][0] = R*T*ny + R*U[0]*dTU[0]*ny - U[2]*U12n/U02;
         A[2][1] = R*U[0]*dTU[1]*ny + U[2]*nx/U[0] ;
-        A[2][2] = R*U[0]*dTU[2]*ny + U[2]*ny/U[0] + (U[1]*nx + U[2]*ny)/U[0] ;
+        A[2][2] = R*U[0]*dTU[2]*ny + U[2]*ny/U[0] + U12n/U[0] ;
         A[2][3] = R*U[0]*dTU[3]*ny ;
         A[2][4] = R*U[0]*dTU[4]*ny ;
-        A[3][0] = R*dTU[0]*(U[1]*nx + U[2]*ny) - U[3]*(U[1]*nx + U[2]*ny)/U02 ;
-        A[3][1] = R*T*nx + R*dTU[1]*(U[1]*nx + U[2]*ny) + U[3]*nx/U[0] ;
-        A[3][2] = R*T*ny + R*dTU[2]*(U[1]*nx + U[2]*ny) + U[3]*ny/U[0] ;
-        A[3][3] = R*dTU[3]*(U[1]*nx + U[2]*ny) + (U[1]*nx + U[2]*ny)/U[0] ;
-        A[3][4] = R*dTU[4]*(U[1]*nx + U[2]*ny) ;
-        A[4][0] = -U[4]*(U[1]*nx + U[2]*ny)/U02 ;
+        A[3][0] = R*dTU[0]*U12n - U[3]*U12n/U02 ;
+        A[3][1] = R*T*nx + R*dTU[1]*U12n + U[3]*nx/U[0] ;
+        A[3][2] = R*T*ny + R*dTU[2]*U12n + U[3]*ny/U[0] ;
+        A[3][3] = R*dTU[3]*U12n + U12n/U[0] ;
+        A[3][4] = R*dTU[4]*U12n ;
+        A[4][0] = -U[4]*U12n/U02 ;
         A[4][1] = U[4]*nx/U[0] ;
         A[4][2] = U[4]*ny/U[0] ;
         A[4][3] = 0 ;
-        A[4][4] = (U[1]*nx + U[2]*ny)/U[0] ;
+        A[4][4] = U12n/U[0] ;
     }
     else
     {
-
         dTU[0] = dTde*(-U[3]/U02 + (U[1]*U[1])/(U02*U[0]) + (U[2]*U[2])/(U02*U[0]));
-        dTU[1] = -U[1]*dTde/(U[0]*U[0]);
-        dTU[2] = -U[2]*dTde/(U[0]*U[0]);
+        dTU[1] = -U[1]*dTde/U02;
+        dTU[2] = -U[2]*dTde/U02;
         dTU[3] = dTde/U[0];
 
         A[0][0] = 0;
         A[0][1] = nx;
         A[0][2] = ny;
         A[0][3] = 0;
-        A[1][0] = R*T*nx + R*U[0]*dTU[0]*nx - U[1]*(U[1]*nx + U[2]*ny)/U02;
-        A[1][1] = R*U[0]*dTU[1]*nx + U[1]*nx/U[0] + (U[1]*nx + U[2]*ny)/U[0];
+        A[1][0] = R*T*nx + R*U[0]*dTU[0]*nx - U[1]*U12n/U02;
+        A[1][1] = R*U[0]*dTU[1]*nx + U[1]*nx/U[0] + U12n/U[0];
         A[1][2] = R*U[0]*dTU[2]*nx + U[1]*ny/U[0];
         A[1][3] = R*U[0]*dTU[3]*nx;
-        A[2][0] = R*T*ny + R*U[0]*dTU[0]*ny - U[2]*(U[1]*nx + U[2]*ny)/U02;
+        A[2][0] = R*T*ny + R*U[0]*dTU[0]*ny - U[2]*U12n/U02;
         A[2][1] = R*U[0]*dTU[1]*ny + U[2]*nx/U[0];
-        A[2][2] = R*U[0]*dTU[2]*ny + U[2]*ny/U[0] + (U[1]*nx + U[2]*ny)/U[0];
+        A[2][2] = R*U[0]*dTU[2]*ny + U[2]*ny/U[0] + U12n/U[0];
         A[2][3] = R*U[0]*dTU[3]*ny;
-        A[3][0] = R*dTU[0]*(U[1]*nx + U[2]*ny) - U[3]*(U[1]*nx + U[2]*ny)/U02;
-        A[3][1] = R*T*nx + R*dTU[1]*(U[1]*nx + U[2]*ny) + U[3]*nx/U[0];
-        A[3][2] = R*T*ny + R*dTU[2]*(U[1]*nx + U[2]*ny) + U[3]*ny/U[0];
-        A[3][3] = R*dTU[3]*(U[1]*nx + U[2]*ny) + (U[1]*nx + U[2]*ny)/U[0];
-   
+        A[3][0] = R*dTU[0]*U12n - U[3]*U12n/U02;
+        A[3][1] = R*T*nx + R*dTU[1]*U12n + U[3]*nx/U[0];
+        A[3][2] = R*T*ny + R*dTU[2]*U12n + U[3]*ny/U[0];
+        A[3][3] = R*dTU[3]*U12n + U12n/U[0];
     }
 }
 
@@ -1114,14 +1113,6 @@ void implicitCalcLUSGS_matrixFree(SOLVER* solver, double** b, double** dW1, doub
 
                 implicitCalcJacobi(solver, U, A, nx, ny, E1->P[4]);
 
-                for(int mm=0; mm<solver->Nvar; mm++)
-                {                            
-                    for(int nn=0; nn<solver->Nvar; nn++)
-                    {
-                        A[nn][mm] *= 0.5*dS;
-                    }
-                }
-
                 double c = gasprop_T2c(solver->gas, E1->P[4]);
                 double ra = implicit->wImp*(fabs(nx*E1->P[1] + ny*E1->P[2]) + c)*dS;
 
@@ -1150,17 +1141,13 @@ void implicitCalcLUSGS_matrixFree(SOLVER* solver, double** b, double** dW1, doub
                     ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->gas->Pr + solver->miT[face1]/solver->gas->Pr_t)*dS/d;
                 }
 
-                for(int nn=0; nn<solver->Nvar; nn++)
-                {
-                    A[nn][nn] -= 0.5*ra;
-                }            
-            
                 for(int kk=0; kk<solver->Nvar; kk++)
                 {
                     for(int nn=0; nn<solver->Nvar; nn++)
                     {
-                        dW1[kk][e0] -= A[kk][nn]*dW1[nn][e1];
+                        dW1[kk][e0] -= 0.5*dS*A[kk][nn]*dW1[nn][e1];
                     }
+                    dW1[kk][e0] += 0.5*ra*dW1[kk][e1];
                 }
             }
         }
@@ -1232,14 +1219,6 @@ void implicitCalcLUSGS_matrixFree(SOLVER* solver, double** b, double** dW1, doub
 
                 implicitCalcJacobi(solver, U, A, nx, ny, E1->P[4]);
 
-                for(int mm=0; mm<solver->Nvar; mm++)
-                {                            
-                    for(int nn=0; nn<solver->Nvar; nn++)
-                    {
-                        A[nn][mm] *= 0.5*dS;
-                    }
-                }
-
                 double c = gasprop_T2c(solver->gas, E1->P[4]);
                 double ra = implicit->wImp*(fabs(nx*E1->P[1] + ny*E1->P[2]) + c)*dS;
 
@@ -1267,18 +1246,14 @@ void implicitCalcLUSGS_matrixFree(SOLVER* solver, double** b, double** dW1, doub
                     double d = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
                     ra += fmax(4/(3*r), gasprop_T2gamma(solver->gas, T)/r)*(mi/solver->gas->Pr + solver->miT[face1]/solver->gas->Pr_t)*dS/d;
                 }
-
-                for(int nn=0; nn<solver->Nvar; nn++)
-                {
-                    A[nn][nn] -= 0.5*ra;
-                }            
             
                 for(int kk=0; kk<solver->Nvar; kk++)
                 {
                     for(int nn=0; nn<solver->Nvar; nn++)
                     {
-                        dW1[kk][e0] -= A[kk][nn]*dW1[nn][e1];
+                        dW1[kk][e0] -= 0.5*dS*A[kk][nn]*dW1[nn][e1];
                     }
+                    dW1[kk][e0] += 0.5*ra*dW1[kk][e1];
                 }
             }
         }
