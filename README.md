@@ -22,7 +22,7 @@ Since the publication of this paper, several improvements have been made, includ
 
 - Flux algorithms: AUSM, AUSM+, AUSM+up, and AUSM+up2;
 
-- The implicit LUSGS algorithm;
+- The implicit LUSGS, DPLUR and GMRES algorithms;
 
 - The thermally perfect gas model.
 
