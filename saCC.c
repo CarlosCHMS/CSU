@@ -454,7 +454,7 @@ void saCC_BoundaryViscousFluxWall(BOUNDARY* boundary, SOLVER* solver, int ii, do
     double dnym = solver->dPy[4][e0];
 
     drx = solver->dPx[0][e0];
-    dry = solver->dPx[0][e0];
+    dry = solver->dPy[0][e0];
 
     dux = duxm + (dul - (duxm*dx + duym*dy)/L)*dx/L;
     duy = duym + (dul - (duxm*dx + duym*dy)/L)*dy/L;
