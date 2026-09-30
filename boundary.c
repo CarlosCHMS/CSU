@@ -47,17 +47,19 @@ BOUNDARY* boundaryInit(INPUT* input, MESHBC* bc, SOLVER* solver)
         }
         else if(solver->sa1->active)
         {
-            boundary->viscousFlux = saBoundaryViscousFluxSymmetry;
+            if(solver->sa1->cc)
+            {
+                boundary->viscousFlux = saCC_BoundaryViscousFluxSymmetry;
+            }
+            else
+            {    
+                boundary->viscousFlux = saBoundaryViscousFluxSymmetry;
+            }
         }
         else if(solver->sst->active)
         {
             boundary->viscousFlux = sstBoundaryViscousFluxSymmetry;
         }
-        else if(solver->sa1->cc)
-        {
-            boundary->viscousFlux = saCC_BoundaryViscousFluxSymmetry;
-        }
-        
     }
     else if(strcmp(boundary->type, "inlet") == 0)
     {
@@ -69,15 +71,18 @@ BOUNDARY* boundaryInit(INPUT* input, MESHBC* bc, SOLVER* solver)
         }
         else if(solver->sa1->active)
         {
-            boundary->viscousFlux = saBoundaryViscousFluxGeneral;
+            if(solver->sa1->cc)
+            {
+                boundary->viscousFlux = saCC_BoundaryViscousFluxGeneral;
+            }
+            else
+            {
+                boundary->viscousFlux = saBoundaryViscousFluxGeneral;
+            }
         }
         else if(solver->sst->active)
         {
             boundary->viscousFlux = sstBoundaryViscousFluxGeneral;
-        }
-        else if(solver->sa1->cc)
-        {
-            boundary->viscousFlux = saCC_BoundaryViscousFluxGeneral;
         }
     }
     else if(strcmp(boundary->type, "outlet") == 0)
@@ -90,17 +95,19 @@ BOUNDARY* boundaryInit(INPUT* input, MESHBC* bc, SOLVER* solver)
         }
         else if(solver->sa1->active)
         {
-            boundary->viscousFlux = saBoundaryViscousFluxGeneral;
+            if(solver->sa1->cc)
+            {
+                boundary->viscousFlux = saCC_BoundaryViscousFluxGeneral;
+            }
+            else
+            {
+                boundary->viscousFlux = saBoundaryViscousFluxGeneral;
+            }
         }
         else if(solver->sst->active)
         {
             boundary->viscousFlux = sstBoundaryViscousFluxGeneral;
         }
-        else if(solver->sa1->cc)
-        {
-            boundary->viscousFlux = saCC_BoundaryViscousFluxGeneral;
-        }
-
     }
     else if(strcmp(boundary->type, "wall") == 0)
     {
@@ -113,15 +120,18 @@ BOUNDARY* boundaryInit(INPUT* input, MESHBC* bc, SOLVER* solver)
         }
         else if(solver->sa1->active)
         {
-            boundary->viscousFlux = saBoundaryViscousFluxWall;
+            if(solver->sa1->cc)
+            {
+                boundary->viscousFlux = saCC_BoundaryViscousFluxWall;
+            }
+            else
+            {
+                boundary->viscousFlux = saBoundaryViscousFluxWall;
+            }
         }
         else if(solver->sst->active)
         {
             boundary->viscousFlux = sstBoundaryViscousFluxWall;
-        }
-        else if(solver->sa1->cc)
-        {
-            boundary->viscousFlux = saCC_BoundaryViscousFluxWall;
         }
     }
     else if(strcmp(boundary->type, "wallT") == 0)
@@ -135,15 +145,18 @@ BOUNDARY* boundaryInit(INPUT* input, MESHBC* bc, SOLVER* solver)
         }
         else if(solver->sa1->active)
         {
-            boundary->viscousFlux = saBoundaryViscousFluxGeneral;
+            if(solver->sa1->cc)
+            {
+                boundary->viscousFlux = saCC_BoundaryViscousFluxGeneral;
+            }
+            else
+            {
+                boundary->viscousFlux = saBoundaryViscousFluxGeneral;
+            }
         }
         else if(solver->sst->active)
         {
             boundary->viscousFlux = sstBoundaryViscousFluxGeneral;
-        }
-        else if(solver->sa1->cc)
-        {
-            boundary->viscousFlux = saCC_BoundaryViscousFluxGeneral;
         }
     }
     else
